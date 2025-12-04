@@ -6,20 +6,6 @@ function digitsOnly(s) {
 }
 
 /**
- * Tabela de taxas por bairro – pode ser customizada via settings em outro momento.
- */
-const DELIVERY_FEES_BY_NEIGHBORHOOD = {
-  Santana: 6,
-  "Alto de Santana": 7,
-  Tucuruvi: 7,
-  Mandaqui: 7,
-  "Santa Teresinha": 7,
-  "Casa Verde": 8,
-  "Vila Guilherme": 9,
-  "Outros bairros": 10,
-};
-
-/**
  * Normaliza coleção de produtos vinda do DataEngine / catálogo
  * Aceita:
  * - { items: [...] }
@@ -81,9 +67,16 @@ function normalizeProductsCollections(raw) {
     const categoria = p.categoria || p.category || "";
 
     // Aceita tanto priceBroto/priceGrande quanto preco_broto/preco_grande/preco
-    const priceBroto = p.priceBroto ?? p.preco_broto ?? null;
+    const priceBroto =
+      p.priceBroto ??
+      p.preco_broto ??
+      null;
 
-    const priceGrande = p.priceGrande ?? p.preco_grande ?? p.preco ?? null;
+    const priceGrande =
+      p.priceGrande ??
+      p.preco_grande ??
+      p.preco ??
+      null;
 
     const prices = {
       broto:
@@ -110,6 +103,7 @@ function normalizeProductsCollections(raw) {
         pizzas.push(normalized);
       }
     } else if (normalizedType === "drink") {
+      // para bebida, basta ter algum preço
       if (prices.broto > 0 || prices.grande > 0) {
         drinks.push(normalized);
       }
@@ -125,21 +119,6 @@ function normalizeProductsCollections(raw) {
 
 function findById(id, collection) {
   return collection.find((p) => String(p.id) === String(id));
-}
-
-function getNeighborhoodFee(neighborhoodRaw) {
-  if (!neighborhoodRaw) return 0;
-  const key = neighborhoodRaw.trim();
-  if (DELIVERY_FEES_BY_NEIGHBORHOOD[key] != null) {
-    return DELIVERY_FEES_BY_NEIGHBORHOOD[key];
-  }
-  // fallback – se tiver "Santana" dentro, por exemplo
-  const normalized = key.toLowerCase();
-  const found = Object.entries(DELIVERY_FEES_BY_NEIGHBORHOOD).find(([name]) =>
-    normalized.includes(name.toLowerCase())
-  );
-  if (found) return found[1];
-  return DELIVERY_FEES_BY_NEIGHBORHOOD["Outros bairros"] || 0;
 }
 
 export default function NewOrderModal({
@@ -203,17 +182,11 @@ export default function NewOrderModal({
   const [status] = useState("open"); // padrão: em aberto
   const [orderType, setOrderType] = useState("delivery"); // delivery | counter
   const [paymentMethod, setPaymentMethod] = useState("");
-
-  const [deliveryNeighborhood, setDeliveryNeighborhood] = useState("");
   const [deliveryFee, setDeliveryFee] = useState("0");
-
   const [discountType, setDiscountType] = useState("none"); // none | value | percent
   const [discountValue, setDiscountValue] = useState("0");
   const [orderNotes, setOrderNotes] = useState("");
   const [kitchenNotes, setKitchenNotes] = useState("");
-
-  // Troco
-  const [cashGiven, setCashGiven] = useState("");
 
   // -----------------------------
   // Load do banco
@@ -248,8 +221,9 @@ export default function NewOrderModal({
             ? customersDb
             : [];
 
-          const { pizzas, drinks, extras } =
-            normalizeProductsCollections(products);
+          const { pizzas, drinks, extras } = normalizeProductsCollections(
+            products
+          );
 
           setCustomers(customersArr);
           setPizzaCatalog(pizzas);
@@ -280,13 +254,11 @@ export default function NewOrderModal({
 
           setOrderType("delivery");
           setPaymentMethod("");
-          setDeliveryNeighborhood("");
           setDeliveryFee("0");
           setDiscountType("none");
           setDiscountValue("0");
           setOrderNotes("");
           setKitchenNotes("");
-          setCashGiven("");
 
           if (pizzas.length > 0) {
             setFlavor1(pizzas[0].id);
@@ -298,8 +270,9 @@ export default function NewOrderModal({
         }
 
         // Caso catálogo seja injetado via props
-        const { pizzas, drinks, extras } =
-          normalizeProductsCollections(productsDb);
+        const { pizzas, drinks, extras } = normalizeProductsCollections(
+          productsDb
+        );
 
         setCustomers([]); // sem clientes via catálogo externo
         setPizzaCatalog(pizzas);
@@ -326,13 +299,11 @@ export default function NewOrderModal({
 
         setOrderType("delivery");
         setPaymentMethod("");
-        setDeliveryNeighborhood("");
         setDeliveryFee("0");
         setDiscountType("none");
         setDiscountValue("0");
         setOrderNotes("");
         setKitchenNotes("");
-        setCashGiven("");
 
         if (pizzas.length > 0) {
           setFlavor1(pizzas[0].id);
@@ -354,7 +325,7 @@ export default function NewOrderModal({
   }, [isOpen, initialCatalog]);
 
   // -----------------------------
-  // Cliente selecionado (memo)
+  // Filtro de clientes
   // -----------------------------
   const filteredCustomers = useMemo(() => {
     const term = customerSearch.trim().toLowerCase();
@@ -381,29 +352,6 @@ export default function NewOrderModal({
     if (!selectedCustomerId) return null;
     return customers.find((c) => c.id === selectedCustomerId) || null;
   }, [selectedCustomerId, customers]);
-
-  // Quando o cliente muda, tenta puxar bairro e taxa automaticamente
-  useEffect(() => {
-    if (!selectedCustomer || orderType !== "delivery") return;
-
-    const addr = selectedCustomer.address || {};
-    const neighborhood = addr.neighborhood || addr.bairro || "";
-    if (!neighborhood) return;
-
-    const fee = getNeighborhoodFee(neighborhood);
-    setDeliveryNeighborhood(neighborhood);
-    setDeliveryFee(String(fee).replace(".", ","));
-  }, [selectedCustomer, orderType]);
-
-  // Se mudar o tipo de pedido para balcão, zera taxa
-  useEffect(() => {
-    if (orderType === "counter") {
-      setDeliveryFee("0");
-    } else if (orderType === "delivery" && deliveryNeighborhood) {
-      const fee = getNeighborhoodFee(deliveryNeighborhood);
-      setDeliveryFee(String(fee).replace(".", ","));
-    }
-  }, [orderType, deliveryNeighborhood]);
 
   // -----------------------------
   // Filtro de pizzas
@@ -445,6 +393,7 @@ export default function NewOrderModal({
       const extra = findById(extraId, extraCatalog);
       if (!extra) return acc;
 
+      // usa preço por tamanho se existir, senão fallback
       const price =
         size === "broto"
           ? extra.prices.broto || extra.prices.grande || 0
@@ -463,6 +412,7 @@ export default function NewOrderModal({
 
     const basePrice1 = pizza1.prices[size] || 0;
 
+    // Apenas 1 sabor
     if ((!twoFlavorsEnabled && !threeFlavorsEnabled) || (!flavor2 && !flavor3)) {
       return basePrice1 + extrasUnitTotal;
     }
@@ -591,6 +541,7 @@ export default function NewOrderModal({
 
     setOrderItems((prev) => [...prev, newItem]);
 
+    // reset só da quantidade, sabores adicionais e extras
     setQuantity(1);
     setTwoFlavorsEnabled(false);
     setThreeFlavorsEnabled(false);
@@ -620,6 +571,7 @@ export default function NewOrderModal({
       return;
     }
 
+    // para bebida, usa sempre price.grande como preço unitário
     const unit = drink.prices.grande || drink.prices.broto || 0;
 
     if (!unit) {
@@ -647,15 +599,10 @@ export default function NewOrderModal({
   };
 
   // -----------------------------
-  // Totais e métricas
+  // Totais
   // -----------------------------
   const subtotal = useMemo(
     () => orderItems.reduce((acc, it) => acc + (it.total || 0), 0),
-    [orderItems]
-  );
-
-  const totalItems = useMemo(
-    () => orderItems.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0),
     [orderItems]
   );
 
@@ -686,22 +633,15 @@ export default function NewOrderModal({
     [subtotal, deliveryFeeNumber, discountAmount]
   );
 
-  const cashGivenNumber = useMemo(
-    () => Number(String(cashGiven).replace(",", ".")) || 0,
-    [cashGiven]
-  );
-
-  const changeAmount = useMemo(
-    () => Math.max(cashGivenNumber - total, 0),
-    [cashGivenNumber, total]
-  );
-
   // -----------------------------
-  // Build draft + submit (save / save_and_print)
+  // Submit geral do pedido
   // -----------------------------
-  const buildDraft = () => {
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
     if (!orderItems.length) {
-      return { error: "Adicione pelo menos uma pizza ou bebida ao pedido." };
+      alert("Adicione pelo menos uma pizza ou bebida ao pedido.");
+      return;
     }
 
     let customerName = "";
@@ -712,9 +652,8 @@ export default function NewOrderModal({
 
     if (customerMode === "registered") {
       if (!selectedCustomer) {
-        return {
-          error: "Selecione um cliente ou troque para Balcão / rápido.",
-        };
+        alert("Selecione um cliente ou troque para Balcão / rápido.");
+        return;
       }
       customerId = selectedCustomer.id;
       customerName = selectedCustomer.name || "";
@@ -727,7 +666,7 @@ export default function NewOrderModal({
           street: addr.street || "",
           number: addr.number || "",
           complement: addr.complement || "",
-          neighborhood: addr.neighborhood || addr.bairro || "",
+          neighborhood: addr.neighborhood || "",
           city: addr.city || "",
           state: addr.state || "",
         };
@@ -735,9 +674,8 @@ export default function NewOrderModal({
     } else {
       const label = (counterLabel || "").trim();
       if (!label) {
-        return {
-          error: "Informe uma identificação para Balcão / rápido.",
-        };
+        alert("Informe uma identificação para Balcão / rápido.");
+        return;
       }
       customerName = label;
     }
@@ -773,8 +711,8 @@ export default function NewOrderModal({
     const summary = summaryLines.join(" | ");
 
     const draft = {
-      status,
-      orderType,
+      status, // "open" → Em aberto
+      orderType, // delivery | counter
       paymentMethod,
       customerMode,
       customerId,
@@ -786,44 +724,18 @@ export default function NewOrderModal({
       items: orderItems,
       subtotal,
       deliveryFee: deliveryFeeNumber,
-      deliveryNeighborhood:
-        orderType === "delivery" ? deliveryNeighborhood || null : null,
       discount: {
         type: discountType,
         value: discountRaw,
         amount: discountAmount,
       },
       total,
-      cash: {
-        enabled: paymentMethod === "money",
-        cashGiven: paymentMethod === "money" ? cashGivenNumber : 0,
-        changeAmount: paymentMethod === "money" ? changeAmount : 0,
-      },
       orderNotes,
       kitchenNotes,
       summary,
-      meta: {
-        totalItems,
-      },
     };
 
-    return { draft };
-  };
-
-  const handleSubmit = (e, options = { action: "save" }) => {
-    if (e && e.preventDefault) e.preventDefault();
-
-    const { draft, error } = buildDraft();
-    if (error) {
-      alert(error);
-      return;
-    }
-
-    // Permite a tela de Pedidos decidir se imprime ou não
-    // options.action: "save" | "save_and_print"
-    if (typeof onConfirm === "function") {
-      onConfirm(draft, options);
-    }
+    onConfirm(draft);
   };
 
   if (!isOpen) return null;
@@ -832,8 +744,6 @@ export default function NewOrderModal({
   const hasPizzas = pizzaCatalog.length > 0;
   const hasDrinks = drinkCatalog.length > 0;
   const hasExtras = extraCatalog.length > 0;
-
-  const neighborhoodOptions = Object.keys(DELIVERY_FEES_BY_NEIGHBORHOOD);
 
   // -----------------------------
   // Render
@@ -846,8 +756,7 @@ export default function NewOrderModal({
           <div>
             <div className="modal-title">Novo pedido</div>
             <div className="modal-subtitle">
-              Defina o cliente, adicione produtos do catálogo e finalize o
-              pedido.
+              Defina o cliente, adicione produtos do catálogo e finalize o pedido.
             </div>
             {isLoading && (
               <div className="modal-helper-text">
@@ -861,10 +770,7 @@ export default function NewOrderModal({
           </button>
         </div>
 
-        <form
-          className="modal-body"
-          onSubmit={(e) => handleSubmit(e, { action: "save" })}
-        >
+        <form className="modal-body" onSubmit={handleSubmit}>
           {/* ===================== COLUNA ESQUERDA ===================== */}
           <div className="neworder-grid">
             <div className="neworder-column">
@@ -962,7 +868,7 @@ export default function NewOrderModal({
                   </div>
                 )}
 
-                {/* Lista de clientes + busca */}
+                {/* Lista de clientes + busca (só quando habilitado) */}
                 {customerMode === "registered" &&
                   hasCustomers &&
                   showCustomerSearch && (
@@ -1062,38 +968,7 @@ export default function NewOrderModal({
                   </div>
                 </div>
 
-                {/* Taxa por bairro */}
                 <div className="modal-grid-2">
-                  <div>
-                    <div className="field-label">Bairro (Entrega)</div>
-                    <select
-                      className="field-input"
-                      value={deliveryNeighborhood}
-                      onChange={(e) => {
-                        const bairro = e.target.value;
-                        setDeliveryNeighborhood(bairro);
-                        if (orderType === "delivery" && bairro) {
-                          const fee = getNeighborhoodFee(bairro);
-                          setDeliveryFee(String(fee).replace(".", ","));
-                        }
-                      }}
-                      disabled={orderType !== "delivery"}
-                    >
-                      <option value="">Selecione o bairro</option>
-                      {neighborhoodOptions.map((bairro) => (
-                        <option key={bairro} value={bairro}>
-                          {bairro} —{" "}
-                          {formatCurrency(
-                            DELIVERY_FEES_BY_NEIGHBORHOOD[bairro] || 0
-                          )}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="field-helper">
-                      O bairro pode vir preenchido pelo cadastro do cliente.
-                    </div>
-                  </div>
-
                   <div>
                     <div className="field-label">Taxa de entrega</div>
                     <input
@@ -1101,16 +976,12 @@ export default function NewOrderModal({
                       value={deliveryFee}
                       onChange={(e) => setDeliveryFee(e.target.value)}
                       placeholder="0,00"
-                      disabled={orderType !== "delivery"}
                     />
                     <div className="field-helper">
                       Use 0 para pedidos de balcão ou retirada.
                     </div>
                   </div>
-                </div>
 
-                {/* Desconto */}
-                <div className="modal-grid-2">
                   <div>
                     <div className="field-label">Desconto</div>
                     <div className="discount-row">
@@ -1135,25 +1006,6 @@ export default function NewOrderModal({
                       )}
                     </div>
                   </div>
-
-                  {/* Troco */}
-                  <div>
-                    {paymentMethod === "money" && (
-                      <>
-                        <div className="field-label">Troco para</div>
-                        <input
-                          className="field-input"
-                          value={cashGiven}
-                          onChange={(e) => setCashGiven(e.target.value)}
-                          placeholder="Ex: 100,00"
-                        />
-                        <div className="field-helper">
-                          Troco estimado:{" "}
-                          {formatCurrency(changeAmount || 0)}
-                        </div>
-                      </>
-                    )}
-                  </div>
                 </div>
 
                 <div className="modal-grid-2">
@@ -1165,15 +1017,6 @@ export default function NewOrderModal({
                     <div className="field-helper">
                       Após salvar, o status pode ser alterado na tela de
                       Pedidos.
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="field-label">Resumo rápido</div>
-                    <div className="field-helper">
-                      Itens no pedido: <strong>{totalItems}</strong>
-                      <br />
-                      Total atual: <strong>{formatCurrency(total)}</strong>
                     </div>
                   </div>
                 </div>
@@ -1256,7 +1099,9 @@ export default function NewOrderModal({
                   >
                     {filteredPizzas.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {`${p.name} — ${formatCurrency(p.prices[size] || 0)}`}
+                        {`${p.name} — ${formatCurrency(
+                          p.prices[size] || 0
+                        )}`}
                       </option>
                     ))}
                   </select>
@@ -1376,8 +1221,7 @@ export default function NewOrderModal({
                   <div className="field-label">Adicionais</div>
                   {!hasExtras && (
                     <div className="field-helper">
-                      Cadastre adicionais na tela de Produtos para aparecerem
-                      aqui.
+                      Cadastre adicionais na tela de Produtos para aparecerem aqui.
                     </div>
                   )}
                   {hasExtras && (
@@ -1387,9 +1231,7 @@ export default function NewOrderModal({
                         const price =
                           size === "broto"
                             ? extra.prices.broto || extra.prices.grande || 0
-                            : extra.prices.grande ||
-                              extra.prices.broto ||
-                              0;
+                            : extra.prices.grande || extra.prices.broto || 0;
                         return (
                           <label
                             key={extra.id}
@@ -1403,9 +1245,7 @@ export default function NewOrderModal({
                               checked={checked}
                               onChange={() => handleToggleExtra(extra.id)}
                             />
-                            <span className="extras-item-name">
-                              {extra.name}
-                            </span>
+                            <span className="extras-item-name">{extra.name}</span>
                             <span className="extras-item-price">
                               + {formatCurrency(price)}
                             </span>
@@ -1544,9 +1384,6 @@ export default function NewOrderModal({
                                 {item.twoFlavors && item.flavor2Name
                                   ? ` / ${item.flavor2Name}`
                                   : ""}
-                                {item.threeFlavors && item.flavor3Name
-                                  ? ` / ${item.flavor3Name}`
-                                  : ""}
                               </>
                             )}
                             {item.kind === "drink" && (
@@ -1555,14 +1392,12 @@ export default function NewOrderModal({
                               </>
                             )}
                           </div>
-                          {item.kind === "pizza" &&
-                            item.extras &&
-                            item.extras.length > 0 && (
-                              <div className="order-item-extras">
-                                Adicionais:{" "}
-                                {item.extras.map((ex) => ex.name).join(", ")}
-                              </div>
-                            )}
+                          {item.kind === "pizza" && item.extras && item.extras.length > 0 && (
+                            <div className="order-item-extras">
+                              Adicionais:{" "}
+                              {item.extras.map((ex) => ex.name).join(", ")}
+                            </div>
+                          )}
                           <div className="order-item-meta">
                             <span>
                               Unitário: {formatCurrency(item.unitPrice)}
@@ -1602,12 +1437,6 @@ export default function NewOrderModal({
                     <span>Desconto</span>
                     <span>-{formatCurrency(discountAmount)}</span>
                   </div>
-                  {paymentMethod === "money" && cashGivenNumber > 0 && (
-                    <div className="order-totals-row">
-                      <span>Troco</span>
-                      <span>{formatCurrency(changeAmount)}</span>
-                    </div>
-                  )}
                   <div className="order-totals-row order-totals-row-total">
                     <span>Total do pedido</span>
                     <span>{formatCurrency(total)}</span>
@@ -1615,33 +1444,31 @@ export default function NewOrderModal({
                 </div>
               </div>
 
-                <div className="modal-section">
-                  <div className="modal-section-title">Observações</div>
-                  <div className="modal-grid-2">
-                    <div>
-                      <div className="field-label">Observações gerais</div>
-                      <textarea
-                        className="field-input neworder-textarea"
-                        rows={3}
-                        value={orderNotes}
-                        onChange={(e) => setOrderNotes(e.target.value)}
-                        placeholder="Ex: Entregar no portão, troco para 100..."
-                      />
-                    </div>
-                    <div>
-                      <div className="field-label">
-                        Observações para cozinha
-                      </div>
-                      <textarea
-                        className="field-input neworder-textarea"
-                        rows={3}
-                        value={kitchenNotes}
-                        onChange={(e) => setKitchenNotes(e.target.value)}
-                        placeholder="Ex: Tirar cebola, ponto da massa..."
-                      />
-                    </div>
+              <div className="modal-section">
+                <div className="modal-section-title">Observações</div>
+                <div className="modal-grid-2">
+                  <div>
+                    <div className="field-label">Observações gerais</div>
+                    <textarea
+                      className="field-input neworder-textarea"
+                      rows={3}
+                      value={orderNotes}
+                      onChange={(e) => setOrderNotes(e.target.value)}
+                      placeholder="Ex: Entregar no portão, troco para 100..."
+                    />
+                  </div>
+                  <div>
+                    <div className="field-label">Observações para cozinha</div>
+                    <textarea
+                      className="field-input neworder-textarea"
+                      rows={3}
+                      value={kitchenNotes}
+                      onChange={(e) => setKitchenNotes(e.target.value)}
+                      placeholder="Ex: Tirar cebola, ponto da massa..."
+                    />
                   </div>
                 </div>
+              </div>
             </div>
           </div>
 
@@ -1654,25 +1481,12 @@ export default function NewOrderModal({
             >
               Cancelar
             </button>
-
             <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={isLoading || (!hasPizzas && !hasDrinks)}
-              onClick={(e) => handleSubmit(e, { action: "save" })}
-            >
-              Salvar pedido
-            </button>
-
-            <button
-              type="button"
+              type="submit"
               className="btn btn-primary"
               disabled={isLoading || (!hasPizzas && !hasDrinks)}
-              onClick={(e) =>
-                handleSubmit(e, { action: "save_and_print" })
-              }
             >
-              Finalizar e imprimir pedido
+              Salvar pedido
             </button>
           </div>
         </form>

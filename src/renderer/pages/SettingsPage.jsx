@@ -23,17 +23,14 @@ const buildDefaultSettings = () => ({
 const normalizeSettingsData = (data) => {
   if (!data) return null;
 
-  // Caso 1: DataEngine padrão { items: [...] }
   if (Array.isArray(data.items) && data.items.length > 0) {
     return data.items[0];
   }
 
-  // Caso 2: Arquivo seja um array puro: [ { ... } ]
   if (Array.isArray(data) && data.length > 0) {
     return data[0];
   }
 
-  // Caso 3: Objeto plano
   if (typeof data === "object") {
     return data;
   }
@@ -41,12 +38,63 @@ const normalizeSettingsData = (data) => {
   return null;
 };
 
+/**
+ * Monta um texto de teste “bonitinho” para impressora térmica,
+ * com largura aproximada de 32 colunas (padrão de muitas Bematech / Epson).
+ */
+function buildThermalTestTicket({
+  profile, // "kitchen" | "counter"
+  pizzaria,
+  configuredPrinterName,
+}) {
+  const now = new Date().toLocaleString("pt-BR");
+
+  const profileLabel =
+    profile === "kitchen" ? "COZINHA" : "BALCÃO / CONTA";
+
+  const header = "ANNE & TOM PIZZARIA";
+  const separator = "--------------------------------";
+  const footer = "Obrigado por usar o sistema Anne & Tom";
+
+  const lines = [
+    header,
+    "TESTE DE IMPRESSAO",
+    "CUPOM NAO FISCAL",
+    "",
+    `Perfil: ${profileLabel}`,
+    `Impressora: ${configuredPrinterName || "Padrão do sistema"}`,
+    `Data: ${now}`,
+    "",
+    separator,
+
+    "ABCDEFGHIJ KLMNOPQRST",
+    "abcdefghijklmnopqrst",
+    "çÇ áéíóú àèìòù ñÑ",
+    separator,
+    "",
+    "Se este ticket saiu na",
+    "impressora correta, o",
+    "mapeamento está OK.",
+    "",
+    footer,
+    "",
+    "",
+  ];
+
+  return lines.join("\n");
+}
+
 const SettingsPage = () => {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [printMessage, setPrintMessage] = useState("");
+
+  // Lista de impressoras do sistema
+  const [printers, setPrinters] = useState([]);
+  const [printersLoading, setPrintersLoading] = useState(false);
+  const [printersError, setPrintersError] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -62,7 +110,6 @@ const SettingsPage = () => {
           item = buildDefaultSettings();
         }
 
-        // garante estrutura mínima
         if (!item.api) {
           item.api = { base_url: "", api_key: "" };
         }
@@ -87,16 +134,13 @@ const SettingsPage = () => {
           };
         } else {
           item.printing = {
-            kitchenPrinterName:
-              item.printing.kitchenPrinterName || "",
-            counterPrinterName:
-              item.printing.counterPrinterName || "",
+            kitchenPrinterName: item.printing.kitchenPrinterName || "",
+            counterPrinterName: item.printing.counterPrinterName || "",
             silentMode:
               item.printing.silentMode !== undefined
                 ? !!item.printing.silentMode
                 : true,
-            autoPrintWebsiteOrders:
-              !!item.printing.autoPrintWebsiteOrders,
+            autoPrintWebsiteOrders: !!item.printing.autoPrintWebsiteOrders,
           };
         }
 
@@ -111,6 +155,36 @@ const SettingsPage = () => {
     }
 
     load();
+  }, []);
+
+  // Carregar lista de impressoras do sistema
+  const loadPrinters = async () => {
+    if (!window.printerConfig || !window.printerConfig.listPrinters) {
+      setPrintersError(
+        "Listagem de impressoras não está disponível neste computador."
+      );
+      setPrinters([]);
+      return;
+    }
+
+    try {
+      setPrintersLoading(true);
+      setPrintersError("");
+      const list = await window.printerConfig.listPrinters();
+      console.log("[Settings] Impressoras encontradas:", list);
+      setPrinters(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error("[Settings] Erro ao listar impressoras:", err);
+      setPrintersError("Erro ao listar impressoras do sistema.");
+      setPrinters([]);
+    } finally {
+      setPrintersLoading(false);
+    }
+  };
+
+  // carrega impressoras na entrada da tela
+  useEffect(() => {
+    loadPrinters();
   }, []);
 
   const handleChange = (field, value) => {
@@ -162,7 +236,11 @@ const SettingsPage = () => {
     }
   };
 
-  // Teste de impressora de cozinha / balcão
+  /**
+   * Teste de impressora de cozinha / balcão.
+   * Usa SEMPRE o nome configurado em settings.printing.*
+   * (que está no DB). O main.js lê isso e faz o mapeamento.
+   */
   const handleTestPrinter = async (target) => {
     if (!window.electronAPI || !window.electronAPI.printTickets) {
       alert("Função de impressão não está disponível no app.");
@@ -173,38 +251,38 @@ const SettingsPage = () => {
     const counterName = settings.printing?.counterPrinterName || "";
     const silent = settings.printing?.silentMode ?? true;
 
+    const isKitchen = target === "kitchen";
+
+    const kitchenText = isKitchen
+      ? buildThermalTestTicket({
+          profile: "kitchen",
+          pizzaria: settings.pizzaria || "Anne & Tom",
+          configuredPrinterName: kitchenName,
+        })
+      : "";
+
+    const counterText = !isKitchen
+      ? buildThermalTestTicket({
+          profile: "counter",
+          pizzaria: settings.pizzaria || "Anne & Tom",
+          configuredPrinterName: counterName,
+        })
+      : "";
+
+    const payload = {
+      mode: "test",
+      target: isKitchen ? "kitchen" : "counter",
+      silent,
+      kitchenText,
+      counterText,
+      // não enviamos nome de impressora aqui; o main.js
+      // sempre usa o que está salvo no DB (settings.printing.*)
+    };
+
+    console.log("[Settings] Teste de impressão (payload):", payload);
+
     try {
       setPrintMessage("");
-      const isKitchen = target === "kitchen";
-
-      const kitchenText = isKitchen
-        ? `*** TESTE IMPRESSORA COZINHA ***\nPizzaria: ${
-            settings.pizzaria
-          }\nImpressora configurada: ${
-            kitchenName || "padrão do sistema"
-          }\nData: ${new Date().toLocaleString("pt-BR")}\n\nSe você está vendo este ticket na impressora correta, a configuração da cozinha está OK.`
-        : "";
-
-      const counterText = !isKitchen
-        ? `*** TESTE IMPRESSORA BALCÃO / CONTA ***\nPizzaria: ${
-            settings.pizzaria
-          }\nImpressora configurada: ${
-            counterName || "padrão do sistema"
-          }\nData: ${new Date().toLocaleString("pt-BR")}\n\nSe você está vendo este ticket na impressora correta, a configuração do balcão está OK.`
-        : "";
-
-      // OBS: campos extra como kitchenPrinterName/counterPrinterName
-      // podem ser usados futuramente no main.js para definir deviceName
-      const payload = {
-        kitchenText,
-        counterText,
-        silent: silent,
-        kitchenPrinterName: kitchenName || null,
-        counterPrinterName: counterName || null,
-      };
-
-      console.log("[Settings] Teste de impressão:", payload);
-
       const ok = await window.electronAPI.printTickets(payload);
 
       if (ok) {
@@ -218,12 +296,12 @@ const SettingsPage = () => {
           "Não foi possível imprimir o ticket de teste. Verifique a impressora."
         );
       }
-      setTimeout(() => setPrintMessage(""), 5000);
     } catch (err) {
       console.error("Erro ao testar impressora:", err);
       setPrintMessage(
         "Erro ao enviar ticket de teste. Veja o console do app."
       );
+    } finally {
       setTimeout(() => setPrintMessage(""), 5000);
     }
   };
@@ -248,6 +326,9 @@ const SettingsPage = () => {
       </Page>
     );
   }
+
+  const kitchenPrinterName = settings.printing?.kitchenPrinterName || "";
+  const counterPrinterName = settings.printing?.counterPrinterName || "";
 
   return (
     <Page
@@ -294,15 +375,11 @@ const SettingsPage = () => {
         <div className="settings-column">
           {/* Pizzaria */}
           <div className="settings-section">
-            <div className="settings-section-title">
-              Dados gerais
-            </div>
+            <div className="settings-section-title">Dados gerais</div>
 
             <div className="form-grid settings-grid">
               <label className="field">
-                <span className="field-label">
-                  Nome da pizzaria
-                </span>
+                <span className="field-label">Nome da pizzaria</span>
                 <input
                   className="input"
                   value={settings.pizzaria || ""}
@@ -313,9 +390,7 @@ const SettingsPage = () => {
               </label>
 
               <label className="field">
-                <span className="field-label">
-                  Versão do sistema
-                </span>
+                <span className="field-label">Versão do sistema</span>
                 <input
                   className="input"
                   value={settings.versao || ""}
@@ -386,27 +461,93 @@ const SettingsPage = () => {
               Impressão de pedidos
             </div>
 
+            {/* Status da listagem de impressoras */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: 8,
+                gap: 8,
+              }}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={loadPrinters}
+                disabled={printersLoading}
+              >
+                {printersLoading
+                  ? "Atualizando impressoras..."
+                  : "Atualizar lista de impressoras"}
+              </Button>
+              <span style={{ fontSize: 12, color: "#6b7280" }}>
+                {printersLoading
+                  ? "Buscando impressoras instaladas no sistema..."
+                  : printers.length > 0
+                  ? `${printers.length} impressora(s) encontrada(s).`
+                  : "Nenhuma impressora encontrada ou listagem indisponível."}
+              </span>
+            </div>
+
+            {printersError && (
+              <p
+                style={{
+                  color: "#b91c1c",
+                  fontSize: 12,
+                  marginTop: 0,
+                  marginBottom: 8,
+                }}
+              >
+                {printersError}
+              </p>
+            )}
+
             <div className="settings-printing-grid">
+              {/* Impressora cozinha */}
               <div className="settings-printing-block">
-                <div className="field-label">
-                  Impressora da cozinha
-                </div>
-                <input
+                <div className="field-label">Impressora da cozinha</div>
+
+                <select
                   className="input"
-                  value={
-                    settings.printing?.kitchenPrinterName || ""
-                  }
+                  value={kitchenPrinterName}
                   onChange={(e) =>
                     handlePrintingChange(
                       "kitchenPrinterName",
                       e.target.value
                     )
                   }
-                  placeholder="Nome exato da impressora no sistema"
-                />
+                >
+                  <option value="">
+                    Usar impressora padrão do sistema
+                  </option>
+                  {printers.map((p) => (
+                    <option key={p.name} value={p.name}>
+                      {p.isDefault ? "⭐ " : ""}
+                      {p.name}
+                      {p.isDefault ? " (padrão)" : ""}
+                    </option>
+                  ))}
+                </select>
+
                 <div className="field-helper">
-                  Ex: &quot;EPSON TM-T20&quot;. Use o nome exibido no
-                  gerenciador de impressoras.
+                  Selecione uma impressora térmica para tickets de
+                  cozinha. O nome salvo será usado em todos os pedidos.
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 11,
+                    color: "#6b7280",
+                  }}
+                >
+                  Nome salvo no sistema:
+                  <div>
+                    <code style={{ fontSize: 11 }}>
+                      {kitchenPrinterName || "(padrão do sistema)"}
+                    </code>
+                  </div>
                 </div>
 
                 <Button
@@ -420,25 +561,52 @@ const SettingsPage = () => {
                 </Button>
               </div>
 
+              {/* Impressora balcão */}
               <div className="settings-printing-block">
                 <div className="field-label">
                   Impressora do balcão / conta
                 </div>
-                <input
+
+                <select
                   className="input"
-                  value={
-                    settings.printing?.counterPrinterName || ""
-                  }
+                  value={counterPrinterName}
                   onChange={(e) =>
                     handlePrintingChange(
                       "counterPrinterName",
                       e.target.value
                     )
                   }
-                  placeholder="Nome exato da impressora no sistema"
-                />
+                >
+                  <option value="">
+                    Usar impressora padrão do sistema
+                  </option>
+                  {printers.map((p) => (
+                    <option key={p.name} value={p.name}>
+                      {p.isDefault ? "⭐ " : ""}
+                      {p.name}
+                      {p.isDefault ? " (padrão)" : ""}
+                    </option>
+                  ))}
+                </select>
+
                 <div className="field-helper">
-                  Usada para impressão de conta / comprovante.
+                  Usada para impressão de conta / comprovante de
+                  balcão. O nome salvo será usado em todos os pedidos.
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 11,
+                    color: "#6b7280",
+                  }}
+                >
+                  Nome salvo no sistema:
+                  <div>
+                    <code style={{ fontSize: 11 }}>
+                      {counterPrinterName || "(padrão do sistema)"}
+                    </code>
+                  </div>
                 </div>
 
                 <Button
@@ -457,9 +625,7 @@ const SettingsPage = () => {
               <label className="settings-toggle">
                 <input
                   type="checkbox"
-                  checked={
-                    settings.printing?.silentMode ?? true
-                  }
+                  checked={settings.printing?.silentMode ?? true}
                   onChange={(e) =>
                     handlePrintingChange(
                       "silentMode",
@@ -476,8 +642,7 @@ const SettingsPage = () => {
                 <input
                   type="checkbox"
                   checked={
-                    settings.printing?.autoPrintWebsiteOrders ||
-                    false
+                    settings.printing?.autoPrintWebsiteOrders || false
                   }
                   onChange={(e) =>
                     handlePrintingChange(
@@ -492,10 +657,10 @@ const SettingsPage = () => {
               </label>
 
               <p className="settings-printing-helper">
-                As impressoras configuradas aqui podem ser usadas
-                pelo módulo de Pedidos para imprimir automaticamente
-                tickets de cozinha e conta, com base nos pedidos
-                recebidos.
+                As impressoras configuradas aqui serão usadas pelo
+                módulo de Pedidos para imprimir automaticamente tickets
+                de cozinha e de balcão, bem como pelos testes de
+                impressão desta tela.
               </p>
             </div>
           </div>

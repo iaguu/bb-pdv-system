@@ -658,10 +658,14 @@ const OrderDetailsModal = ({
                   item.flavor2Name ||
                   "";
 
-                const isHalfHalf =
-                  item.isHalfHalf ||
-                  item.twoFlavors ||
-                  !!flavor2Name;
+                const flavor3Name =
+                  item.flavor3Name ||
+                  item.flavor3Label ||
+                  "";
+
+                const flavors = [flavor1Name, flavor2Name, flavor3Name].filter(
+                  Boolean
+                );
 
                 const unitPrice = Number(
                   item.unitPrice || item.price || 0
@@ -682,10 +686,7 @@ const OrderDetailsModal = ({
                         </span>
                         <span className="order-item-name">
                           {sizeLabel && `${sizeLabel} `}
-                          {flavor1Name}
-                          {isHalfHalf && flavor2Name
-                            ? ` / ${flavor2Name}`
-                            : ""}
+                          {flavors.join(" / ")}
                         </span>
                       </div>
 
@@ -723,9 +724,6 @@ const OrderDetailsModal = ({
             </div>
           )}
         </section>
-
-        {/* BLOCO FUTURO: QR / MOTOboy (hook pronto para próxima etapa) */}
-        {/* Aqui a gente pode plugar o QR code visual e dados do motoboy depois */}
       </div>
     </Modal>
   );
