@@ -1,0 +1,279 @@
+// src/renderer/components/products/NewProductModal.jsx
+import React, { useState, useEffect } from "react";
+import { CATEGORY_LABELS } from "../../pages/Products";
+
+export default function NewProductModal({ isOpen, onClose, onConfirm }) {
+  const [type, setType] = useState("pizza");
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("");
+  const [priceBroto, setPriceBroto] = useState("");
+  const [priceGrande, setPriceGrande] = useState("");
+  const [priceSingle, setPriceSingle] = useState("");
+  const [description, setDescription] = useState("");
+  const [isActive, setIsActive] = useState(true);
+
+  // sempre que abrir, reseta o formulário
+  useEffect(() => {
+    if (isOpen) {
+      reset();
+    }
+  }, [isOpen]);
+
+  const reset = () => {
+    setType("pizza");
+    setName("");
+    setCategory("");
+    setPriceBroto("");
+    setPriceGrande("");
+    setPriceSingle("");
+    setDescription("");
+    setIsActive(true);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      alert("Informe o nome do produto.");
+      return;
+    }
+
+    let productDraft;
+
+    if (type === "pizza") {
+      const broto = Number(priceBroto) || 0;
+      const grande = Number(priceGrande) || 0;
+
+      if (!broto && !grande) {
+        const confirmar = window.confirm(
+          "Os preços de broto e grande estão zerados. Deseja continuar mesmo assim?"
+        );
+        if (!confirmar) return;
+      }
+
+      productDraft = {
+        type,
+        name: name.trim(),
+        category: category.trim(),
+        priceBroto: broto,
+        priceGrande: grande,
+        description: description.trim(),
+        active: isActive,
+      };
+    } else {
+      const price = Number(priceSingle) || 0;
+
+      if (!price) {
+        const confirmar = window.confirm(
+          "O preço está zerado. Deseja continuar mesmo assim?"
+        );
+        if (!confirmar) return;
+      }
+
+      productDraft = {
+        type,
+        name: name.trim(),
+        category: category.trim(),
+        price,
+        description: description.trim(),
+        active: isActive,
+      };
+    }
+
+    if (typeof onConfirm === "function") {
+      onConfirm(productDraft);
+    }
+  };
+
+  const handleCancel = () => {
+    reset();
+    if (typeof onClose === "function") {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const typeLabel = CATEGORY_LABELS[type] || "Produto";
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-window product-modal" style={{ maxWidth: 540 }}>
+        {/* HEADER */}
+        <div className="modal-header">
+          <div>
+            <div className="modal-title">Novo produto</div>
+            <div className="modal-subtitle">
+              Cadastre pizzas, bebidas ou adicionais do catálogo.
+            </div>
+          </div>
+
+          <div className="product-modal-header-right">
+            <span className="product-type-badge">{typeLabel}</span>
+            <button
+              type="button"
+              className="modal-close"
+              onClick={handleCancel}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        {/* BODY */}
+        <form
+          className="modal-body product-modal-body"
+          onSubmit={handleSubmit}
+        >
+          {/* SEÇÃO: TIPO */}
+          <div className="modal-section">
+            <div className="modal-section-title">Tipo do produto</div>
+            <p className="product-modal-helper">
+              Escolha se o item será uma pizza, bebida ou adicional.
+            </p>
+            <div className="field-pill-group">
+              {["pizza", "drink", "extra"].map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={
+                    "field-pill" + (type === c ? " field-pill-active" : "")
+                  }
+                  onClick={() => setType(c)}
+                >
+                  {CATEGORY_LABELS[c] || c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* SEÇÃO: DADOS PRINCIPAIS */}
+          <div className="modal-section">
+            <div className="modal-section-title">Dados do produto</div>
+
+            <div className="field-group">
+              <label className="field">
+                <span className="field-label">Nome</span>
+                <input
+                  className="field-input"
+                  placeholder="Ex: Frango Catupiry"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoFocus
+                />
+              </label>
+
+              <label className="field">
+                <span className="field-label">
+                  Categoria (opcional)
+                  <span className="field-helper">
+                    {" "}
+                    Ex: Tradicionais, Especiais, Bebidas lata...
+                  </span>
+                </span>
+                <input
+                  className="field-input"
+                  placeholder="Ex: Especiais da casa"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                />
+              </label>
+            </div>
+
+            {/* Preços */}
+            {type === "pizza" ? (
+              <div className="field-grid-2">
+                <label className="field">
+                  <span className="field-label">Preço broto</span>
+                  <input
+                    className="field-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={priceBroto}
+                    onChange={(e) => setPriceBroto(e.target.value)}
+                    placeholder="Ex: 42.00"
+                  />
+                </label>
+
+                <label className="field">
+                  <span className="field-label">Preço grande</span>
+                  <input
+                    className="field-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={priceGrande}
+                    onChange={(e) => setPriceGrande(e.target.value)}
+                    placeholder="Ex: 69.00"
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="field-group">
+                <label className="field">
+                  <span className="field-label">Preço</span>
+                  <input
+                    className="field-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={priceSingle}
+                    onChange={(e) => setPriceSingle(e.target.value)}
+                    placeholder="Ex: 8.00"
+                  />
+                </label>
+              </div>
+            )}
+
+            {/* Descrição */}
+            <div className="field-group">
+              <label className="field">
+                <span className="field-label">Descrição (opcional)</span>
+                <textarea
+                  className="field-textarea"
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Ex: Mussarela, frango desfiado, catupiry e orégano..."
+                />
+              </label>
+            </div>
+
+            {/* Status */}
+            <div className="field-group">
+              <label className="field-toggle">
+                <input
+                  type="checkbox"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                />
+                <span>
+                  Disponível para vendas
+                  <span className="field-helper">
+                    {" "}
+                    (desmarque para deixar o produto pausado no catálogo)
+                  </span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* FOOTER / AÇÕES */}
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={handleCancel}
+            >
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Cadastrar produto
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,86 @@
+# ------------------------------------------------------
+# Node / NPM / Dependencies
+# ------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ------------------------------------------------------
+# Vite / React build output
+# ------------------------------------------------------
+dist/
+dist-ssr/
+out/
+build/
+
+# ------------------------------------------------------
+# Electron build artifacts
+# ------------------------------------------------------
+/release
+/build
+/electron-build
+/*.asar
+*.asar
+*.dll
+*.exe
+*.dmg
+*.AppImage
+
+# Instaladores gerados pelo electron-builder
+*.snap
+*.blockmap
+*.pkg
+*.msi
+
+# Auto-update
+*.zip
+*.nupkg
+
+# ------------------------------------------------------
+# Electron runtime caches
+# ------------------------------------------------------
+/.cache
+.cache/
+tmp/
+temp/
+*.log
+
+# ------------------------------------------------------
+# Ambiente / Segredos / Configurações
+# ------------------------------------------------------
+.env
+.env.*
+.env.local
+*.local
+
+# ------------------------------------------------------
+# Sistema Operacional
+# ------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ------------------------------------------------------
+# IDEs
+# ------------------------------------------------------
+.vscode/
+.idea/
+*.iml
+
+# ------------------------------------------------------
+# App Data local da pizzaria (JSONs do DB local)
+# ------------------------------------------------------
+/pizzaria-pedidos-data/
+/data/
+/data/*.json
+*.db
+*.sqlite
+
+# ------------------------------------------------------
+# Outras pastas geradas
+# ------------------------------------------------------
+coverage/
+logs/
+*.log

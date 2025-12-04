@@ -1,0 +1,29 @@
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import AppLayout from "./components/layout/AppLayout";
+import DashboardPage from "./pages/DashboardPage";
+import OrdersPage from "./pages/OrdersPage";
+import CatalogPage from "./pages/CatalogPage";
+import PeoplePage from "./pages/PeoplePage";
+import FinancePage from "./pages/FinancePage";
+import SettingsPage from "./pages/SettingsPage";
+
+const App = () => {
+  return (
+    <BrowserRouter>
+      <AppLayout>
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/catalog" element={<CatalogPage />} />
+          <Route path="/people" element={<PeoplePage />} />
+          <Route path="/finance" element={<FinancePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </AppLayout>
+    </BrowserRouter>
+  );
+};
+
+export default App;
