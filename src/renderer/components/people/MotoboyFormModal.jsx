@@ -119,12 +119,14 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
     try {
       setSaving(true);
 
-      if (window.dataEngine && window.dataEngine.updateItem) {
+      if (isEdit && window.dataEngine && window.dataEngine.updateItem) {
         await window.dataEngine.updateItem("motoboys", payload.id, payload);
+      } else if (window.dataEngine && window.dataEngine.addItem) {
+        await window.dataEngine.addItem("motoboys", payload);
       } else if (window.dataEngine && window.dataEngine.createItem) {
         await window.dataEngine.createItem("motoboys", payload);
       } else {
-        console.error("dataEngine.updateItem/createItem não disponível.");
+        console.error("dataEngine.updateItem/addItem/createItem não disponível.");
         throw new Error(
           "Não foi possível salvar o motoboy. API de dados indisponível."
         );
@@ -134,9 +136,34 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
       onClose();
     } catch (err) {
       console.error("Erro ao salvar motoboy:", err);
-      setError(
-        err?.message || "Erro ao salvar motoboy. Tente novamente."
-      );
+      setError(err?.message || "Erro ao salvar motoboy. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!isEdit || !initialData?.id) return;
+
+    const confirmed = window.confirm(
+      "Tem certeza que deseja excluir este motoboy? Esta ação não pode ser desfeita."
+    );
+    if (!confirmed) return;
+
+    try {
+      setSaving(true);
+      if (window.dataEngine && window.dataEngine.removeItem) {
+        await window.dataEngine.removeItem("motoboys", initialData.id);
+      } else {
+        throw new Error(
+          "Não foi possível excluir o motoboy. API de dados indisponível."
+        );
+      }
+      if (onSaved) onSaved();
+      onClose();
+    } catch (err) {
+      console.error("Erro ao excluir motoboy:", err);
+      setError(err?.message || "Erro ao excluir motoboy. Tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -163,6 +190,17 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
       onClose={onClose}
       footer={
         <div className="modal-footer-actions">
+          {isEdit && (
+            <Button
+              variant="danger"
+              type="button"
+              onClick={handleDelete}
+              disabled={saving}
+            >
+              Excluir
+            </Button>
+          )}
+
           <Button variant="ghost" type="button" onClick={onClose}>
             Cancelar
           </Button>
@@ -223,11 +261,7 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
             <div className="field-label" style={{ marginTop: 10 }}>
               QR Code (token)
             </div>
-            <input
-              className="field-input"
-              value={qrToken}
-              readOnly
-            />
+            <input className="field-input" value={qrToken} readOnly />
             <div className="field-helper">
               Este token será usado no QR code para vincular o motoboy ao
               pedido. Mostre o QR gerado no balcão para ele escanear.

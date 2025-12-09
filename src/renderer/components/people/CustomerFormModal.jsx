@@ -1,3 +1,4 @@
+// src/renderer/components/people/CustomerFormModal.jsx
 import React, { useEffect, useState } from "react";
 import Modal from "../common/Modal";
 import Button from "../common/Button";
@@ -153,13 +154,31 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     onClose();
   };
 
+  const handleDelete = async () => {
+    if (!editingData?.id) return;
+    const confirmed = window.confirm(
+      "Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita."
+    );
+    if (!confirmed) return;
+
+    await window.dataEngine.removeItem("customers", editingData.id);
+    if (onSaved) onSaved();
+    onClose();
+  };
+
   return (
     <Modal
       title={editingData ? "Editar cliente" : "Novo cliente"}
       onClose={onClose}
       footer={
         <div className="modal-footer-actions">
-          <Button variant="ghost" onClick={onClose}>
+          {editingData?.id && (
+            <Button variant="danger" type="button" onClick={handleDelete}>
+              Excluir
+            </Button>
+          )}
+
+          <Button variant="ghost" type="button" onClick={onClose}>
             Cancelar
           </Button>
           <Button variant="primary" type="submit" form="customer-form">
@@ -226,9 +245,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
                 <input
                   className="input"
                   value={form.address.cep}
-                  onChange={(e) =>
-                    handleAddressChange("cep", e.target.value)
-                  }
+                  onChange={(e) => handleAddressChange("cep", e.target.value)}
                   placeholder="Somente números"
                 />
                 <Button

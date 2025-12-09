@@ -229,6 +229,59 @@ const OrderDetailsModal = ({
     return [main, extras].filter(Boolean).join(" • ");
   }, [customerAddressRaw]);
 
+  // 🚚 MOTOBOY / ENTREGA (fluxo via QR)
+  const motoboySnapshot =
+    order.motoboySnapshot ||
+    order.delivery?.motoboySnapshot ||
+    null;
+
+  const motoboyId =
+    order.motoboyId ||
+    order.delivery?.motoboyId ||
+    motoboySnapshot?.id ||
+    null;
+
+  const motoboyName =
+    motoboySnapshot?.name ||
+    order.motoboyName ||
+    order.delivery?.motoboyName ||
+    null;
+
+  const motoboyPhone =
+    motoboySnapshot?.phone ||
+    order.motoboyPhone ||
+    order.delivery?.motoboyPhone ||
+    null;
+
+  const motoboyBaseNeighborhood =
+    motoboySnapshot?.baseNeighborhood ||
+    order.motoboyBaseNeighborhood ||
+    order.delivery?.motoboyBaseNeighborhood ||
+    null;
+
+  const motoboyBaseFee =
+    typeof motoboySnapshot?.baseFee === "number"
+      ? motoboySnapshot.baseFee
+      : typeof order.motoboyBaseFee === "number"
+      ? order.motoboyBaseFee
+      : typeof order.delivery?.motoboyBaseFee === "number"
+      ? order.delivery.motoboyBaseFee
+      : null;
+
+  const hasMotoboy = Boolean(motoboyId || motoboyName);
+
+  let motoboyStatusLabel = "";
+  if (orderTypeKey === "delivery") {
+    if (statusKey === "out_for_delivery" && hasMotoboy) {
+      motoboyStatusLabel = "Saiu para entrega com o motoboy";
+    } else if (hasMotoboy) {
+      motoboyStatusLabel = "Motoboy vinculado (aguardando saída)";
+    } else {
+      motoboyStatusLabel =
+        "Aguardando motoboy escanear o QR para sair para entrega";
+    }
+  }
+
   // ORIGEM
   const sourceKey = (order.source || "local").toString().toLowerCase();
   const sourceLabel = SOURCE_LABELS[sourceKey] || SOURCE_LABELS.local;
@@ -434,6 +487,11 @@ const OrderDetailsModal = ({
         (addressText && orderTypeKey === "delivery"
           ? `Endereço: ${addressText}\n`
           : "") +
+        (orderTypeKey === "delivery"
+          ? hasMotoboy
+            ? `Motoboy: ${motoboyName || ""}\n`
+            : "Motoboy: A DEFINIR (aguardando QR)\n"
+          : "") +
         (order.kitchenNotes
           ? `\n*** OBS. COZINHA: ${order.kitchenNotes} ***\n`
           : "") +
@@ -458,6 +516,13 @@ const OrderDetailsModal = ({
         (addressText && orderTypeKey === "delivery"
           ? `Endereço: ${addressText}\n`
           : "") +
+        (orderTypeKey === "delivery"
+          ? hasMotoboy
+            ? `Motoboy: ${motoboyName || ""}${
+                motoboyPhone ? " (" + motoboyPhone + ")" : ""
+              }\n`
+            : "Motoboy: A DEFINIR (aguardando QR)\n"
+          : "") +
         (sourceLabel ? `Origem: ${sourceLabel}\n` : "") +
         (orderTypeLabel ? `Tipo: ${orderTypeLabel}\n` : "") +
         (paymentMethodLabel
@@ -467,6 +532,12 @@ const OrderDetailsModal = ({
           ? `Status pgto: ${paymentStatusLabel}\n`
           : "") +
         (slaLabel ? `SLA: ${slaLabel}\n` : "") +
+        (orderTypeKey === "delivery" && motoboyBaseNeighborhood
+          ? `Base motoboy: ${motoboyBaseNeighborhood}\n`
+          : "") +
+        (orderTypeKey === "delivery" && typeof motoboyBaseFee === "number"
+          ? `Taxa base motoboy: ${formatCurrency(motoboyBaseFee)}\n`
+          : "") +
         (uniqueTags.length
           ? `Tags: ${uniqueTags.join(", ")}\n`
           : "") +
@@ -500,8 +571,6 @@ const OrderDetailsModal = ({
     }
   };
 
-  // 🔄 NOVA LÓGICA DE IMPRESSÃO (silent + texto pronto)
-  
   // 🔄 IMPRESSÃO – delega para o main via printOrder (kitchen / counter / full)
   const handlePrintClick = async (mode = "full") => {
     if (!order) return;
@@ -548,7 +617,6 @@ const OrderDetailsModal = ({
       console.error("[OrderDetailsModal] Erro ao imprimir pedido:", err);
     }
   };
-
 
   const handleDeleteClick = () => {
     if (!onDelete || !order) return;
@@ -656,7 +724,7 @@ const OrderDetailsModal = ({
             </div>
           </section>
 
-          {/* STATUS + PAGAMENTO */}
+          {/* STATUS + PAGAMENTO + MOTOBOY */}
           <section className="order-details-card order-details-card--status">
             <h3 className="order-details-card-title">Status e pagamento</h3>
 
@@ -690,6 +758,20 @@ const OrderDetailsModal = ({
               {slaLabel && <span className={slaClass}>{slaLabel}</span>}
             </div>
 
+            {orderTypeKey === "delivery" && (
+              <div className="od-status-secondary-row od-status-secondary-row--motoboy">
+                <span className="od-tag od-tag--muted">
+                  {hasMotoboy
+                    ? `Motoboy: ${motoboyName || "definido"}${
+                        motoboyBaseNeighborhood
+                          ? ` • Base: ${motoboyBaseNeighborhood}`
+                          : ""
+                      }`
+                    : "Sem motoboy (aguardando QR)"}
+                </span>
+              </div>
+            )}
+
             <div className="od-status-payment-info">
               <div className="od-payment-row">
                 <span className="od-label">Pagamento</span>
@@ -712,6 +794,60 @@ const OrderDetailsModal = ({
                 </div>
               )}
             </div>
+
+            {orderTypeKey === "delivery" && (
+              <div className="od-motoboy-card">
+                <div className="od-motoboy-header">
+                  <span className="od-label">Motoboy / Entrega</span>
+                  {motoboyStatusLabel && (
+                    <span className="od-motoboy-status">
+                      {motoboyStatusLabel}
+                    </span>
+                  )}
+                </div>
+                <div className="od-motoboy-body">
+                  {hasMotoboy ? (
+                    <>
+                      <div className="od-motoboy-row">
+                        <span className="od-label">Nome</span>
+                        <span className="od-value">
+                          {motoboyName || "—"}
+                        </span>
+                      </div>
+                      {motoboyPhone && (
+                        <div className="od-motoboy-row">
+                          <span className="od-label">Telefone</span>
+                          <span className="od-value">
+                            {motoboyPhone}
+                          </span>
+                        </div>
+                      )}
+                      {motoboyBaseNeighborhood && (
+                        <div className="od-motoboy-row">
+                          <span className="od-label">Bairro base</span>
+                          <span className="od-value">
+                            {motoboyBaseNeighborhood}
+                          </span>
+                        </div>
+                      )}
+                      {typeof motoboyBaseFee === "number" && (
+                        <div className="od-motoboy-row">
+                          <span className="od-label">Taxa base</span>
+                          <span className="od-value">
+                            {formatCurrency(motoboyBaseFee)}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="od-motoboy-empty">
+                      Nenhum motoboy vinculado ainda. O pedido ficará
+                      "aguardando QR" até o motoboy escanear o código.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="od-totals-card">
               <div className="od-totals-row">

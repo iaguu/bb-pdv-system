@@ -11,7 +11,7 @@ import OrderList from "../components/orders/OrderList";
 import OrderFilters from "../components/orders/OrderFilters";
 import OrderDetailsModal from "../components/orders/OrderDetailsModal";
 import OrderFormModal from "../components/orders/OrderFormModal";
-import { normalizeStatus, getOrderTotal } from "../utils/orderUtils";
+import { getOrderTotal } from "../utils/orderUtils";
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -34,7 +34,6 @@ const OrdersPage = () => {
     return order.id || order._id || null;
   };
 
-
   const normalizeStatus = (status) => {
     if (!status) return "open";
     const s = status.toString().toLowerCase();
@@ -51,14 +50,16 @@ const OrdersPage = () => {
   };
 
   // ========= MAPEAMENTO PADRÃO DO DRAFT -> ORDEM V1 =========
+  // Agora já preparado para receber dados de motoboy via QR:
+  // - motoboyId / motoboyName / motoboySnapshot / motoboyStatus
+  // podem vir tanto em nível raiz quanto dentro de delivery.*.
 
   const mapDraftToOrder = (draft) => {
     if (!draft) return null;
 
     // Se já está no formato novo (tem totals ou customerSnapshot), apenas
     // garante alguns defaults básicos.
-    const hasTotals =
-      draft.totals && typeof draft.totals === "object";
+    const hasTotals = draft.totals && typeof draft.totals === "object";
     const hasCustomerSnapshot =
       draft.customerSnapshot && typeof draft.customerSnapshot === "object";
 
@@ -93,7 +94,11 @@ const OrdersPage = () => {
     let type = "delivery";
     if (typeRaw === "pickup" || typeRaw === "retirada") {
       type = "pickup";
-    } else if (typeRaw === "counter" || typeRaw === "balcao" || typeRaw === "balcão") {
+    } else if (
+      typeRaw === "counter" ||
+      typeRaw === "balcao" ||
+      typeRaw === "balcão"
+    ) {
       type = "counter";
     }
 
@@ -121,11 +126,66 @@ const OrdersPage = () => {
       draft.address ||
       null;
 
+    // 🔗 Campos de motoboy – já preparados para fluxo via QR
+    const motoboySnapshot =
+      draft.motoboySnapshot ||
+      draft.delivery?.motoboySnapshot ||
+      null;
+
+    const motoboyId =
+      draft.motoboyId ||
+      draft.delivery?.motoboyId ||
+      motoboySnapshot?.id ||
+      null;
+
+    const motoboyName =
+      draft.motoboyName ||
+      draft.delivery?.motoboyName ||
+      motoboySnapshot?.name ||
+      null;
+
+    const motoboyPhone =
+      draft.motoboyPhone ||
+      draft.delivery?.motoboyPhone ||
+      motoboySnapshot?.phone ||
+      null;
+
+    const motoboyBaseNeighborhood =
+      draft.motoboyBaseNeighborhood ||
+      draft.delivery?.motoboyBaseNeighborhood ||
+      motoboySnapshot?.baseNeighborhood ||
+      null;
+
+    const motoboyBaseFee =
+      typeof draft.motoboyBaseFee === "number"
+        ? draft.motoboyBaseFee
+        : typeof draft.delivery?.motoboyBaseFee === "number"
+        ? draft.delivery.motoboyBaseFee
+        : typeof motoboySnapshot?.baseFee === "number"
+        ? motoboySnapshot.baseFee
+        : null;
+
+    const motoboyStatus =
+      draft.motoboyStatus ||
+      draft.delivery?.motoboyStatus ||
+      (type === "delivery"
+        ? motoboyId
+          ? "assigned"
+          : "waiting_qr"
+        : null);
+
     const delivery = {
       ...(draft.delivery || {}),
       mode: type,
       fee: deliveryFee,
       address: deliveryAddress,
+      motoboyId,
+      motoboyName,
+      motoboyPhone,
+      motoboyBaseNeighborhood,
+      motoboyBaseFee,
+      motoboySnapshot,
+      motoboyStatus,
     };
 
     const customerSnapshot =
@@ -180,7 +240,12 @@ const OrdersPage = () => {
       (normalizedItems.length
         ? normalizedItems
             .slice(0, 2)
-            .map((it) => `${it.quantity}x ${it.size ? it.size + " " : ""}${it.name}`)
+            .map(
+              (it) =>
+                `${it.quantity}x ${
+                  it.size ? it.size + " " : ""
+                }${it.name}`
+            )
             .join(" • ")
         : "");
 
@@ -197,6 +262,13 @@ const OrdersPage = () => {
       orderNotes,
       kitchenNotes,
       summary,
+      motoboyId,
+      motoboyName,
+      motoboyPhone,
+      motoboyBaseNeighborhood,
+      motoboyBaseFee,
+      motoboySnapshot,
+      motoboyStatus,
       totals: {
         ...(draft.totals || {}),
         subtotal,
