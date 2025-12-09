@@ -340,7 +340,13 @@ const OrdersPage = () => {
 
       const payload = mapDraftToOrder(base);
 
-      await window.dataEngine.addItem("orders", payload);
+      // Salva no DataEngine e tenta obter o registro salvo (com ID)
+      const saved = await window.dataEngine.addItem("orders", payload);
+      const orderForPrint = saved && typeof saved === "object" ? saved : payload;
+
+      // Imprime automaticamente o pedido completo ao criar
+      await handlePrintOrder(orderForPrint, "full");
+
       await loadOrders();
       setActiveModal(null);
       setFormInitialOrder(null);
@@ -448,12 +454,9 @@ const OrdersPage = () => {
 
       // Preferência: usar API exposta pelo preload (IPC print:order)
       if (window.electronAPI?.printOrder) {
-        await window.electronAPI.printOrder({
-          order,
-          options: {
-            mode: safeMode, // "full" | "kitchen" | "counter"
-            silent: true,   // impressão silenciosa
-          },
+        await window.electronAPI.printOrder(order, {
+          mode: safeMode, // "full" | "kitchen" | "counter"
+          silent: true,   // impressão silenciosa
         });
       }
       // Fallback para engine antigo (se ainda estiver presente)

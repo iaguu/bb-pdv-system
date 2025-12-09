@@ -76,6 +76,14 @@ const ProductFormModal = ({ tab, initialData, product, onClose, onSaved }) => {
       typeof editingData?.isAvailable === "boolean"
         ? editingData.isAvailable
         : editingData?.active !== false,
+
+    // 🧀 Ingredientes (array) + input temporário
+    ingredients: Array.isArray(editingData?.ingredientes)
+      ? editingData.ingredientes
+      : Array.isArray(editingData?.ingredients)
+      ? editingData.ingredients
+      : [],
+    ingredientsInput: "",
   }));
 
   const isPizza = form.type === "pizza";
@@ -114,6 +122,13 @@ const ProductFormModal = ({ tab, initialData, product, onClose, onSaved }) => {
         typeof editingData.isAvailable === "boolean"
           ? editingData.isAvailable
           : editingData.active !== false,
+
+      ingredients: Array.isArray(editingData.ingredientes)
+        ? editingData.ingredientes
+        : Array.isArray(editingData.ingredients)
+        ? editingData.ingredients
+        : [],
+      ingredientsInput: "",
     });
   }, [editingData, baseType]);
 
@@ -160,6 +175,70 @@ const ProductFormModal = ({ tab, initialData, product, onClose, onSaved }) => {
     }));
   };
 
+  // ---------- INGREDIENTES (badges) ----------
+
+  const addIngredientsFromTokens = (tokens) => {
+    setForm((prev) => {
+      const current = prev.ingredients || [];
+      const toAdd = tokens
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+
+      // evita duplicados simples (case-insensitive)
+      const lowerExisting = current.map((i) => i.toLowerCase());
+      const finalNew = toAdd.filter(
+        (t) => !lowerExisting.includes(t.toLowerCase())
+      );
+
+      return {
+        ...prev,
+        ingredients: [...current, ...finalNew],
+      };
+    });
+  };
+
+  const handleIngredientsInputChange = (raw) => {
+    // Sempre atualiza o input
+    let value = raw;
+    // Se tiver vírgula, quebrar em tokens
+    if (value.includes(",")) {
+      const parts = value.split(",");
+      const tokens = parts.slice(0, -1); // tudo menos o último vira ingrediente
+      const last = parts[parts.length - 1] || "";
+
+      if (tokens.length > 0) {
+        addIngredientsFromTokens(tokens);
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        ingredientsInput: last, // o que ficar depois da última vírgula continua no input
+      }));
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        ingredientsInput: value,
+      }));
+    }
+  };
+
+  const handleIngredientsKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const token = form.ingredientsInput.trim();
+      if (!token) return;
+      addIngredientsFromTokens([token]);
+      setForm((prev) => ({ ...prev, ingredientsInput: "" }));
+    }
+  };
+
+  const handleRemoveIngredient = (indexToRemove) => {
+    setForm((prev) => ({
+      ...prev,
+      ingredients: prev.ingredients.filter((_, i) => i !== indexToRemove),
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -172,6 +251,14 @@ const ProductFormModal = ({ tab, initialData, product, onClose, onSaved }) => {
       return;
     }
 
+    // Se o usuário digitou algo no input de ingredientes mas não apertou vírgula/enter,
+    // adiciona automaticamente antes de salvar:
+    if (form.ingredientsInput.trim()) {
+      addIngredientsFromTokens([form.ingredientsInput.trim()]);
+      // limpar input depois:
+      setForm((prev) => ({ ...prev, ingredientsInput: "" }));
+    }
+
     const payload = {
       id: form.id,
       name,
@@ -180,6 +267,7 @@ const ProductFormModal = ({ tab, initialData, product, onClose, onSaved }) => {
       category,
       isAvailable: !!form.isAvailable,
       active: !!form.isAvailable,
+      ingredientes: form.ingredients || [],
     };
 
     if (isPizza) {
@@ -242,7 +330,7 @@ const ProductFormModal = ({ tab, initialData, product, onClose, onSaved }) => {
             <header className="product-panel-header">
               <div>
                 <h4>Informações do produto</h4>
-                <p>Nome, descrição, tipo e categoria exibidos no cardápio.</p>
+                <p>Nome, descrição, ingredientes, tipo e categoria.</p>
               </div>
               <div className="product-type-switch">
                 {[
@@ -289,11 +377,47 @@ const ProductFormModal = ({ tab, initialData, product, onClose, onSaved }) => {
                   }
                   placeholder={
                     isPizza
-                      ? "Ex: Mussarela, tomate fresco e orégano."
+                      ? "Texto descritivo geral da pizza."
                       : "Ex: Refrigerante 2L, sabor cola."
                   }
                   rows={3}
                 />
+              </label>
+
+              {/* INGREDIENTES COM BADGES */}
+              <label className="product-field">
+                <span className="product-field-label">
+                  Ingredientes (separar por vírgula)
+                </span>
+                <div className="product-ingredients-wrapper">
+                  <div className="product-ingredients-chips">
+                    {form.ingredients?.map((ing, idx) => (
+                      <span key={`${ing}-${idx}`} className="product-chip">
+                        <span className="product-chip-label">{ing}</span>
+                        <button
+                          type="button"
+                          className="product-chip-remove"
+                          onClick={() => handleRemoveIngredient(idx)}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    className="product-input product-input--ingredients"
+                    value={form.ingredientsInput}
+                    onChange={(e) =>
+                      handleIngredientsInputChange(e.target.value)
+                    }
+                    onKeyDown={handleIngredientsKeyDown}
+                    placeholder="Ex: mussarela, tomate fresco, orégano..."
+                  />
+                </div>
+                <span className="product-field-hint">
+                  Digite um ingrediente e use vírgula ou Enter para adicionar
+                  como tag.
+                </span>
               </label>
 
               <div className="product-field-row">
@@ -433,7 +557,7 @@ const ProductFormModal = ({ tab, initialData, product, onClose, onSaved }) => {
           </section>
         </div>
 
-        {/* 🎯 AQUI ESTÃO OS BOTÕES */}
+        {/* BOTÕES */}
         <div className="product-form-actions">
           <div className="product-form-actions-left">
             {isEditing && (
@@ -441,9 +565,6 @@ const ProductFormModal = ({ tab, initialData, product, onClose, onSaved }) => {
                 ID: {form.id || "-"}
               </span>
             )}
-            <br />
-            <br />
-
           </div>
           <div className="product-form-actions-right">
             <Button variant="ghost" type="button" onClick={onClose}>

@@ -1,45 +1,44 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 
+const navItems = [
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/orders", label: "Pedidos" },
+  { to: "/catalog", label: "Catálogo" },
+  { to: "/people", label: "Pessoas" },
+  { to: "/estoque", label: "Estoque" },
+  { to: "/finance", label: "Caixa & Financeiro" },
+  { to: "/settings", label: "Configurações" },
+];
+
 const AppLayout = ({ children }) => {
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
         <div className="app-sidebar-brand">
           <span className="app-logo">🍕</span>
-          <span className="app-brand-text">Anne & Tom</span>
+          <span className="app-brand-text">BB - PDV</span>
         </div>
+
         <nav className="app-nav">
-          <NavLink to="/dashboard" className="app-nav-link">
-            Dashboard
-          </NavLink>
-          <NavLink to="/orders" className="app-nav-link">
-            Pedidos
-          </NavLink>
-          <NavLink to="/catalog" className="app-nav-link">
-            Catálogo
-          </NavLink>
-          <NavLink to="/people" className="app-nav-link">
-            Pessoas
-          </NavLink>
-          <NavLink to="/finance" className="app-nav-link">
-            Caixa & Financeiro
-          </NavLink>
-          <NavLink to="/settings" className="app-nav-link">
-            Configurações
-          </NavLink>
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/dashboard"}
+              className={({ isActive }) =>
+                "app-nav-link" + (isActive ? " app-nav-link-active" : "")
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
       </aside>
 
       <div className="app-main">
-        <header className="app-topbar">
-          <div className="app-topbar-left">
-            <h1 className="app-title">Painel de Controle</h1>
-          </div>
-          <div className="app-topbar-right">
 
-          </div>
-        </header>
+
         <main className="app-content">{children}</main>
       </div>
     </div>

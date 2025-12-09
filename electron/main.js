@@ -2,6 +2,7 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const QRCode = require('qrcode'); // QR Code para tickets HTML
 
 // Módulo de acesso ao "banco" em JSON
 // Esperado: ./db.js exporta as funções abaixo
@@ -66,6 +67,21 @@ function formatCurrencyBR(value) {
     style: 'currency',
     currency: 'BRL'
   });
+}
+
+// Gera um dataURL de QR Code para usar nos tickets HTML (cozinha)
+async function generateQrDataUrl(value) {
+  if (!value) return null;
+  try {
+    const url = await QRCode.toDataURL(value, {
+      margin: 0,
+      scale: 3
+    });
+    return url; // "data:image/png;base64,...."
+  } catch (err) {
+    console.error('Erro ao gerar QRCode:', err);
+    return null;
+  }
 }
 
 // -------------------------------------
@@ -350,7 +366,6 @@ async function printTextTicket(text, { silent = true, deviceName } = {}) {
   });
 }
 
-
 async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
   const win = new BrowserWindow({
     show: false,
@@ -401,6 +416,9 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
             border-top: 1px dashed #9ca3af;
             margin: 6px 0;
           }
+          .ticket-section {
+            margin-top: 4px;
+          }
           .ticket-section-title {
             font-size: 13px;
             font-weight: 600;
@@ -427,6 +445,10 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
           .tk-item-note {
             font-size: 11px;
             margin-top: 2px;
+          }
+          .tk-item-price {
+            font-size: 11px;
+            color: #111827;
           }
           .tk-badge {
             display: inline-block;
@@ -455,6 +477,21 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
           .tk-note-obs {
             color: #b91c1c;      /* texto vermelho para observações */
             font-weight: 700;
+          }
+          .ticket-section-qr {
+            text-align: center;
+          }
+          .ticket-qr {
+            margin-top: 4px;
+          }
+          .ticket-qr img {
+            max-width: 180px;
+            max-height: 180px;
+          }
+          .ticket-qr-link {
+            font-size: 10px;
+            margin-top: 2px;
+            word-break: break-all;
           }
           .ticket-footer {
             margin-top: 8px;
@@ -687,50 +724,6 @@ function buildCashReportHtml(payload) {
 }
 
 // -------------------------------------
-// IPC: Relatório de caixa em PDF
-// -------------------------------------
-ipcMain.handle('cash:export-report-pdf', async (_event, payload) => {
-  try {
-    const win = new BrowserWindow({
-      show: false,
-      webPreferences: {
-        sandbox: false
-      }
-    });
-
-    const html = buildCashReportHtml(payload);
-    await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
-
-    const pdfBuffer = await win.webContents.printToPDF({
-      marginsType: 1,
-      printBackground: true,
-      pageSize: 'A4'
-    });
-
-    const baseDir = db.getDataDir();
-    const reportsDir = path.join(baseDir, 'reports');
-
-    if (!fs.existsSync(reportsDir)) {
-      fs.mkdirSync(reportsDir, { recursive: true });
-    }
-
-    const periodLabel = (payload && payload.periodLabel) || 'periodo';
-    const safeLabel = String(periodLabel).replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = `fechamento_caixa_${safeLabel}_${Date.now()}.pdf`;
-
-    const filePath = path.join(reportsDir, filename);
-    fs.writeFileSync(filePath, pdfBuffer);
-
-    win.close();
-
-    return { success: true, path: filePath };
-  } catch (err) {
-    console.error('Erro ao gerar relatório de caixa em PDF:', err);
-    return { success: false, error: String(err) };
-  }
-});
-
-// -------------------------------------
 // Mapas / labels para pedidos (PDV)
 // -------------------------------------
 const PAYMENT_METHOD_LABELS = {
@@ -783,7 +776,7 @@ function normalizeStatus(status) {
 // Builders de ticket PDV (cozinha / balcão)
 // -------------------------------------
 
-function buildKitchenTicket(order) {
+function buildKitchenTicket(order, qrCodeDataUrl) {
   if (!order) {
     return '<div class="ticket"><div class="ticket-header"><div class="ticket-title">Pedido não informado</div></div></div>';
   }
@@ -791,14 +784,17 @@ function buildKitchenTicket(order) {
   const id = order.id || order.code || order.numeroPedido || '';
   const createdAt = order.createdAt ? new Date(order.createdAt) : new Date();
 
+  // ===== TIPO / ORIGEM =====
   const rawOrderType =
     order.type || order.delivery?.mode || order.orderType || 'delivery';
   const orderTypeKey = rawOrderType.toString().toLowerCase();
-  const orderTypeLabel = ORDER_TYPE_LABELS[orderTypeKey] || ORDER_TYPE_LABELS.delivery;
+  const orderTypeLabel =
+    ORDER_TYPE_LABELS[orderTypeKey] || ORDER_TYPE_LABELS.delivery;
 
   const rawSource = (order.source || 'local').toString().toLowerCase();
   const sourceLabel = SOURCE_LABELS[rawSource] || SOURCE_LABELS.local;
 
+  // ===== CLIENTE / BALCÃO =====
   const customer =
     order.customerSnapshot ||
     order.customer ||
@@ -820,6 +816,7 @@ function buildKitchenTicket(order) {
       ? order.counterLabel || order.customerName || 'Balcão'
       : null;
 
+  // ===== ENDEREÇO (ENTREGA) =====
   const addressObj =
     order.delivery?.address ||
     customer.address ||
@@ -836,50 +833,122 @@ function buildKitchenTicket(order) {
     const neighborhood = addressObj.neighborhood || addressObj.bairro || '';
     const city = addressObj.city || addressObj.cidade || '';
     const state = addressObj.state || addressObj.uf || '';
+
     const main = [
       street && (street + (number ? ', ' + number : '')),
       neighborhood,
       city && (state ? city + ' / ' + state : city)
     ].filter(Boolean).join(' • ');
+
     const cep = addressObj.cep || addressObj.CEP || '';
     const complement = addressObj.complement || addressObj.complemento || '';
     const extras = [
       complement && ('Compl.: ' + complement),
       cep && ('CEP: ' + cep)
     ].filter(Boolean).join(' • ');
+
     addressText = [main, extras].filter(Boolean).join(' • ');
   }
 
-  const items = Array.isArray(order.items) ? order.items : [];
+  // ===== ENTREGADOR (CASO JÁ VINCULADO) =====
+  const courierRaw =
+    order.delivery?.courier ||
+    order.delivery?.motoboy ||
+    order.delivery?.driver ||
+    order.motoboy ||
+    null;
 
+  let courierName = '';
+  let courierPhone = '';
+  let courierVehicle = '';
+  let courierPlate = '';
+
+  if (courierRaw) {
+    if (typeof courierRaw === 'string') {
+      courierName = courierRaw;
+    } else if (typeof courierRaw === 'object') {
+      courierName = courierRaw.name || courierRaw.nome || '';
+      courierPhone = courierRaw.phone || courierRaw.telefone || '';
+      courierVehicle = courierRaw.vehicle || courierRaw.veiculo || '';
+      courierPlate = courierRaw.plate || courierRaw.placa || '';
+    }
+  }
+
+  const items = Array.isArray(order.items) ? order.items : [];
   const orderNotes = order.orderNotes || '';
   const kitchenNotes = order.kitchenNotes || '';
 
+  // ===== MONTA HTML =====
   const parts = [];
 
   parts.push('<div class="ticket ticket-kitchen">');
+
+  // === Cabeçalho ===
   parts.push('  <div class="ticket-header">');
   parts.push('    <div class="ticket-title">ANNE &amp; TOM</div>');
   parts.push('    <div class="ticket-subtitle">COMANDA COZINHA</div>');
-  parts.push('    <div class="ticket-meta">Pedido #' + escapeHtml(id) + ' • ' + escapeHtml(orderTypeLabel) + '</div>');
-  parts.push('    <div class="ticket-meta">' + escapeHtml(createdAt.toLocaleString('pt-BR')) + ' • Origem: ' + escapeHtml(sourceLabel) + '</div>');
+  parts.push(
+    '    <div class="ticket-meta">Pedido #' +
+      escapeHtml(id) +
+      ' • ' +
+      escapeHtml(orderTypeLabel) +
+      '</div>'
+  );
+  parts.push(
+    '    <div class="ticket-meta">' +
+      escapeHtml(
+        createdAt.toLocaleString('pt-BR', {
+          dateStyle: 'short',
+          timeStyle: 'short'
+        })
+      ) +
+      ' • Origem: ' +
+      escapeHtml(sourceLabel) +
+      '</div>'
+  );
 
   if (customerMode === 'counter' && counterLabel) {
-    parts.push('    <div class="ticket-meta">Atendimento: ' + escapeHtml(counterLabel) + '</div>');
+    parts.push(
+      '    <div class="ticket-meta">Atendimento: ' +
+        escapeHtml(counterLabel) +
+        '</div>'
+    );
   } else {
-    parts.push('    <div class="ticket-meta">Cliente: ' + escapeHtml(customerName) + '</div>');
+    parts.push(
+      '    <div class="ticket-meta">Cliente: ' +
+        escapeHtml(customerName) +
+        '</div>'
+    );
     if (customerPhone) {
-      parts.push('    <div class="ticket-meta">Fone: ' + escapeHtml(customerPhone) + '</div>');
+      parts.push(
+        '    <div class="ticket-meta">Fone: ' +
+          escapeHtml(customerPhone) +
+          '</div>'
+      );
     }
   }
 
   if (addressText) {
-    parts.push('    <div class="ticket-meta">Endereço: ' + escapeHtml(addressText) + '</div>');
+    parts.push(
+      '    <div class="ticket-meta">Endereço: ' +
+        escapeHtml(addressText) +
+        '</div>'
+    );
   }
 
-  parts.push('  </div>');
+  if (courierName) {
+    parts.push(
+      '    <div class="ticket-meta">Entregador: ' +
+        escapeHtml(courierName) +
+        (courierPhone ? ' • ' + escapeHtml(courierPhone) : '') +
+        '</div>'
+    );
+  }
+
+  parts.push('  </div>'); // header
   parts.push('  <div class="ticket-divider"></div>');
 
+  // === Itens ===
   parts.push('  <div class="ticket-section">');
   parts.push('    <div class="ticket-section-title">ITENS</div>');
 
@@ -887,7 +956,7 @@ function buildKitchenTicket(order) {
     parts.push('    <div class="tk-item">Nenhum item cadastrado.</div>');
   } else {
     items.forEach((item) => {
-      const qty = item.quantity || item.qty || 1;
+      const qty = Number(item.quantity || item.qty || 1);
       const sizeLabel = (item.sizeLabel || item.size || '').toString();
 
       const flavor1Name =
@@ -907,59 +976,133 @@ function buildKitchenTicket(order) {
 
       const flavors = [flavor1Name, flavor2Name, flavor3Name].filter(Boolean);
 
+      const unitPrice = Number(item.unitPrice || item.price || 0);
+      const lineTotal =
+        Number(item.lineTotal || item.total || 0) ||
+        unitPrice * qty;
+
       parts.push('    <div class="tk-item">');
       parts.push('      <div class="tk-item-title">');
       parts.push('        <span class="tk-qty">' + qty + 'x</span>');
       if (sizeLabel) {
-        parts.push('        <span class="tk-size">' + escapeHtml(sizeLabel) + '</span>');
+        parts.push(
+          '        <span class="tk-size">' +
+            escapeHtml(sizeLabel) +
+            '</span>'
+        );
       }
-      parts.push('        <span class="tk-flavors">' + escapeHtml(flavors.join(' / ')) + '</span>');
+      parts.push(
+        '        <span class="tk-flavors">' +
+          escapeHtml(flavors.join(' / ')) +
+          '</span>'
+      );
       parts.push('      </div>');
 
+      // preços
+      if (unitPrice || lineTotal) {
+        parts.push(
+          '      <div class="tk-item-note tk-item-price">Un.: ' +
+            escapeHtml(formatCurrencyBR(unitPrice)) +
+            ' • Linha: ' +
+            escapeHtml(formatCurrencyBR(lineTotal)) +
+            '</div>'
+        );
+      }
+
+      // adicionais (extras)
       if (Array.isArray(item.extras) && item.extras.length > 0) {
         const extrasNames = item.extras
-          .map((ex) => ex && ex.name)
+          .map((ex) => (ex && (ex.name || ex.label || ex.descricao)) || '')
           .filter(Boolean)
           .join(', ');
         if (extrasNames) {
           parts.push('      <div class="tk-item-note tk-note-extra">');
-          parts.push('        <span class="tk-badge tk-badge-extra">ADICIONAIS</span>');
+          parts.push(
+            '        <span class="tk-badge tk-badge-extra">ADICIONAIS</span>'
+          );
           parts.push('        ' + escapeHtml(extrasNames));
           parts.push('      </div>');
         }
       }
 
+      // observações específicas do item
       if (item.kitchenNotes || item.obs || item.observacao) {
         const noteText =
           item.kitchenNotes ||
           item.obs ||
           item.observacao;
         parts.push('      <div class="tk-item-note tk-note-obs">');
-        parts.push('        <span class="tk-badge tk-badge-obs">OBS</span>');
+        parts.push(
+          '        <span class="tk-badge tk-badge-obs">OBS</span>'
+        );
         parts.push('        ' + escapeHtml(noteText));
         parts.push('      </div>');
       }
 
-      parts.push('    </div>');
+      parts.push('    </div>'); // tk-item
     });
   }
 
-  parts.push('  </div>');
+  parts.push('  </div>'); // section itens
 
+  // === Observações gerais ===
   if (kitchenNotes || orderNotes) {
     parts.push('  <div class="ticket-divider"></div>');
     parts.push('  <div class="ticket-section">');
     if (kitchenNotes) {
-      parts.push('    <div class="ticket-section-title">OBSERVAÇÕES COZINHA</div>');
-      parts.push('    <div class="tk-item-note tk-note-obs"><span class="tk-badge tk-badge-obs">OBS</span> ' + escapeHtml(kitchenNotes) + '</div>');
+      parts.push(
+        '    <div class="ticket-section-title">OBSERVAÇÕES COZINHA</div>'
+      );
+      parts.push(
+        '    <div class="tk-item-note tk-note-obs"><span class="tk-badge tk-badge-obs">OBS</span> ' +
+          escapeHtml(kitchenNotes) +
+          '</div>'
+      );
     }
     if (orderNotes) {
-      parts.push('    <div class="ticket-section-title">OBSERVAÇÕES DO PEDIDO</div>');
-      parts.push('    <div class="tk-item-note tk-note-extra"><span class="tk-badge tk-badge-extra">OBS</span> ' + escapeHtml(orderNotes) + '</div>');
+      parts.push(
+        '    <div class="ticket-section-title">OBSERVAÇÕES DO PEDIDO</div>'
+      );
+      parts.push(
+        '    <div class="tk-item-note tk-note-extra"><span class="tk-badge tk-badge-extra">OBS</span> ' +
+          escapeHtml(orderNotes) +
+          '</div>'
+      );
     }
     parts.push('  </div>');
   }
 
+  // === QR Code (tracking / rota) ===
+  const trackingUrl =
+    order.trackingUrl ||
+    order.delivery?.trackingUrl ||
+    order.delivery?.tracking_url ||
+    '';
+
+  if (qrCodeDataUrl || trackingUrl) {
+    parts.push('  <div class="ticket-divider"></div>');
+    parts.push('  <div class="ticket-section ticket-section-qr">');
+    parts.push(
+      '    <div class="ticket-section-title">Rota / Tracking</div>'
+    );
+    if (qrCodeDataUrl) {
+      parts.push(
+        '    <div class="ticket-qr"><img src="' +
+          escapeHtml(qrCodeDataUrl) +
+          '" alt="QR Code" /></div>'
+      );
+    }
+    if (trackingUrl) {
+      parts.push(
+        '    <div class="ticket-meta ticket-qr-link">' +
+          escapeHtml(trackingUrl) +
+          '</div>'
+      );
+    }
+    parts.push('  </div>');
+  }
+
+  // === Rodapé ===
   parts.push('  <div class="ticket-footer">');
   parts.push('    Impresso pelo sistema Anne &amp; Tom');
   parts.push('  </div>');
@@ -968,26 +1111,48 @@ function buildKitchenTicket(order) {
 
   return parts.join('');
 }
-function buildCounterTicket(order) {
+
+function buildCounterTicket(order, qrAscii) {
   if (!order) return 'Pedido não informado.';
 
   const id = order.id || order.code || order.numeroPedido || '';
   const createdAt = order.createdAt ? new Date(order.createdAt) : new Date();
 
+  // ===== TIPO / ORIGEM =====
   const rawOrderType =
     order.type || order.delivery?.mode || order.orderType || 'delivery';
   const orderTypeKey = rawOrderType.toString().toLowerCase();
-  const orderTypeLabel = ORDER_TYPE_LABELS[orderTypeKey] || ORDER_TYPE_LABELS.delivery;
+  const orderTypeLabel =
+    ORDER_TYPE_LABELS[orderTypeKey] || ORDER_TYPE_LABELS.delivery;
 
+  const rawSource = (order.source || 'local').toString().toLowerCase();
+  const sourceLabel = SOURCE_LABELS[rawSource] || SOURCE_LABELS.local;
+
+  // ===== PAGAMENTO =====
   const rawPaymentMethod =
     order.payment?.method || order.paymentMethod || '';
   const paymentMethodKey = rawPaymentMethod.toString().toLowerCase();
   const paymentMethodLabel =
     PAYMENT_METHOD_LABELS[paymentMethodKey] || PAYMENT_METHOD_LABELS[''];
 
-  const rawSource = (order.source || 'local').toString().toLowerCase();
-  const sourceLabel = SOURCE_LABELS[rawSource] || SOURCE_LABELS.local;
+  const rawPaymentStatus =
+    order.payment?.status || order.paymentStatus || 'to_define';
+  const paymentStatusKey = rawPaymentStatus.toString().toLowerCase();
+  const paymentStatusLabel =
+    (global.PAYMENT_STATUS_LABELS &&
+      global.PAYMENT_STATUS_LABELS[paymentStatusKey]) ||
+    'A definir';
 
+  // Troco / valor entregue
+  const cashGiven =
+    Number(
+      order.payment?.cashGiven ??
+        order.cashGiven ??
+        order.payment?.valorEntregue ??
+        0
+    ) || 0;
+
+  // ===== CLIENTE / BALCÃO =====
   const customer =
     order.customerSnapshot ||
     order.customer ||
@@ -1003,12 +1168,76 @@ function buildCounterTicket(order) {
     order.customerPhone ||
     '';
 
+  const customerCpf =
+    customer.cpf ||
+    order.customerCpf ||
+    '';
+
   const customerMode = order.customerMode || 'registered';
   const counterLabel =
     customerMode === 'counter'
       ? order.counterLabel || order.customerName || 'Balcão'
       : null;
 
+  // ===== ENDEREÇO =====
+  const addressObj =
+    order.delivery?.address ||
+    customer.address ||
+    order.customerAddress ||
+    order.address ||
+    null;
+
+  let addressText = '';
+  if (typeof addressObj === 'string') {
+    addressText = addressObj;
+  } else if (addressObj && typeof addressObj === 'object') {
+    const street = addressObj.street || addressObj.logradouro || '';
+    const number = addressObj.number || addressObj.numero || '';
+    const neighborhood = addressObj.neighborhood || addressObj.bairro || '';
+    const city = addressObj.city || addressObj.cidade || '';
+    const state = addressObj.state || addressObj.uf || '';
+
+    const main = [
+      street && (street + (number ? ', ' + number : '')),
+      neighborhood,
+      city && (state ? city + ' / ' + state : city)
+    ].filter(Boolean).join(' • ');
+
+    const cep = addressObj.cep || addressObj.CEP || '';
+    const complement = addressObj.complement || addressObj.complemento || '';
+    const extras = [
+      complement && ('Compl.: ' + complement),
+      cep && ('CEP: ' + cep)
+    ].filter(Boolean).join(' • ');
+
+    addressText = [main, extras].filter(Boolean).join(' • ');
+  }
+
+  // ===== ENTREGADOR (MOTOBOY) =====
+  const courierRaw =
+    order.delivery?.courier ||
+    order.delivery?.motoboy ||
+    order.delivery?.driver ||
+    order.motoboy ||
+    null;
+
+  let courierName = '';
+  let courierPhone = '';
+  let courierVehicle = '';
+  let courierPlate = '';
+
+  if (courierRaw) {
+    if (typeof courierRaw === 'string') {
+      courierName = courierRaw;
+    } else if (typeof courierRaw === 'object') {
+      courierName = courierRaw.name || courierRaw.nome || '';
+      courierPhone = courierRaw.phone || courierRaw.telefone || '';
+      courierVehicle = courierRaw.vehicle || courierRaw.veiculo || '';
+      courierPlate = courierRaw.plate || courierRaw.placa || '';
+    }
+  }
+
+  // ===== VALORES =====
   const subtotal = Number(
     order.totals?.subtotal ?? order.subtotal ?? 0
   );
@@ -1034,6 +1263,9 @@ function buildCounterTicket(order) {
       subtotal + deliveryFee - discountAmount
   );
 
+  const changeAmount =
+    cashGiven > 0 ? Math.max(cashGiven - total, 0) : 0;
+
   const items = Array.isArray(order.items) ? order.items : [];
 
   const trackingUrl =
@@ -1044,31 +1276,48 @@ function buildCounterTicket(order) {
 
   const lines = [];
 
+  // ===== CABEÇALHO =====
   lines.push('ANNE & TOM PIZZARIA');
   lines.push('CUPOM NÃO FISCAL');
   lines.push('--------------------------------');
   lines.push('PEDIDO #' + id);
-  lines.push(createdAt.toLocaleString('pt-BR'));
+  lines.push(
+    createdAt.toLocaleString('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'short'
+    })
+  );
   lines.push('ORIGEM: ' + sourceLabel);
-  lines.push('TIPO: ' + orderTypeLabel);
+  lines.push('TIPO:   ' + orderTypeLabel);
   lines.push('--------------------------------');
 
+  // ===== CLIENTE / BALCÃO =====
   if (customerMode === 'counter' && counterLabel) {
     lines.push('ATEND.: ' + counterLabel);
   } else {
     lines.push('CLIENTE: ' + customerName);
-    if (customerPhone) lines.push('FONE: ' + customerPhone);
+    if (customerPhone) lines.push('FONE:    ' + customerPhone);
+    if (customerCpf) lines.push('CPF:     ' + customerCpf);
+  }
+
+  if (addressText && orderTypeKey === 'delivery') {
+    lines.push('ENDEREÇO:');
+    String(addressText)
+      .split(' • ')
+      .forEach((ln) => lines.push('  ' + ln));
   }
 
   lines.push('--------------------------------');
   lines.push('ITENS');
 
+  // ===== ITENS =====
   if (!items.length) {
     lines.push('Nenhum item cadastrado.');
   } else {
     items.forEach((item) => {
-      const qty = item.quantity || item.qty || 1;
+      const qty = Number(item.quantity || item.qty || 1);
       const sizeLabel = (item.sizeLabel || item.size || '').toString();
+
       const flavor1Name =
         item.name ||
         item.flavor1Name ||
@@ -1100,21 +1349,32 @@ function buildCounterTicket(order) {
         .join(' ');
 
       lines.push(nameLine);
-      lines.push('  R$ un: ' + formatCurrencyBR(unitPrice));
-      lines.push('  R$ ln: ' + formatCurrencyBR(lineTotal));
+      if (unitPrice || lineTotal) {
+        lines.push('  Un.: ' + formatCurrencyBR(unitPrice));
+        lines.push('  Ln.: ' + formatCurrencyBR(lineTotal));
+      }
 
       if (Array.isArray(item.extras) && item.extras.length > 0) {
         const extrasNames = item.extras
-          .map((ex) => ex.name)
+          .map((ex) => (ex && (ex.name || ex.label || ex.descricao)) || '')
           .filter(Boolean)
           .join(', ');
         if (extrasNames) {
           lines.push('  + ADIC.: ' + extrasNames);
         }
       }
-    });;
+
+      if (item.obs || item.observacao || item.kitchenNotes) {
+        const noteText =
+          item.obs ||
+          item.observacao ||
+          item.kitchenNotes;
+        lines.push('  OBS: ' + String(noteText));
+      }
+    });
   }
 
+  // ===== TOTAIS =====
   lines.push('--------------------------------');
   lines.push('SUBTOTAL : ' + formatCurrencyBR(subtotal));
   lines.push('ENTREGA  : ' + formatCurrencyBR(deliveryFee));
@@ -1122,18 +1382,59 @@ function buildCounterTicket(order) {
   lines.push('TOTAL    : ' + formatCurrencyBR(total));
   lines.push('--------------------------------');
   lines.push('PAGAMENTO: ' + paymentMethodLabel);
+  lines.push('STATUS   : ' + paymentStatusLabel);
 
+  if (cashGiven > 0) {
+    lines.push('VALOR PAGO: ' + formatCurrencyBR(cashGiven));
+    lines.push('TROCO     : ' + formatCurrencyBR(changeAmount));
+  }
+
+  // ===== BLOCO MOTOBOY =====
+  if (orderTypeKey === 'delivery') {
+    lines.push('--------------------------------');
+    lines.push('ENTREGA / MOTOBOY');
+    if (courierName) {
+      lines.push('ENTREGADOR: ' + courierName);
+    }
+    if (courierPhone) {
+      lines.push('FONE MOT.: ' + courierPhone);
+    }
+    if (courierVehicle || courierPlate) {
+      const veStr = [
+        courierVehicle,
+        courierPlate && ('Placa: ' + courierPlate)
+      ].filter(Boolean).join(' • ');
+      lines.push('VEÍCULO  : ' + veStr);
+    }
+    // Valor que o motoboy precisa levar/receber na porta
+    lines.push('VALOR ENTREGA: ' + formatCurrencyBR(total));
+  }
+
+  // ===== OBSERVAÇÕES DO PEDIDO =====
   if (order.orderNotes) {
-    lines.push('OBS.:');
+    lines.push('--------------------------------');
+    lines.push('OBSERVAÇÕES:');
     String(order.orderNotes)
       .split(/\r?\n/)
       .forEach((ln) => lines.push('  ' + ln));
   }
 
-  if (trackingUrl) {
+  // ===== TRACKING / QR =====
+  if (trackingUrl || qrAscii) {
     lines.push('--------------------------------');
-    lines.push('ENTREGA / QR:');
-    lines.push(trackingUrl);
+    lines.push('ENTREGA / TRACKING');
+    if (trackingUrl) {
+      lines.push('LINK:');
+      String(trackingUrl)
+        .split(/\r?\n/)
+        .forEach((ln) => lines.push('  ' + ln));
+    }
+    if (qrAscii) {
+      lines.push('QR CODE:');
+      String(qrAscii)
+        .split(/\r?\n/)
+        .forEach((ln) => lines.push(ln));
+    }
   }
 
   lines.push('--------------------------------');
@@ -1229,7 +1530,15 @@ ipcMain.handle('print:order', async (event, { order, options } = {}) => {
       systemPrinters
     };
 
-    const kitchenHtml = buildKitchenTicket(order);
+    const trackingUrl =
+      order.trackingUrl ||
+      order.delivery?.trackingUrl ||
+      order.delivery?.tracking_url ||
+      '';
+
+    const qrCodeDataUrl = await generateQrDataUrl(trackingUrl);
+
+    const kitchenHtml = buildKitchenTicket(order, qrCodeDataUrl);
     const counterText = buildCounterTicket(order);
 
     if (mode === 'kitchen' || mode === 'full') {

@@ -516,7 +516,7 @@ const OrderDetailsModal = ({
 
     // Permite que a página pai assuma completamente a impressão, se desejar
     if (typeof onPrint === "function") {
-      onPrint(orderForPrint, { mode: safeMode, silent: true });
+      onPrint(orderForPrint, safeMode);
       return;
     }
 
