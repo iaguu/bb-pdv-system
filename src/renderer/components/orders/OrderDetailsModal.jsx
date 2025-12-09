@@ -345,6 +345,147 @@ const OrderDetailsModal = ({
   const titleId = order.id || order.code || order.numeroPedido;
 
   // ==========================
+  // HELPERS DE IMPRESSÃO
+  // ==========================
+
+  const buildItemsBlock = () => {
+    if (!items.length) return "Nenhum item.\n";
+
+    return items
+      .map((item) => {
+        const qty = item.quantity || item.qty || 1;
+        const sizeLabel = item.sizeLabel || item.size || "";
+        const flavor1Name =
+          item.name ||
+          item.flavor1Name ||
+          "Item";
+
+        const flavor2Name =
+          item.halfDescription ||
+          item.flavor2Name ||
+          "";
+
+        const flavor3Name =
+          item.flavor3Name ||
+          item.flavor3Label ||
+          "";
+
+        const flavors = [flavor1Name, flavor2Name, flavor3Name].filter(
+          Boolean
+        );
+
+        const unitPrice = Number(
+          item.unitPrice || item.price || 0
+        );
+        const lineTotal =
+          Number(item.lineTotal || item.total || 0) ||
+          unitPrice * qty;
+
+        // Possíveis adicionais (se existirem)
+        let extrasLine = "";
+        const extras =
+          item.extras ||
+          item.additionals ||
+          item.adicionais ||
+          [];
+        if (Array.isArray(extras) && extras.length > 0) {
+          const extrasNames = extras
+            .map((e) => e.name || e.label || e)
+            .filter(Boolean)
+            .join(", ");
+          if (extrasNames) {
+            extrasLine = `   >> ADICIONAIS: ${extrasNames}\n`;
+          }
+        }
+
+        return (
+          `${qty}x ${sizeLabel ? sizeLabel + " " : ""}${flavors.join(" / ")}\n` +
+          `   Un.: ${formatCurrency(unitPrice)}  Linha: ${formatCurrency(
+            lineTotal
+          )}\n` +
+          extrasLine
+        );
+      })
+      .join("\n");
+  };
+
+  const buildPrintPayload = (mode = "full") => {
+    const when = createdAtLabel
+      ? createdAtLabel
+      : new Date().toLocaleString("pt-BR", {
+          dateStyle: "short",
+          timeStyle: "short",
+        });
+
+    const baseHeader =
+      "***** PIZZARIA ANNE & TOM *****\n\n" +
+      `Pedido #${titleId || ""}\n` +
+      `Data: ${when}\n` +
+      "--------------------------------\n";
+
+    // BLOCO COZINHA
+    let kitchenText = "";
+    if (mode === "kitchen" || mode === "full") {
+      kitchenText =
+        baseHeader +
+        ">>> COZINHA <<<\n" +
+        `Tipo: ${orderTypeLabel}\n` +
+        (customerName ? `Cliente: ${customerName}\n` : "") +
+        (addressText && orderTypeKey === "delivery"
+          ? `Endereço: ${addressText}\n`
+          : "") +
+        (order.kitchenNotes
+          ? `\n*** OBS. COZINHA: ${order.kitchenNotes} ***\n`
+          : "") +
+        (order.orderNotes
+          ? `Obs. do pedido: ${order.orderNotes}\n`
+          : "") +
+        "--------------------------------\n" +
+        "ITENS:\n" +
+        buildItemsBlock() +
+        "--------------------------------\n";
+    }
+
+    // BLOCO BALCÃO / CONTA
+    let counterText = "";
+    if (mode === "counter" || mode === "full") {
+      counterText =
+        baseHeader +
+        ">>> BALCÃO / CONTA <<<\n" +
+        `Cliente: ${customerName}\n` +
+        (customerPhone ? `Telefone: ${customerPhone}\n` : "") +
+        (customerCpf ? `CPF: ${customerCpf}\n` : "") +
+        (addressText && orderTypeKey === "delivery"
+          ? `Endereço: ${addressText}\n`
+          : "") +
+        (sourceLabel ? `Origem: ${sourceLabel}\n` : "") +
+        (orderTypeLabel ? `Tipo: ${orderTypeLabel}\n` : "") +
+        (paymentMethodLabel
+          ? `Pagamento: ${paymentMethodLabel}\n`
+          : "") +
+        (paymentStatusLabel
+          ? `Status pgto: ${paymentStatusLabel}\n`
+          : "") +
+        (slaLabel ? `SLA: ${slaLabel}\n` : "") +
+        (uniqueTags.length
+          ? `Tags: ${uniqueTags.join(", ")}\n`
+          : "") +
+        "\n--------------------------------\n" +
+        "ITENS:\n" +
+        buildItemsBlock() +
+        "--------------------------------\n" +
+        `Subtotal: ${formatCurrency(subtotal)}\n` +
+        `Entrega:  ${formatCurrency(deliveryFee)}\n` +
+        `Desconto: -${formatCurrency(discountAmount)}\n` +
+        `TOTAL:   ${formatCurrency(total)}\n` +
+        "--------------------------------\n" +
+        "[QR CODE DO PEDIDO]\n";
+    }
+
+    return { kitchenText, counterText };
+  };
+
+  // ==========================
   // HANDLERS
   // ==========================
 
@@ -359,47 +500,55 @@ const OrderDetailsModal = ({
     }
   };
 
-  // 🔄 NOVA LÓGICA DE IMPRESSÃO (silent + Electron IPC)
+  // 🔄 NOVA LÓGICA DE IMPRESSÃO (silent + texto pronto)
+  
+  // 🔄 IMPRESSÃO – delega para o main via printOrder (kitchen / counter / full)
   const handlePrintClick = async (mode = "full") => {
     if (!order) return;
 
     const safeMode = mode || "full";
 
-    // Delega para o callback da página, se existir
+    // normaliza ID para o ticket
+    const orderForPrint = {
+      id: titleId,
+      ...order,
+    };
+
+    // Permite que a página pai assuma completamente a impressão, se desejar
     if (typeof onPrint === "function") {
-      onPrint(order, safeMode);
+      onPrint(orderForPrint, { mode: safeMode, silent: true });
       return;
     }
 
     try {
-      // Novo fluxo: IPC "print:order" via preload
-      if (window.electronAPI?.printOrder) {
-        await window.electronAPI.printOrder({
-          order,
-          options: {
-            mode: safeMode, // "full" | "kitchen" | "counter"
-            silent: true,   // impressão silenciosa por padrão
-          },
+      if (window.ticketPrinter?.printOrder) {
+        await window.ticketPrinter.printOrder(orderForPrint, {
+          mode: safeMode,
+          silent: true,
         });
-      }
-      // Fallback: engine antigo, se ainda existir
-      else if (
+      } else if (window.electronAPI?.printOrder) {
+        await window.electronAPI.printOrder(orderForPrint, {
+          mode: safeMode,
+          silent: true,
+        });
+      } else if (
         window.printEngine &&
         typeof window.printEngine.printOrder === "function"
       ) {
-        await window.printEngine.printOrder(order, {
+        await window.printEngine.printOrder(orderForPrint, {
           mode: safeMode,
           silent: true,
         });
       } else {
         console.warn(
-          "[OrderDetailsModal] Nenhuma API de impressão disponível (electronAPI.printOrder / printEngine.printOrder)."
+          "[OrderDetailsModal] Nenhuma API de impressão disponível (ticketPrinter / electronAPI / printEngine)."
         );
       }
     } catch (err) {
-      console.error("Erro ao imprimir pedido:", err);
+      console.error("[OrderDetailsModal] Erro ao imprimir pedido:", err);
     }
   };
+
 
   const handleDeleteClick = () => {
     if (!onDelete || !order) return;

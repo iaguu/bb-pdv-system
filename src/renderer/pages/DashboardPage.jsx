@@ -2,14 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Page from "../components/layout/Page";
 import OrderRow from "../components/orders/OrderRow";
-
-const formatCurrency = (value) => {
-  const n = Number(value || 0);
-  return n.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-};
+import { normalizeStatus, getOrderTotal, formatCurrencyBR } from "../utils/orderUtils";
 
 const normalizeOrdersData = (data) => {
   if (!data) return [];
@@ -31,25 +24,6 @@ const getOrderDate = (order) => {
   return d;
 };
 
-const normalizeStatus = (status) => {
-  if (!status) return "open";
-  const s = status.toString().toLowerCase();
-  if (s === "finalizado" || s === "done") return "done";
-  if (s === "cancelado" || s === "cancelled") return "cancelled";
-  if (s === "preparing" || s === "em_preparo" || s === "preparo") {
-    return "preparing";
-  }
-  if (
-    s === "out_for_delivery" ||
-    s === "em_entrega" ||
-    s === "delivery" ||
-    s === "delivering"
-  ) {
-    return "out_for_delivery";
-  }
-  if (s === "open" || s === "em_aberto") return "open";
-  return s;
-};
 
 const DashboardPage = () => {
   const [orders, setOrders] = useState([]);
@@ -743,7 +717,7 @@ const DashboardPage = () => {
                   Faturamento
                 </div>
                 <div className="dashboard-card-value">
-                  {formatCurrency(stats.revenue)}
+                  {formatCurrencyBR(stats.revenue)}
                 </div>
                 <p className="dashboard-card-helper">
                   Soma do total de todos os pedidos no período.
@@ -767,7 +741,7 @@ const DashboardPage = () => {
                   Ticket médio
                 </div>
                 <div className="dashboard-card-value">
-                  {formatCurrency(stats.avgTicket)}
+                  {formatCurrencyBR(stats.avgTicket)}
                 </div>
                 <p className="dashboard-card-helper">
                   Faturamento dividido pela quantidade de pedidos.
@@ -816,7 +790,7 @@ const DashboardPage = () => {
                   Taxas de entrega
                 </div>
                 <div className="dashboard-card-value">
-                  {formatCurrency(stats.deliveryFees)}
+                  {formatCurrencyBR(stats.deliveryFees)}
                 </div>
                 <p className="dashboard-card-helper">
                   Soma de todas as taxas de entrega.
@@ -828,7 +802,7 @@ const DashboardPage = () => {
                   Descontos aplicados
                 </div>
                 <div className="dashboard-card-value">
-                  {formatCurrency(stats.discountsTotal)}
+                  {formatCurrencyBR(stats.discountsTotal)}
                 </div>
                 <p className="dashboard-card-helper">
                   Valor total de descontos concedidos.

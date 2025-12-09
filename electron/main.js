@@ -437,18 +437,24 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
             margin-right: 4px;
           }
           .tk-badge-extra {
-            background: #f97316;
-            color: #ffffff;
+            background: #fee2e2; /* fundo vermelho claro */
+            color: #b91c1c;      /* texto vermelho forte */
+            border-radius: 3px;
+            font-weight: 700;
           }
           .tk-badge-obs {
-            background: #b91c1c;
+            background: #b91c1c; /* vermelho forte */
             color: #ffffff;
+            border-radius: 3px;
+            font-weight: 700;
           }
           .tk-note-extra {
-            color: #92400e;
+            color: #b91c1c;      /* texto vermelho para adicionais */
+            font-weight: 600;
           }
           .tk-note-obs {
-            color: #7f1d1d;
+            color: #b91c1c;      /* texto vermelho para observações */
+            font-weight: 700;
           }
           .ticket-footer {
             margin-top: 8px;
@@ -1177,7 +1183,7 @@ ipcMain.handle('print:tickets', async (event, payload) => {
 
     if (kitchenText) {
       const deviceName = resolveDeviceNameFromRole('kitchen', ctx);
-      await printHtmlTicket(kitchenHtml, {
+      await printHtmlTicket(kitchenText, {
         silent: silentFlag,
         deviceName
       });

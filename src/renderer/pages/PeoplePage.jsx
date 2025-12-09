@@ -91,12 +91,10 @@ function normalizeCustomer(raw) {
       street: addr.street || addr.rua || "",
       number: addr.number || addr.numero || "",
       complement: addr.complement || addr.complemento || "",
-      neighborhood:
-        addr.neighborhood || addr.bairro || "",
+      neighborhood: addr.neighborhood || addr.bairro || "",
       city: addr.city || addr.cidade || "",
       state: addr.state || addr.uf || "",
-      reference:
-        addr.reference || addr.referencia || "",
+      reference: addr.reference || addr.referencia || "",
     },
 
     tags,
@@ -110,6 +108,16 @@ function normalizeCustomer(raw) {
   };
 }
 
+// helper para dias de diferença entre hoje e uma data
+function diffInDaysFromToday(dateStr) {
+  if (!dateStr) return Infinity;
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return Infinity;
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  return diffMs / (1000 * 60 * 60 * 24);
+}
+
 const PeoplePage = () => {
   const [tab, setTab] = useState("customers");
 
@@ -117,6 +125,8 @@ const PeoplePage = () => {
   const [motoboys, setMotoboys] = useState([]);
 
   const [search, setSearch] = useState("");
+  const [customerFilter, setCustomerFilter] = useState("all"); // all | vip | frequent | new | inactive
+
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [loadingMotoboys, setLoadingMotoboys] = useState(false);
 
@@ -136,9 +146,7 @@ const PeoplePage = () => {
       const data = await window.dataEngine.get("customers");
       const items = Array.isArray(data?.items) ? data.items : [];
 
-      const normalized = items
-        .map(normalizeCustomer)
-        .filter(Boolean);
+      const normalized = items.map(normalizeCustomer).filter(Boolean);
 
       setCustomers(normalized);
     } catch (err) {
@@ -186,9 +194,7 @@ const PeoplePage = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
 
-      const ts = new Date()
-        .toISOString()
-        .replace(/[:.]/g, "-");
+      const ts = new Date().toISOString().replace(/[:.]/g, "-");
       link.href = url;
       link.download = `clientes_anne_tom_${ts}.json`;
 
@@ -221,9 +227,7 @@ const PeoplePage = () => {
       base = [];
     }
 
-    return base
-      .map(normalizeCustomer)
-      .filter(Boolean);
+    return base.map(normalizeCustomer).filter(Boolean);
   };
 
   const handleImportCustomersClick = () => {
@@ -285,34 +289,114 @@ const PeoplePage = () => {
   const searchQuery = search.trim().toLowerCase();
   const searchPhoneDigits = normalizePhoneLocal(search);
 
+  // onChange robusto para suportar tanto evento quanto string
+  const handleSearchChange = (valueOrEvent) => {
+    if (
+      valueOrEvent &&
+      typeof valueOrEvent === "object" &&
+      "target" in valueOrEvent
+    ) {
+      // caso SearchInput repasse o evento nativo
+      setSearch(valueOrEvent.target.value || "");
+    } else {
+      // caso SearchInput já repasse apenas a string
+      setSearch((valueOrEvent || "").toString());
+    }
+  };
+
   const filteredCustomers = useMemo(() => {
-    if (!searchQuery && !searchPhoneDigits) return customers;
+    let base = customers;
 
-    return customers.filter((c) => {
-      const addr = c.address || {};
-      const name = (c.name || "").toLowerCase();
-      const phoneStr = (c.phoneRaw || c.phone || "")
-        .toString()
-        .toLowerCase();
-      const cpfStr = (c.cpf || "").toLowerCase();
-      const neighborhood =
-        (addr.neighborhood || "").toLowerCase();
+    // filtro de texto / telefone
+    if (searchQuery || searchPhoneDigits) {
+      base = base.filter((c) => {
+        const addr = c.address || {};
+        const name = (c.name || "").toLowerCase();
+        const phoneStr = (c.phoneRaw || c.phone || "")
+          .toString()
+          .toLowerCase();
+        const cpfStr = (c.cpf || "").toLowerCase();
+        const neighborhood = (addr.neighborhood || "").toLowerCase();
+        const notes = (c.notes || "").toLowerCase();
+        const tagsText = Array.isArray(c.tags)
+          ? c.tags.join(" ").toLowerCase()
+          : "";
 
-      const matchesText =
-        name.includes(searchQuery) ||
-        phoneStr.includes(searchQuery) ||
-        cpfStr.includes(searchQuery) ||
-        neighborhood.includes(searchQuery);
+        const matchesText =
+          name.includes(searchQuery) ||
+          phoneStr.includes(searchQuery) ||
+          cpfStr.includes(searchQuery) ||
+          neighborhood.includes(searchQuery) ||
+          notes.includes(searchQuery) ||
+          tagsText.includes(searchQuery);
 
-      const matchesDigits =
-        !!searchPhoneDigits &&
-        normalizePhoneLocal(c.phone || c.phoneRaw).includes(
-          searchPhoneDigits
-        );
+        const matchesDigits =
+          !!searchPhoneDigits &&
+          normalizePhoneLocal(c.phone || c.phoneRaw).includes(
+            searchPhoneDigits
+          );
 
-      return matchesText || matchesDigits;
+        return matchesText || matchesDigits;
+      });
+    }
+
+    // filtro por segmento (VIP, frequente, novo, inativo)
+    base = base.filter((c) => {
+      const totalOrders = c.totalOrders || 0;
+      const isVip =
+        totalOrders >= 20 || (Array.isArray(c.tags) && c.tags.includes("VIP"));
+      const daysSinceLastOrder = diffInDaysFromToday(
+        c.meta?.lastOrderAt || c.lastOrderAt
+      );
+
+      switch (customerFilter) {
+        case "vip":
+          return isVip;
+        case "frequent":
+          return totalOrders >= 5 && totalOrders < 20;
+        case "new":
+          return totalOrders <= 2;
+        case "inactive":
+          // considera inativo se nunca pediu ou se está há 180+ dias sem pedir
+          return (
+            totalOrders === 0 ||
+            daysSinceLastOrder === Infinity ||
+            daysSinceLastOrder >= 180
+          );
+        case "all":
+        default:
+          return true;
+      }
     });
-  }, [customers, searchQuery, searchPhoneDigits]);
+
+    // ordena: VIP primeiro, depois por lastOrderAt desc, depois nome
+    const sorted = [...base].sort((a, b) => {
+      const aVip =
+        (a.totalOrders || 0) >= 20 ||
+        (Array.isArray(a.tags) && a.tags.includes("VIP"));
+      const bVip =
+        (b.totalOrders || 0) >= 20 ||
+        (Array.isArray(b.tags) && b.tags.includes("VIP"));
+
+      if (aVip !== bVip) return aVip ? -1 : 1;
+
+      const aDate =
+        a.meta?.lastOrderAt || a.lastOrderAt || a.meta?.createdAt;
+      const bDate =
+        b.meta?.lastOrderAt || b.lastOrderAt || b.meta?.createdAt;
+
+      const aTime = aDate ? new Date(aDate).getTime() : 0;
+      const bTime = bDate ? new Date(bDate).getTime() : 0;
+
+      if (aTime !== bTime) return bTime - aTime; // mais recente primeiro
+
+      const aName = (a.name || "").toLowerCase();
+      const bName = (b.name || "").toLowerCase();
+      return aName.localeCompare(bName, "pt-BR");
+    });
+
+    return sorted;
+  }, [customers, searchQuery, searchPhoneDigits, customerFilter]);
 
   const filteredMotoboys = useMemo(() => {
     if (!searchQuery) return motoboys;
@@ -332,15 +416,30 @@ const PeoplePage = () => {
   // -----------------------------
   const customerSummary = useMemo(() => {
     const total = customers.length;
-    const vip = customers.filter(
-      (c) => (c.totalOrders || 0) >= 20
-    ).length;
+
+    const vip = customers.filter((c) => {
+      const t = c.totalOrders || 0;
+      const isVipTag =
+        Array.isArray(c.tags) && c.tags.includes("VIP");
+      return t >= 20 || isVipTag;
+    }).length;
+
     const frequent = customers.filter((c) => {
       const t = c.totalOrders || 0;
       return t >= 5 && t < 20;
     }).length;
 
-    return { total, vip, frequent };
+    const inactive = customers.filter((c) => {
+      const t = c.totalOrders || 0;
+      const days = diffInDaysFromToday(
+        c.meta?.lastOrderAt || c.lastOrderAt
+      );
+      return (
+        t === 0 || days === Infinity || days >= 180
+      );
+    }).length;
+
+    return { total, vip, frequent, inactive };
   }, [customers]);
 
   const motoboySummary = useMemo(() => {
@@ -445,13 +544,59 @@ const PeoplePage = () => {
         <SearchInput
           placeholder={
             isCustomersTab
-              ? "Buscar cliente por nome, telefone, CPF ou bairro..."
+              ? "Buscar cliente por nome, telefone, CPF, bairro, tags ou observações..."
               : "Buscar motoboy por nome, telefone, veículo ou placa..."
           }
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={handleSearchChange}
         />
       </div>
+
+      {/* Filtros rápidos apenas para clientes */}
+      {isCustomersTab && (
+        <div className="people-filters">
+          <Button
+            variant={
+              customerFilter === "all" ? "primary" : "outline"
+            }
+            onClick={() => setCustomerFilter("all")}
+          >
+            Todos
+          </Button>
+          <Button
+            variant={
+              customerFilter === "vip" ? "primary" : "outline"
+            }
+            onClick={() => setCustomerFilter("vip")}
+          >
+            VIP
+          </Button>
+          <Button
+            variant={
+              customerFilter === "frequent" ? "primary" : "outline"
+            }
+            onClick={() => setCustomerFilter("frequent")}
+          >
+            Frequentes
+          </Button>
+          <Button
+            variant={
+              customerFilter === "new" ? "primary" : "outline"
+            }
+            onClick={() => setCustomerFilter("new")}
+          >
+            Novos
+          </Button>
+          <Button
+            variant={
+              customerFilter === "inactive" ? "primary" : "outline"
+            }
+            onClick={() => setCustomerFilter("inactive")}
+          >
+            Inativos
+          </Button>
+        </div>
+      )}
 
       {/* Resumo rápido */}
       <div className="people-summary">
@@ -459,7 +604,8 @@ const PeoplePage = () => {
           <span>
             {customerSummary.total} clientes ·{" "}
             {customerSummary.vip} VIP ·{" "}
-            {customerSummary.frequent} frequentes
+            {customerSummary.frequent} frequentes ·{" "}
+            {customerSummary.inactive} inativos
           </span>
         ) : (
           <span>
@@ -471,8 +617,8 @@ const PeoplePage = () => {
 
       {isLoading && (
         <p className="people-loading">
-          Carregando dados de {isCustomersTab ? "clientes" : "motoboys"}
-          ...
+          Carregando dados de{" "}
+          {isCustomersTab ? "clientes" : "motoboys"}...
         </p>
       )}
 

@@ -1,4 +1,3 @@
-// src/renderer/components/orders/OrderRow.jsx
 import React from "react";
 
 function formatCurrency(value) {
@@ -8,6 +7,10 @@ function formatCurrency(value) {
     currency: "BRL",
   });
 }
+
+/* ============================== */
+/* MAPS                           */
+/* ============================== */
 
 const STATUS_MAP = {
   open: { label: "Em aberto", tone: "open" },
@@ -30,6 +33,25 @@ const SOURCE_MAP = {
   phone: "Telefone",
 };
 
+/* ======================================================= */
+/* COMPONENTE: CABEÇALHO DO GRUPO DE PEDIDOS (NOVO)        */
+/* ======================================================= */
+
+export const OrderGroupHeader = ({ title, count, tone = "default" }) => {
+  return (
+    <div className={`order-group-header order-group-header--${tone}`}>
+      <div className="order-group-header-title">{title}</div>
+      <div className="order-group-header-subtitle">
+        {count} {count === 1 ? "pedido" : "pedidos"}
+      </div>
+    </div>
+  );
+};
+
+/* ======================================================= */
+/* COMPONENTE: LINHA DO PEDIDO                             */
+/* ======================================================= */
+
 const OrderRow = ({ order, onClick, isNew }) => {
   const {
     id,
@@ -42,20 +64,25 @@ const OrderRow = ({ order, onClick, isNew }) => {
   } = order || {};
 
   const customerName = customerSnapshot?.name || "Cliente";
-  const statusKey = (status || "open").toLowerCase().trim();
-  const statusInfo = STATUS_MAP[statusKey] || {
-    label: statusKey || "Em aberto",
-    tone: "default",
-  };
 
+  /* Status */
+  const statusKey = (status || "open").toLowerCase().trim();
+  const statusInfo =
+    STATUS_MAP[statusKey] || {
+      label: statusKey || "Em aberto",
+      tone: "default",
+    };
+
+  /* Origem */
   const sourceKey = (source || "local").toLowerCase().trim();
   const sourceLabel =
     SOURCE_MAP[sourceKey] || SOURCE_MAP.local || "Balcão / Local";
 
+  /* Total */
   const total =
     totals?.finalTotal ?? totals?.total ?? order?.total ?? 0;
 
-  // Lista de itens mais amigável
+  /* Itens */
   const detailedItems =
     Array.isArray(items) && items.length > 0
       ? items.map((item) => {
@@ -80,6 +107,7 @@ const OrderRow = ({ order, onClick, isNew }) => {
     summaryText = `${detailedItems[0]} • ${detailedItems[1]} • +${extras} itens`;
   }
 
+  /* Data */
   const timeLabel =
     createdAt &&
     new Date(createdAt).toLocaleString("pt-BR", {
@@ -102,24 +130,20 @@ const OrderRow = ({ order, onClick, isNew }) => {
 
   return (
     <div className={classes} onClick={onClick}>
-      {/* LADO ESQUERDO: ID + Cliente + Itens */}
+      {/* ESQUERDA */}
       <div className="order-row-left">
         <div className="order-row-top">
           <span className="order-row-id">
             #{String(id || "").slice(-6) || "—"}
           </span>
           <span className="order-row-separator">•</span>
-          <span className="order-row-customer">
-            {customerName}
-          </span>
+          <span className="order-row-customer">{customerName}</span>
         </div>
 
-        <div className="order-row-summary">
-          {summaryText}
-        </div>
+        <div className="order-row-summary">{summaryText}</div>
 
         <div className="order-row-meta">
-          {/* Status com cor */}
+          {/* Status */}
           <span
             className={
               "order-row-chip order-row-chip--status " +
@@ -129,15 +153,13 @@ const OrderRow = ({ order, onClick, isNew }) => {
             {statusInfo.label}
           </span>
 
-          {/* Origem / Local */}
+          {/* Origem */}
           <span className="order-row-chip">
             <span className="order-row-chip-label">Origem:</span>
-            <span className="order-row-source">
-              {sourceLabel}
-            </span>
+            <span className="order-row-source">{sourceLabel}</span>
           </span>
 
-          {/* Chip "novo" se veio do site ou marcado como isNew */}
+          {/* Novo */}
           {isNew && (
             <span className="order-row-chip order-row-chip--new">
               Novo pedido
@@ -146,12 +168,10 @@ const OrderRow = ({ order, onClick, isNew }) => {
         </div>
       </div>
 
-      {/* LADO DIREITO: horário e total */}
+      {/* DIREITA */}
       <div className="order-row-right">
         {timeLabel && (
-          <div className="order-row-time">
-            {timeLabel}
-          </div>
+          <div className="order-row-time">{timeLabel}</div>
         )}
 
         <div className="order-row-total-wrapper">

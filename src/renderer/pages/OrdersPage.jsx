@@ -11,6 +11,7 @@ import OrderList from "../components/orders/OrderList";
 import OrderFilters from "../components/orders/OrderFilters";
 import OrderDetailsModal from "../components/orders/OrderDetailsModal";
 import OrderFormModal from "../components/orders/OrderFormModal";
+import { normalizeStatus, getOrderTotal } from "../utils/orderUtils";
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -33,6 +34,7 @@ const OrdersPage = () => {
     return order.id || order._id || null;
   };
 
+
   const normalizeStatus = (status) => {
     if (!status) return "open";
     const s = status.toString().toLowerCase();
@@ -48,6 +50,165 @@ const OrdersPage = () => {
     return s;
   };
 
+  // ========= MAPEAMENTO PADRÃO DO DRAFT -> ORDEM V1 =========
+
+  const mapDraftToOrder = (draft) => {
+    if (!draft) return null;
+
+    // Se já está no formato novo (tem totals ou customerSnapshot), apenas
+    // garante alguns defaults básicos.
+    const hasTotals =
+      draft.totals && typeof draft.totals === "object";
+    const hasCustomerSnapshot =
+      draft.customerSnapshot && typeof draft.customerSnapshot === "object";
+
+    const rawSubtotal =
+      draft.subtotal ??
+      (hasTotals ? draft.totals.subtotal : 0) ??
+      0;
+
+    const rawDeliveryFee =
+      draft.deliveryFee ??
+      draft.delivery?.fee ??
+      (hasTotals ? draft.totals.deliveryFee : 0) ??
+      0;
+
+    const rawDiscount =
+      typeof draft.discount === "object"
+        ? draft.discount.amount
+        : draft.discount;
+
+    const subtotal = Number(rawSubtotal || 0);
+    const deliveryFee = Number(rawDeliveryFee || 0);
+    const discount = Number(rawDiscount || 0);
+
+    const finalTotal =
+      Number(draft.total ?? (hasTotals ? draft.totals.finalTotal : 0)) ||
+      subtotal + deliveryFee - discount;
+
+    const typeRaw = (draft.type || draft.orderType || "delivery")
+      .toString()
+      .toLowerCase();
+
+    let type = "delivery";
+    if (typeRaw === "pickup" || typeRaw === "retirada") {
+      type = "pickup";
+    } else if (typeRaw === "counter" || typeRaw === "balcao" || typeRaw === "balcão") {
+      type = "counter";
+    }
+
+    const paymentMethodRaw =
+      (draft.payment && draft.payment.method) ||
+      draft.paymentMethod ||
+      "";
+    const paymentMethod =
+      typeof paymentMethodRaw === "string"
+        ? paymentMethodRaw.toLowerCase()
+        : "";
+
+    const payment = {
+      ...(draft.payment || {}),
+      method: paymentMethod,
+      status:
+        (draft.payment && draft.payment.status) ||
+        draft.paymentStatus ||
+        "to_define",
+    };
+
+    const deliveryAddress =
+      (draft.delivery && draft.delivery.address) ||
+      draft.customerAddress ||
+      draft.address ||
+      null;
+
+    const delivery = {
+      ...(draft.delivery || {}),
+      mode: type,
+      fee: deliveryFee,
+      address: deliveryAddress,
+    };
+
+    const customerSnapshot =
+      hasCustomerSnapshot
+        ? draft.customerSnapshot
+        : (draft.customerName ||
+            draft.customerPhone ||
+            draft.customerCpf)
+        ? {
+            id: draft.customerId || null,
+            name: draft.customerName || "Cliente",
+            phone: draft.customerPhone || "",
+            cpf: draft.customerCpf || "",
+            address: deliveryAddress,
+          }
+        : null;
+
+    const items = Array.isArray(draft.items) ? draft.items : [];
+    const normalizedItems = items.map((it, idx) => {
+      const quantity = Number(it.quantity ?? it.qty ?? 1);
+      const unitPrice = Number(it.unitPrice ?? it.price ?? 0);
+      const lineTotal =
+        Number(it.lineTotal ?? it.total) || unitPrice * quantity;
+
+      const flavor1Name = it.name || it.flavor1Name || "Item";
+      const flavor2Name = it.halfDescription || it.flavor2Name || "";
+      const flavor3Name = it.flavor3Name || it.flavor3Label || "";
+
+      return {
+        lineId: it.lineId || `${Date.now()}-${idx}`,
+        id: it.productId || it.id || null,
+        name: flavor1Name,
+        size: it.sizeLabel || it.size || "",
+        quantity,
+        unitPrice,
+        lineTotal,
+        isHalfHalf:
+          it.isHalfHalf ||
+          Boolean(flavor2Name),
+        halfDescription: it.halfDescription || flavor2Name || "",
+        extras: Array.isArray(it.extras) ? it.extras : [],
+        kitchenNotes:
+          it.kitchenNotes || it.obs || it.observacao || "",
+      };
+    });
+
+    const orderNotes = draft.orderNotes || "";
+    const kitchenNotes = draft.kitchenNotes || "";
+
+    const summary =
+      draft.summary ||
+      (normalizedItems.length
+        ? normalizedItems
+            .slice(0, 2)
+            .map((it) => `${it.quantity}x ${it.size ? it.size + " " : ""}${it.name}`)
+            .join(" • ")
+        : "");
+
+    const base = {
+      ...draft,
+      type,
+      source: draft.source || "desktop",
+      status: draft.status || "open",
+      createdAt: draft.createdAt || new Date().toISOString(),
+      customerSnapshot,
+      delivery,
+      payment,
+      items: normalizedItems,
+      orderNotes,
+      kitchenNotes,
+      summary,
+      totals: {
+        ...(draft.totals || {}),
+        subtotal,
+        deliveryFee,
+        discount,
+        finalTotal,
+      },
+    };
+
+    return base;
+  };
+
   const isToday = (iso) => {
     if (!iso) return false;
     const d = new Date(iso);
@@ -57,27 +218,6 @@ const OrdersPage = () => {
       d.getMonth() === now.getMonth() &&
       d.getDate() === now.getDate()
     );
-  };
-
-  const getOrderTotal = (order) => {
-    const subtotal = Number(order?.totals?.subtotal ?? order?.subtotal ?? 0);
-    const deliveryFee = Number(
-      order?.delivery?.fee ??
-        order?.totals?.deliveryFee ??
-        order?.deliveryFee ??
-        0
-    );
-    const discountAmount = Number(
-      order?.totals?.discount ??
-        (typeof order?.discount === "object"
-          ? order?.discount?.amount
-          : order?.discount) ??
-        0
-    );
-    const total =
-      Number(order?.totals?.finalTotal ?? order?.total) ||
-      subtotal + deliveryFee - discountAmount;
-    return total;
   };
 
   // ========= KPIs (HOJE + ATRASADOS) =========
@@ -193,13 +333,12 @@ const OrdersPage = () => {
         throw new Error("API local (window.dataEngine) não disponível.");
       }
 
-      const payload = {
+      const base = {
         ...orderDraft,
-        status: orderDraft.status || "open",
-        source: orderDraft.source || "desktop",
-        createdAt: orderDraft.createdAt || new Date().toISOString(),
         deleted: false,
       };
+
+      const payload = mapDraftToOrder(base);
 
       await window.dataEngine.addItem("orders", payload);
       await loadOrders();

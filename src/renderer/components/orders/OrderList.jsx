@@ -1,26 +1,7 @@
 // src/renderer/components/orders/OrderList.jsx
 import React, { useMemo } from "react";
 import OrderRow from "./OrderRow";
-
-function normalizeStatus(status) {
-  if (!status) return "open";
-  const s = status.toString().toLowerCase();
-  if (s === "finalizado" || s === "done") return "done";
-  if (s === "cancelado" || s === "cancelled") return "cancelled";
-  if (s === "preparing" || s === "em_preparo" || s === "preparo") {
-    return "preparing";
-  }
-  if (
-    s === "out_for_delivery" ||
-    s === "em_entrega" ||
-    s === "delivery" ||
-    s === "delivering"
-  ) {
-    return "out_for_delivery";
-  }
-  if (s === "open" || s === "em_aberto") return "open";
-  return s;
-}
+import { normalizeStatus } from "../../utils/orderUtils";
 
 const STATUS_GROUPS = [
   { key: "open", label: "Em aberto" },

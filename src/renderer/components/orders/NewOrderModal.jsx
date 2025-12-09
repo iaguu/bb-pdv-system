@@ -636,7 +636,8 @@ export default function NewOrderModal({
   // -----------------------------
   // Submit geral do pedido
   // -----------------------------
-  const handleSubmit = (e) => {
+  
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!orderItems.length) {
@@ -652,41 +653,45 @@ export default function NewOrderModal({
 
     if (customerMode === "registered") {
       if (!selectedCustomer) {
-        alert("Selecione um cliente ou troque para Balcão / rápido.");
+        alert(
+          "Selecione um cliente na lista ou altere o modo para 'Balcão / rápido'."
+        );
         return;
       }
-      customerId = selectedCustomer.id;
+
       customerName = selectedCustomer.name || "";
+      customerId = selectedCustomer.id || selectedCustomer._id || null;
       customerPhone = selectedCustomer.phone || "";
       customerCpf = selectedCustomer.cpf || "";
-      if (selectedCustomer.address) {
-        const addr = selectedCustomer.address;
-        customerAddress = {
-          cep: addr.cep || "",
-          street: addr.street || "",
-          number: addr.number || "",
-          complement: addr.complement || "",
-          neighborhood: addr.neighborhood || "",
-          city: addr.city || "",
-          state: addr.state || "",
-        };
-      }
+      customerAddress =
+        selectedCustomer.address ||
+        selectedCustomer.endereco ||
+        null;
     } else {
-      const label = (counterLabel || "").trim();
-      if (!label) {
-        alert("Informe uma identificação para Balcão / rápido.");
-        return;
-      }
-      customerName = label;
+      customerName = counterLabel.trim() || "Balcão";
+      customerId = null;
+      customerPhone = "";
+      customerCpf = "";
+      customerAddress = null;
     }
+
+    const deliveryFeeNumber = Number(deliveryFee) || 0;
+
+    let discountAmount = 0;
+    const discountRaw = Number(discountValue) || 0;
+    if (discountType === "value") {
+      discountAmount = discountRaw;
+    } else if (discountType === "percent") {
+      discountAmount = (subtotal + deliveryFeeNumber) * (discountRaw / 100);
+    }
+
+    const total = subtotal + deliveryFeeNumber - discountAmount;
 
     const summaryLines = orderItems.map((item) => {
       if (item.kind === "pizza") {
-        const flavors = [
-          item.flavor1Name,
-          item.flavor2Name,
-          item.flavor3Name,
-        ].filter(Boolean);
+        const flavors = [item.flavor1Name, item.flavor2Name, item.flavor3Name].filter(
+          Boolean
+        );
 
         const flavorsText =
           flavors.length > 1 ? flavors.join(" / ") : flavors[0] || "Pizza";
@@ -735,8 +740,75 @@ export default function NewOrderModal({
       summary,
     };
 
-    onConfirm(draft);
+    // Primeiro, deixa a página salvar o pedido (DB / estado)
+    let savedOrder = draft;
+    if (typeof onConfirm === "function") {
+      try {
+        const maybePromise = onConfirm(draft);
+        if (maybePromise && typeof maybePromise.then === "function") {
+          const result = await maybePromise;
+          if (result) {
+            savedOrder = result;
+          }
+        }
+      } catch (err) {
+        console.error("[NewOrderModal] erro ao confirmar pedido:", err);
+        // Em caso de erro ao salvar, não tentamos imprimir
+        return;
+      }
+    }
+
+    // Auto impressão silenciosa do novo pedido
+    const orderForPrint = {
+      id: savedOrder.id || savedOrder.code || savedOrder.numeroPedido || undefined,
+      ...savedOrder,
+      // garante campos essenciais mesmo se o caller alterar o shape
+      items: savedOrder.items || draft.items || [],
+      subtotal: savedOrder.subtotal ?? draft.subtotal,
+      deliveryFee:
+        savedOrder.deliveryFee ??
+        savedOrder.totals?.deliveryFee ??
+        draft.deliveryFee,
+      discount:
+        savedOrder.discount ??
+        savedOrder.totals?.discount ??
+        draft.discount,
+      total: savedOrder.total ?? savedOrder.totals?.finalTotal ?? draft.total,
+    };
+
+    try {
+      if (window.ticketPrinter?.printOrder) {
+        await window.ticketPrinter.printOrder(orderForPrint, {
+          mode: "full",
+          silent: true,
+        });
+      } else if (window.electronAPI?.printOrder) {
+        await window.electronAPI.printOrder(orderForPrint, {
+          mode: "full",
+          silent: true,
+        });
+      } else if (
+        window.printEngine &&
+        typeof window.printEngine.printOrder === "function"
+      ) {
+        await window.printEngine.printOrder(orderForPrint, {
+          mode: "full",
+          silent: true,
+        });
+      } else {
+        console.warn(
+          "[NewOrderModal] Nenhuma API de impressão disponível ao criar pedido."
+        );
+      }
+    } catch (err) {
+      console.error("[NewOrderModal] erro ao imprimir novo pedido:", err);
+    }
+
+    if (onClose) {
+      onClose();
+    }
   };
+
 
   if (!isOpen) return null;
 
