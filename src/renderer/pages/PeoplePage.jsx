@@ -118,6 +118,16 @@ function diffInDaysFromToday(dateStr) {
   return diffMs / (1000 * 60 * 60 * 24);
 }
 
+// helper para status de motoboy
+function getMotoboyStatus(m) {
+  const rawStatus = m?.status || "available";
+  const isActive = m?.isActive !== false;
+
+  if (!isActive) return "offline";
+  if (rawStatus === "delivering") return "delivering";
+  return "available";
+}
+
 const PeoplePage = () => {
   const [tab, setTab] = useState("customers");
 
@@ -126,6 +136,7 @@ const PeoplePage = () => {
 
   const [search, setSearch] = useState("");
   const [customerFilter, setCustomerFilter] = useState("all"); // all | vip | frequent | new | inactive
+  const [motoboyFilter, setMotoboyFilter] = useState("all"); // all | available | delivering | offline
 
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [loadingMotoboys, setLoadingMotoboys] = useState(false);
@@ -399,17 +410,62 @@ const PeoplePage = () => {
   }, [customers, searchQuery, searchPhoneDigits, customerFilter]);
 
   const filteredMotoboys = useMemo(() => {
-    if (!searchQuery) return motoboys;
+    let base = motoboys;
 
-    return motoboys.filter((m) => {
-      return (
-        m.name?.toLowerCase().includes(searchQuery) ||
-        m.phone?.toLowerCase().includes(searchQuery) ||
-        m.vehicleType?.toLowerCase().includes(searchQuery) ||
-        m.vehiclePlate?.toLowerCase().includes(searchQuery)
-      );
+    if (searchQuery) {
+      base = base.filter((m) => {
+        const name = (m.name || "").toLowerCase();
+        const phone = (m.phone || "").toLowerCase();
+        const vehicleType = (m.vehicleType || "").toLowerCase();
+        const vehiclePlate = (m.vehiclePlate || "").toLowerCase();
+        const baseNeighborhood = (m.baseNeighborhood || "").toLowerCase();
+        const qrToken = (m.qrToken || "").toLowerCase();
+
+        return (
+          name.includes(searchQuery) ||
+          phone.includes(searchQuery) ||
+          vehicleType.includes(searchQuery) ||
+          vehiclePlate.includes(searchQuery) ||
+          baseNeighborhood.includes(searchQuery) ||
+          qrToken.includes(searchQuery)
+        );
+      });
+    }
+
+    // filtro de status de motoboy (disponível / em entrega / offline)
+    base = base.filter((m) => {
+      const status = getMotoboyStatus(m);
+      switch (motoboyFilter) {
+        case "available":
+          return status === "available";
+        case "delivering":
+          return status === "delivering";
+        case "offline":
+          return status === "offline";
+        case "all":
+        default:
+          return true;
+      }
     });
-  }, [motoboys, searchQuery]);
+
+    // ordena: disponíveis primeiro, depois em entrega, depois offline
+    const ordered = [...base].sort((a, b) => {
+      const orderStatus = (st) => {
+        if (st === "available") return 0;
+        if (st === "delivering") return 1;
+        return 2; // offline
+      };
+      const sa = orderStatus(getMotoboyStatus(a));
+      const sb = orderStatus(getMotoboyStatus(b));
+      if (sa !== sb) return sa - sb;
+
+      const nameA = (a.name || "").toLowerCase();
+      const nameB = (b.name || "").toLowerCase();
+      return nameA.localeCompare(nameB, "pt-BR");
+    });
+
+    return ordered;
+  }, [motoboys, searchQuery, motoboyFilter]);
 
   // -----------------------------
   // MÉTRICAS RÁPIDAS PARA RESUMO
@@ -444,10 +500,11 @@ const PeoplePage = () => {
 
   const motoboySummary = useMemo(() => {
     const total = motoboys.length;
-    const active = motoboys.filter(
-      (m) => m.isActive !== false
+    const active = motoboys.filter((m) => m.isActive !== false).length;
+    const delivering = motoboys.filter(
+      (m) => getMotoboyStatus(m) === "delivering"
     ).length;
-    return { total, active };
+    return { total, active, delivering };
   }, [motoboys]);
 
   // -----------------------------
@@ -545,7 +602,7 @@ const PeoplePage = () => {
           placeholder={
             isCustomersTab
               ? "Buscar cliente por nome, telefone, CPF, bairro, tags ou observações..."
-              : "Buscar motoboy por nome, telefone, veículo ou placa..."
+              : "Buscar motoboy por nome, telefone, veículo, placa, bairro base ou QR..."
           }
           value={search}
           onChange={handleSearchChange}
@@ -598,6 +655,44 @@ const PeoplePage = () => {
         </div>
       )}
 
+      {/* Filtros rápidos para motoboys */}
+      {!isCustomersTab && (
+        <div className="people-filters">
+          <Button
+            variant={
+              motoboyFilter === "all" ? "primary" : "outline"
+            }
+            onClick={() => setMotoboyFilter("all")}
+          >
+            Todos
+          </Button>
+          <Button
+            variant={
+              motoboyFilter === "available" ? "primary" : "outline"
+            }
+            onClick={() => setMotoboyFilter("available")}
+          >
+            Disponíveis
+          </Button>
+          <Button
+            variant={
+              motoboyFilter === "delivering" ? "primary" : "outline"
+            }
+            onClick={() => setMotoboyFilter("delivering")}
+          >
+            Em entrega
+          </Button>
+          <Button
+            variant={
+              motoboyFilter === "offline" ? "primary" : "outline"
+            }
+            onClick={() => setMotoboyFilter("offline")}
+          >
+            Offline / Pausados
+          </Button>
+        </div>
+      )}
+
       {/* Resumo rápido */}
       <div className="people-summary">
         {isCustomersTab ? (
@@ -610,7 +705,8 @@ const PeoplePage = () => {
         ) : (
           <span>
             {motoboySummary.total} entregadores ·{" "}
-            {motoboySummary.active} ativos
+            {motoboySummary.active} ativos ·{" "}
+            {motoboySummary.delivering} em entrega
           </span>
         )}
       </div>

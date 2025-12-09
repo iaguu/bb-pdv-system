@@ -10,13 +10,16 @@ const VEHICLE_OPTIONS = [
   { value: "a_pe", label: "A pé" },
 ];
 
-function digitsOnly(s) {
-  return (s || "").replace(/\D/g, "");
+function generateQrToken() {
+  return `qr-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function parseCurrencyToNumber(raw) {
   if (!raw) return 0;
-  const onlyDigits = raw.replace(/[^\d,-]/g, "").replace(".", "").replace(",", ".");
+  const onlyDigits = raw
+    .replace(/[^\d,-]/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
   const n = Number(onlyDigits);
   return Number.isNaN(n) ? 0 : n;
 }
@@ -41,12 +44,21 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
   const [isActive, setIsActive] = useState(true);
   const [notes, setNotes] = useState("");
 
+  const [qrToken, setQrToken] = useState("");
+  const [status, setStatus] = useState("available"); // available | delivering | offline
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   // Carrega dados iniciais
   useEffect(() => {
-    if (!initialData) return;
+    if (!initialData) {
+      // novo motoboy: gera QR token e status padrão
+      setQrToken(generateQrToken());
+      setStatus("available");
+      setIsActive(true);
+      return;
+    }
 
     setName(initialData.name || "");
     setPhone(initialData.phone || "");
@@ -60,6 +72,10 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
     );
     setIsActive(initialData.isActive !== false);
     setNotes(initialData.notes || "");
+
+    // se ainda não houver qrToken, geramos um novo
+    setQrToken(initialData.qrToken || generateQrToken());
+    setStatus(initialData.status || "available");
   }, [initialData]);
 
   const handleSubmit = async (e) => {
@@ -76,6 +92,8 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
       return;
     }
 
+    const nowIso = new Date().toISOString();
+
     const payload = {
       ...(initialData || {}),
       name: name.trim(),
@@ -86,13 +104,15 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
       baseFee: parseCurrencyToNumber(baseFeeRaw),
       isActive,
       notes: notes.trim(),
-      updatedAt: new Date().toISOString(),
+      qrToken: qrToken || generateQrToken(),
+      status: isActive ? status || "available" : "offline",
+      updatedAt: nowIso,
     };
 
     // se for novo, garante um id
     if (!payload.id) {
       payload.id = `motoboy-${Date.now()}`;
-      payload.createdAt = new Date().toISOString();
+      payload.createdAt = nowIso;
       payload.totalDeliveries = payload.totalDeliveries || 0;
     }
 
@@ -100,17 +120,11 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
       setSaving(true);
 
       if (window.dataEngine && window.dataEngine.updateItem) {
-        await window.dataEngine.updateItem(
-          "motoboys",
-          payload.id,
-          payload
-        );
+        await window.dataEngine.updateItem("motoboys", payload.id, payload);
       } else if (window.dataEngine && window.dataEngine.createItem) {
         await window.dataEngine.createItem("motoboys", payload);
       } else {
-        console.error(
-          "dataEngine.updateItem/createItem não disponível."
-        );
+        console.error("dataEngine.updateItem/createItem não disponível.");
         throw new Error(
           "Não foi possível salvar o motoboy. API de dados indisponível."
         );
@@ -129,13 +143,19 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
   };
 
   const handlePhoneChange = (value) => {
-    // deixa livre, mas você pode simplificar para só dígitos se quiser
     setPhone(value);
   };
 
   const handleBaseFeeChange = (value) => {
     setBaseFeeRaw(value);
   };
+
+  const statusLabel =
+    !isActive || status === "offline"
+      ? "Offline / Pausado"
+      : status === "delivering"
+      ? "Em entrega"
+      : "Disponível";
 
   return (
     <Modal
@@ -199,6 +219,19 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ex: só trabalha sexta a domingo, prefere recebimento em dinheiro..."
             />
+
+            <div className="field-label" style={{ marginTop: 10 }}>
+              QR Code (token)
+            </div>
+            <input
+              className="field-input"
+              value={qrToken}
+              readOnly
+            />
+            <div className="field-helper">
+              Este token será usado no QR code para vincular o motoboy ao
+              pedido. Mostre o QR gerado no balcão para ele escanear.
+            </div>
           </div>
 
           <div className="motoboy-form-col">
@@ -238,7 +271,8 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
               placeholder="Ex: Chora Menino"
             />
             <div className="field-helper">
-              Bairro principal onde ele costuma ficar.
+              Bairro principal onde ele costuma ficar (usado como base
+              para cálculo de taxa de entrega).
             </div>
 
             <div className="field-label" style={{ marginTop: 10 }}>
@@ -251,18 +285,36 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
               placeholder="Ex: 6,00"
             />
             <div className="field-helper">
-              Valor padrão por entrega. Você pode ajustar por pedido.
+              Valor padrão por entrega. O sistema pode aplicar adicionais
+              conforme distância do bairro base.
             </div>
 
             <div className="motoboy-active-row">
-              <div className="field-label">Status</div>
+              <div className="field-label">Status geral</div>
+              <div className="motoboy-status-readonly">
+                {statusLabel}
+              </div>
+            </div>
+
+            <div className="motoboy-active-row">
+              <div className="field-label">Disponibilidade</div>
               <button
                 type="button"
                 className={
                   "motoboy-active-toggle" +
                   (isActive ? " motoboy-active-toggle-on" : "")
                 }
-                onClick={() => setIsActive((prev) => !prev)}
+                onClick={() =>
+                  setIsActive((prev) => {
+                    const next = !prev;
+                    if (!next) {
+                      setStatus("offline");
+                    } else if (status === "offline") {
+                      setStatus("available");
+                    }
+                    return next;
+                  })
+                }
               >
                 <span className="motoboy-active-knob" />
                 <span className="motoboy-active-label">

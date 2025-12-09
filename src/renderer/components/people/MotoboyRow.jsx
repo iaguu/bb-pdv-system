@@ -4,6 +4,26 @@ import Tag from "../common/Tag";
 
 const MotoboyRow = ({ motoboy, onClick }) => {
   const isActive = motoboy.isActive !== false; // default = ativo
+  const status = motoboy.status || (isActive ? "available" : "offline");
+
+  let statusLabel;
+  let tone;
+
+  if (!isActive || status === "offline") {
+    statusLabel = "Pausado / Offline";
+    tone = "danger";
+  } else if (status === "delivering") {
+    statusLabel = "Em entrega";
+    tone = "warning";
+  } else {
+    statusLabel = "Disponível";
+    tone = "success";
+  }
+
+  const qrSuffix =
+    motoboy.qrToken && motoboy.qrToken.length > 8
+      ? motoboy.qrToken.slice(-8)
+      : motoboy.qrToken || "";
 
   return (
     <div className="motoboy-row" onClick={() => onClick(motoboy)}>
@@ -12,9 +32,7 @@ const MotoboyRow = ({ motoboy, onClick }) => {
           <div className="motoboy-row-name">
             {motoboy.name || "(Sem nome)"}
           </div>
-          <Tag tone={isActive ? "success" : "danger"}>
-            {isActive ? "Ativo" : "Pausado"}
-          </Tag>
+          <Tag tone={tone}>{statusLabel}</Tag>
         </div>
 
         <div className="motoboy-row-meta">
@@ -27,6 +45,16 @@ const MotoboyRow = ({ motoboy, onClick }) => {
           {motoboy.vehiclePlate && (
             <span className="motoboy-row-plate">
               Placa {motoboy.vehiclePlate}
+            </span>
+          )}
+          {motoboy.baseNeighborhood && (
+            <span className="motoboy-row-neighborhood">
+              Base: {motoboy.baseNeighborhood}
+            </span>
+          )}
+          {qrSuffix && (
+            <span className="motoboy-row-qr">
+              QR: •••{qrSuffix}
             </span>
           )}
         </div>
