@@ -188,36 +188,6 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
     <Modal
       title={isEdit ? "Editar motoboy" : "Novo motoboy"}
       onClose={onClose}
-      footer={
-        <div className="modal-footer-actions">
-          {isEdit && (
-            <Button
-              variant="danger"
-              type="button"
-              onClick={handleDelete}
-              disabled={saving}
-            >
-              Excluir
-            </Button>
-          )}
-
-          <Button variant="ghost" type="button" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            variant="primary"
-            type="submit"
-            form="motoboy-form"
-            disabled={saving}
-          >
-            {saving
-              ? "Salvando..."
-              : isEdit
-              ? "Salvar alterações"
-              : "Cadastrar motoboy"}
-          </Button>
-        </div>
-      }
     >
       <form
         id="motoboy-form"
@@ -360,6 +330,41 @@ const MotoboyFormModal = ({ initialData, onClose, onSaved }) => {
         </div>
 
         {error && <div className="motoboy-form-error">{error}</div>}
+
+        {/* 🔽 Barra de ações dentro do form (sempre visível) */}
+        <div className="modal-footer-actions" style={{ marginTop: 16 }}>
+          {isEdit && (
+            <Button
+              variant="danger"
+              type="button"
+              onClick={handleDelete}
+              disabled={saving}
+            >
+              Excluir
+            </Button>
+          )}
+
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Cancelar
+          </Button>
+
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={saving}
+          >
+            {saving
+              ? "Salvando..."
+              : isEdit
+              ? "Salvar alterações"
+              : "Cadastrar motoboy"}
+          </Button>
+        </div>
       </form>
     </Modal>
   );

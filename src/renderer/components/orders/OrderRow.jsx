@@ -27,10 +27,18 @@ const SOURCE_MAP = {
   local: "Balcão / Local",
   balcão: "Balcão / Local",
   counter: "Balcão / Local",
+  desktop: "Balcão / Local",
   delivery: "Delivery",
   ifood: "iFood",
   whatsapp: "WhatsApp",
   phone: "Telefone",
+};
+
+const MOTOBOY_STATUS_MAP = {
+  waiting_qr: "Aguardando motoboy",
+  out_for_delivery: "Em rota",
+  delivering: "Em rota",
+  done: "Entrega finalizada",
 };
 
 /* ======================================================= */
@@ -61,15 +69,23 @@ const OrderRow = ({ order, onClick, isNew }) => {
     createdAt,
     items = [],
     totals,
+    motoboyName: motoboyNameRoot,
+    motoboyStatus: motoboyStatusRoot,
+    delivery,
   } = order || {};
 
   const customerName = customerSnapshot?.name || "Cliente";
 
-  /* Status */
-  const statusKey = (status || "open").toLowerCase().trim();
+  /* Status – normaliza out_for_delivery -> delivering */
+  const rawStatusKey = (status || "open").toString().toLowerCase().trim();
+  const normalizedStatusKey =
+    rawStatusKey === "out_for_delivery" || rawStatusKey === "in_delivery"
+      ? "delivering"
+      : rawStatusKey;
+
   const statusInfo =
-    STATUS_MAP[statusKey] || {
-      label: statusKey || "Em aberto",
+    STATUS_MAP[normalizedStatusKey] || {
+      label: rawStatusKey || "Em aberto",
       tone: "default",
     };
 
@@ -117,6 +133,24 @@ const OrderRow = ({ order, onClick, isNew }) => {
       month: "2-digit",
     });
 
+  /* Motoboy */
+  const motoboyName =
+    motoboyNameRoot ||
+    delivery?.motoboyName ||
+    null;
+
+  const motoboyStatusKey = (
+    motoboyStatusRoot ||
+    delivery?.motoboyStatus ||
+    ""
+  )
+    .toString()
+    .toLowerCase()
+    .trim();
+
+  const motoboyStatusLabel =
+    MOTOBOY_STATUS_MAP[motoboyStatusKey] || null;
+
   const classes = [
     "order-row",
     `order-row--status-${statusInfo.tone}`,
@@ -158,6 +192,22 @@ const OrderRow = ({ order, onClick, isNew }) => {
             <span className="order-row-chip-label">Origem:</span>
             <span className="order-row-source">{sourceLabel}</span>
           </span>
+
+          {/* Motoboy (se houver) */}
+          {motoboyName && (
+            <span className="order-row-chip order-row-chip--motoboy">
+              <span className="order-row-chip-label">🛵 Motoboy:</span>
+              <span className="order-row-motoboy-name">
+                {motoboyName}
+              </span>
+              {motoboyStatusLabel && (
+                <span className="order-row-motoboy-status">
+                  {" "}
+                  • {motoboyStatusLabel}
+                </span>
+              )}
+            </span>
+          )}
 
           {/* Novo */}
           {isNew && (

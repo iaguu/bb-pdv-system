@@ -73,7 +73,7 @@ function formatCurrencyBR(value) {
  */
 const DEFAULT_TRACKING_BASE_URL =
   process.env.ANNETOM_TRACKING_BASE_URL ||
-  "https://seusistema.com/motoboy/pedido/";
+  "http://localhost:3030/motoboy/pedido/";
 
 /**
  * Normaliza um trackingUrl para o pedido:

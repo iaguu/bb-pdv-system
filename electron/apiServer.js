@@ -1,3 +1,4 @@
+
 // electron/apiServer.js
 // Servidor HTTP/REST para expor o DataEngine via HTTP (site, app, integrações)
 
@@ -15,7 +16,7 @@ const path = require('path');
 // Isso garante que o site (via ngrok) e o app Electron usem o mesmo data dir.
 //
 // Exemplo (ajuste se necessário):
-// C:\Users\Iago_\AppData\Roaming\pizzaria-pedidos\data
+// C:\\Users\\Iago_\\AppData\\Roaming\\pizzaria-pedidos\\data
 //
 const FIXED_DATA_DIR = path.join(
   'C:',
@@ -40,6 +41,12 @@ const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3030;
+
+// URL base para tracking do pedido do motoboy (via QR / link)
+// Pode ser sobrescrita com ANNETOM_TRACKING_BASE_URL em produção.
+const DEFAULT_TRACKING_BASE_URL =
+  process.env.ANNETOM_TRACKING_BASE_URL ||
+  "http://localhost:3030/motoboy/pedido/";
 
 function fixedCollectionFile(name) {
   return path.join(FIXED_DATA_DIR, `${name}.json`);
@@ -274,6 +281,319 @@ app.post('/api/customers', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Erro interno ao cadastrar cliente.'
+    });
+  }
+});
+
+// ============================================================================
+// 3.3. ATUALIZAÇÃO DE STATUS DO MOTOBOY
+// ============================================================================
+//
+// PUT /api/motoboys/:id/status
+// Body esperado:
+// {
+//    "status": "available" | "delivering" | "offline"
+// }
+//
+app.put('/api/motoboys/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body || {};
+
+    const allowed = ['available', 'delivering', 'offline'];
+
+    if (!status || !allowed.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status inválido. Use: available, delivering ou offline.'
+      });
+    }
+
+    const now = new Date().toISOString();
+
+    const updated = await db.updateItem('motoboys', id, {
+      status,
+      updatedAt: now
+    });
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Motoboy não encontrado.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Status atualizado.',
+      motoboy: updated
+    });
+  } catch (err) {
+    console.error('[api:motoboys/status] Error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno ao atualizar status do motoboy.'
+    });
+  }
+});
+
+// ============================================================================
+// 3.4. CONSULTAR STATUS DO MOTOBOY
+// ============================================================================
+//
+// GET /api/motoboys/:id/status
+//
+app.get('/api/motoboys/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const data = await db.getCollection('motoboys');
+    const items = Array.isArray(data?.items)
+      ? data.items
+      : Array.isArray(data)
+      ? data
+      : [];
+
+    const found = items.find((m) => String(m.id) === String(id));
+
+    if (!found) {
+      return res.status(404).json({
+        success: false,
+        message: 'Motoboy não encontrado.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      id: found.id,
+      status: found.status || 'available',
+      isActive: found.isActive !== false
+    });
+  } catch (err) {
+    console.error('[api:motoboys/getStatus] Error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao consultar status do motoboy.'
+    });
+  }
+});
+
+// ============================================================================
+// 3.5. ROTA DE TRACKING DO PEDIDO PARA MOTOBOY (QR CODE)
+// ============================================================================
+//
+// GET /motoboy/pedido/:orderId
+// Exemplo: http://localhost:3030/motoboy/pedido/orders-1765312686786-74164
+//
+// Retorna um JSON simples com status do pedido e dados básicos do motoboy.
+//
+app.get('/motoboy/pedido/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    // 1) Carrega pedidos
+    const ordersData = await db.getCollection('orders');
+    const orders = Array.isArray(ordersData?.items)
+      ? ordersData.items
+      : Array.isArray(ordersData)
+      ? ordersData
+      : [];
+
+    const order =
+      orders.find((o) => String(o.id) === String(orderId)) ||
+      orders.find((o) => String(o.orderId) === String(orderId));
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pedido não encontrado.'
+      });
+    }
+
+    // 2) Tenta carregar dados do motoboy vinculado (se houver)
+    let motoboyInfo = null;
+
+    if (order.motoboyId) {
+      const motoboysData = await db.getCollection('motoboys');
+      const motoboys = Array.isArray(motoboysData?.items)
+        ? motoboysData.items
+        : Array.isArray(motoboysData)
+        ? motoboysData
+        : [];
+
+      const motoboy = motoboys.find(
+        (m) => String(m.id) === String(order.motoboyId)
+      );
+
+      if (motoboy) {
+        motoboyInfo = {
+          id: motoboy.id,
+          name: motoboy.name,
+          phone: motoboy.phone,
+          status: motoboy.status || 'available',
+          isActive: motoboy.isActive !== false
+        };
+      }
+    }
+
+    // 3) Resposta enxuta pro app / QR
+    return res.json({
+      success: true,
+      orderId: order.id || orderId,
+      status: order.status || 'open',
+      source: order.source || 'unknown',
+      motoboy: motoboyInfo,
+      // opcional: pedido completo pra app mobile usar
+      order
+    });
+  } catch (err) {
+    console.error('[api:motoboy/pedido] Error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao buscar pedido para tracking do motoboy.'
+    });
+  }
+});
+
+// ============================================================================
+// 3.6. VÍNCULO DE MOTOBOY AO PEDIDO VIA QR TOKEN (SCAN)
+// ============================================================================
+//
+// POST /motoboy/pedido/:orderId/link
+//
+// Body esperado:
+// {
+//   "qrToken": "qr-123..."   // token único do motoboy
+// }
+//
+// Fluxo:
+//  - encontra motoboy pelo qrToken
+//  - vincula no pedido
+//  - muda status do pedido para "out_for_delivery"
+//  - muda status do motoboy para "delivering"
+// ============================================================================
+
+app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { qrToken } = req.body || {};
+
+    if (!qrToken || typeof qrToken !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'qrToken é obrigatório no corpo da requisição.'
+      });
+    }
+
+    // 1) Carrega motoboys e encontra pelo qrToken
+    const motoboysData = await db.getCollection('motoboys');
+    const motoboys = Array.isArray(motoboysData?.items)
+      ? motoboysData.items
+      : Array.isArray(motoboysData)
+      ? motoboysData
+      : [];
+
+    const motoboy = motoboys.find(
+      (m) => String(m.qrToken || '').trim() === String(qrToken).trim()
+    );
+
+    if (!motoboy) {
+      return res.status(404).json({
+        success: false,
+        message: 'Motoboy não encontrado para este qrToken.'
+      });
+    }
+
+    // 2) Carrega pedidos e encontra o pedido
+    const ordersData = await db.getCollection('orders');
+    const orders = Array.isArray(ordersData?.items)
+      ? ordersData.items
+      : Array.isArray(ordersData)
+      ? ordersData
+      : [];
+
+    const orderIndex = orders.findIndex(
+      (o) =>
+        String(o.id) === String(orderId) ||
+        String(o.orderId) === String(orderId)
+    );
+
+    if (orderIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pedido não encontrado.'
+      });
+    }
+
+    const order = orders[orderIndex];
+
+    const now = new Date().toISOString();
+
+    // 3) Atualiza o pedido com dados do motoboy + status
+    const updatedOrder = {
+      ...order,
+      status: 'out_for_delivery', // "Em entrega" no painel
+      motoboyId: motoboy.id,
+      motoboyName: motoboy.name,
+      motoboyPhone: motoboy.phone,
+      motoboyBaseNeighborhood: motoboy.baseNeighborhood || null,
+      motoboyBaseFee: motoboy.baseFee ?? null,
+      motoboySnapshot: {
+        id: motoboy.id,
+        name: motoboy.name,
+        phone: motoboy.phone,
+        baseNeighborhood: motoboy.baseNeighborhood || null,
+        baseFee: motoboy.baseFee ?? null
+      },
+      motoboyStatus: 'out_for_delivery',
+      delivery: {
+        ...(order.delivery || {}),
+        motoboyId: motoboy.id,
+        motoboyName: motoboy.name,
+        motoboyPhone: motoboy.phone,
+        motoboyBaseNeighborhood: motoboy.baseNeighborhood || null,
+        motoboyBaseFee: motoboy.baseFee ?? null,
+        motoboySnapshot: {
+          id: motoboy.id,
+          name: motoboy.name,
+          phone: motoboy.phone,
+          baseNeighborhood: motoboy.baseNeighborhood || null,
+          baseFee: motoboy.baseFee ?? null
+        },
+        motoboyStatus: 'out_for_delivery'
+      },
+      updatedAt: now
+    };
+
+    // 4) Persiste o pedido atualizado
+    const savedOrder = await db.updateItem(
+      'orders',
+      order.id || orderId,
+      updatedOrder
+    );
+
+    // 5) Atualiza status do motoboy para "delivering"
+    await db.updateItem('motoboys', motoboy.id, {
+      status: 'delivering',
+      updatedAt: now
+    });
+
+    return res.json({
+      success: true,
+      message: 'Motoboy vinculado ao pedido com sucesso.',
+      order: savedOrder,
+      motoboy: {
+        id: motoboy.id,
+        name: motoboy.name,
+        phone: motoboy.phone,
+        status: 'delivering'
+      }
+    });
+  } catch (err) {
+    console.error('[api:motoboy/link] Error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao vincular motoboy ao pedido via QR.'
     });
   }
 });
