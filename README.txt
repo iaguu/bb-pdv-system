@@ -1,188 +1,247 @@
-# 🍕 Sistema de Pedidos – Pizzaria Anne & Tom
-Uma aplicação desktop profissional para gestão de pedidos, clientes e cardápio de pizzaria, construída com **Electron + React** e persistência local em **JSON**.  
-Projeto otimizado para simplicidade, velocidade e operação offline.
+🧾 BB-PDV System — Sistema de Ponto de Venda Desktop (Electron + React)
 
----
+📌 Sobre o Projeto
 
-## 🚀 Tecnologias Utilizadas
-- **Electron** — empacotamento desktop
-- **React** — UI, componentes reutilizáveis e animações
-- **JavaScript / Node.js**
-- **JSON local** — banco de dados simplificado
-- **ViaCEP API** — consulta de endereço
-- **Vite** — build e hot reload
-- **CSS moderno** — transições, gradientes suaves e microanimações
+O BB-PDV System é um sistema completo de frente de caixa / gestão de pedidos, criado com Electron + React, pensado para funcionar 100% offline, com banco de dados local em JSON.
+Ele é utilizado como PDV principal do ecossistema Anne & Tom (website → PDV → app motoboy).
 
----
+Ideal para:
 
-## 📂 Estrutura de Pastas
+Pizzarias
 
+Lanchonetes
+
+Restaurantes
+
+Deliveries próprios
+
+Pequenos e médios comércios
+
+🧩 Principais Módulos
+🛒 Pedidos
+
+Interface rápida com busca e clique ágil
+
+Pizzas com até 3 sabores
+
+Adicionais, observações e modificações por item
+
+Cupom de cozinha e balcão (estilizados e revisados)
+
+Impressão silenciosa (silentPrint)
+
+Mudança automática de status
+
+Integração com motoboy via QR Code
+
+👤 Clientes
+
+Cadastro completo
+
+Busca por telefone (com máscara + normalização)
+
+Histórico completo de pedidos
+
+Tags (VIP, primeira compra, etc.)
+
+🍕 Produtos
+
+CRUD completo
+
+Ingredientes com badges removíveis
+
+Preços por tamanho
+
+Disponibilidade ativa/pausada
+
+Normalização automática
+
+🖨️ Impressão
+
+Tickets modernos e fáceis de ler
+
+Cupom especial para cozinha (cores e espaçamento)
+
+Cupom de balcão com layout profissional
+
+Impressoras separadas (cozinha / balcão)
+
+Teste de impressora integrado
+
+⚙️ Configurações
+
+Seleção de impressoras detectadas via Electron
+
+Persistência automática (settings.json)
+
+Taxas de entrega por bairro / distância
+
+Informações da pizzaria
+
+Tema e preferências visuais
+
+🏗 Arquitetura do Sistema
+
+bb-pdv-system/
+│
 ├── electron/
-│ ├── db.js # Persistência em JSON
-│ └── main.js # Processo principal do Electron
+│   ├── main.js          # Processo principal: impressão, QRCode, comunicação IPC
+│   ├── db.js            # DataEngine com JSON local
+│   └── printer/         # Módulos específicos de impressão
 │
 ├── src/
-│ ├── components/ # Componentes reutilizáveis
-│ ├── pages/ # Telas principais
-│ ├── data/ # Cardápio base
-│ ├── hooks/ # Hooks personalizados
-│ ├── utils/ # Helpers (CEP, currency, formatadores)
-│ └── App.jsx
+│   ├── components/      # Componentes reutilizáveis
+│   ├── pages/           # Páginas (Orders, Products, Customers...)
+│   ├── hooks/           # Hooks com lógicas isoladas
+│   ├── utils/           # Helpers e normalizações
+│   ├── styles/          # SCSS / tokens / layout
+│   ├── data/            # Estruturas JSON estáticas
+│   └── App.jsx
 │
-└── public/
+├── public/
+├── package.json
+└── vite.config.js
 
+Como Rodar
+✔ Requisitos
 
----
+Node.js — versão LTS
 
-## 🗃️ Banco de Dados Local
-Todos os arquivos são salvos automaticamente em:
+NPM ou Yarn
 
-C:/Users/<user>/AppData/Roaming/<app>/data
+Windows (recomendado), Linux ou macOS
 
+▶️ Ambiente de Desenvolvimento
+git clone https://github.com/iaguu/bb-pdv-system.git
+cd bb-pdv-system
 
-Arquivos utilizados:
-
-- `pizzas.json`
-- `drinks.json`
-- `extras.json`
-- `customers.json`
-- `orders.json`
-- `settings.json`
-
-O sistema cria todos os arquivos no primeiro uso.
-
----
-
-## 📦 Recursos Principais
-
-### ✅ **Gestão de Produtos**
-- Listagem de pizzas, bebidas e adicionais  
-- Tela detalhada ao clicar em cada pizza  
-- Suporte a **pizza meio a meio**  
-- Preços por tamanho (broto / grande)  
-- Placeholders automáticos para imagens  
-- Modal “Ver mais” com ingredientes e descrição  
-
----
-
-### 🛒 **Carrinho e Checkout (3 etapas)**
-1. **Carrinho**  
-   - Itens, quantidades e totais  
-2. **Dados do Cliente**  
-   - Nome, telefone, CPF  
-   - Endereço completo via ViaCEP  
-3. **Pagamento**  
-   - PIX  
-   - Dinheiro  
-   - Cartão  
-   - Cupom PIX (primeira compra)  
-   - Taxa de entrega por bairro  
-
----
-
-### 👤 **Sistema de Clientes**
-- Cadastro com dados pessoais e endereço  
-- Histórico de pedidos  
-- Normalização automática dos campos  
-- Notas internas por cliente  
-
----
-
-### 📑 **Pedidos**
-Cada pedido registra:
-- resumo legível  
-- itens, adicionais e meio a meio  
-- forma de pagamento  
-- taxa de entrega  
-- impressão  
-- data e horário  
-- total calculado  
-
----
-
-### 🔄 **Importação/Exportação**
-
-Cardápio completo em formato:
-
-```json
-{
-  "version": 1,
-  "exportedAt": "2025-12-01T22:15:10.000Z",
-  "products": [...]
-}
-
-🎨 UI/UX
-
-Home branca e elegante
-
-Gradientes suaves
-
-Transições animadas entre telas
-
-Animação de fade-in de imagens
-
-Espaçamentos amplos e harmônicos
-
-Ícones e botões simples e funcionais
-
-Carrinho sempre acessível
-
-🧠 Personagem Atendente – “Anne”
-
-O sistema inclui um modo de respostas com base em:
-
-linguagem formal
-
-postura calma e segura
-
-humanização sem excesso
-
-concessões mínimas (PIX/primeira compra)
-
-estilo compatível com “Anne & Tom”
-
-Ideal para WhatsApp, chatbot ou atendimento no balcão.
-
-🛠️ Como rodar o projeto
-1️⃣ Instalar dependências
 npm install
-
-2️⃣ Rodar ambiente de desenvolvimento
 npm run dev
 
-3️⃣ Empacotar a versão desktop
+
+Electron + React iniciarão juntos.
+
+🏗 Build Para Produção (App Desktop)
 npm run build
 npm run electron:build
 
-🧪 Padronização de Código
 
-Componentização
+O executável ficará em /dist.
 
-Hooks para lógica compartilhada
+🗃 Banco de Dados Local (DataEngine)
 
-Helpers utilitários (formatCurrency, normalizeCustomer, lookupCep)
+O banco é simplesmente uma pasta com arquivos .json:
 
-Separação clara entre UI e dados
+data/
+├── products.json
+├── customers.json
+├── orders.json
+└── settings.json
 
-Uso de useMemo e useEffect para performance
 
-📌 Roadmap Futuro
+Criados automaticamente
 
-Dashboard com gráficos
+Totalmente offline
 
-App mobile para entregadores
+Facilmente copiáveis para backup
 
-Modo escuro
+Sem necessidade de servidor remoto
 
-Integração com WhatsApp Business API
+🔌 Integrações Internas
+📍 CEP
 
-Multiusuário com permissões
+Integração com ViaCEP (auto-preenchimento de endereço).
 
-Upload de imagens de produtos
+🚚 Motoboy com QR Code
 
-Sincronização opcional em nuvem
+Ticket imprime um QR Code
 
-📄 Licença
+Motoboy escaneia
 
-Uso interno da Pizzaria Anne & Tom.
-Não distribuído publicamente.
+Pedido muda para “em entrega”
+
+🖨 Impressoras
+
+Listagem automática via Electron
+
+Impressoras separadas por função
+
+Teste de impressão
+
+Impressão silenciosa
+
+🔧 Comandos Principais
+Comando	Função
+npm run dev	Inicia React + Electron no modo dev
+npm run build	Compila o React
+npm run electron:build	Cria o app desktop
+npm run preview	Testa build web
+npm run lint	Verifica inconsistências
+📌 Roadmap Oficial (2025)
+🟢 Em desenvolvimento
+
+Revisão total do ticket da cozinha
+
+Taxa de entrega por distância (Chora Menino padrão)
+
+Integração total com motoboy
+
+Revisão completa do catálogo e preços
+
+🟡 Planejado
+
+Dashboard financeiro
+
+Módulo de estoque avançado
+
+Exportação de relatórios (PDF/CSV)
+
+Modo dark
+
+Multiusuário (Admin / Caixa / Gerência)
+
+🔴 Futuro
+
+App Cliente
+
+App Gerencial
+
+Sync com backend remoto
+
+🧪 Padrões de Código
+
+Componentes pequenos e claros
+
+Lógicas isoladas em hooks
+
+Normalizações universais (normalizeStatus, normalizePhone, etc.)
+
+SCSS modular por tokens/layout/componentes
+
+Comentários explicativos nas áreas críticas (impressores, db, QRCode)
+
+🤝 Como Contribuir
+
+Faça um fork
+
+Crie uma branch:
+
+git checkout -b feature/minha-feature
+
+
+Commit:
+
+git commit -m "feat: descreva sua feature"
+
+
+Envie o PR
+
+📝 Licença
+
+Este projeto não define licença e é, por padrão, de uso restrito.
+
+👨‍💻 Autor
+
+Iago Ferreira Barreto
+Criador do ecossistema BB Systems / Anne & Tom
+Desenvolvedor especializado em soluções de PDV, React e Electron.
