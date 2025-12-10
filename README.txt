@@ -1,6 +1,5 @@
 🧾 BB-PDV System — Sistema de Ponto de Venda Desktop (Electron + React)
 
-<p align="center"> <b>Um sistema de PDV rápido, moderno e totalmente offline, criado para pizzarias e deliveries.</b> </p> <p align="center"> <img src="https://img.shields.io/badge/Electron-Desktop-blue?logo=electron" /> <img src="https://img.shields.io/badge/React-18.0-61dafb?logo=react" /> <img src="https://img.shields.io/badge/Node.js-Backend-success?logo=node.js" /> <img src="https://img.shields.io/badge/Database-JSON-orange?logo=json" /> <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow" /> </p>
 📌 Sobre o Projeto
 
 O BB-PDV System é um sistema completo de frente de caixa / gestão de pedidos, criado com Electron + React, pensado para funcionar 100% offline, com banco de dados local em JSON.
