@@ -606,15 +606,165 @@ textarea.cash-notes-textarea {
 
 /* grids de formulário */
 .form-grid,
-.customer-form-grid,
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px 16px;
 }
 
+.customer-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .customer-form-row {
-  display: contents;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 16px;
+}
+
+.customer-form-row-cep {
+  grid-template-columns: 1.2fr 1fr 0.6fr;
+  align-items: end;
+}
+
+@media (max-width: 640px) {
+  .customer-form-row-cep {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-cep-inline {
+    grid-template-columns: 1fr;
+  }
+}
+
+.customer-form-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #ffffff, #f9fafb);
+  box-shadow: var(--shadow-soft);
+}
+
+.customer-form-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffb703, #fb8500);
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(251, 133, 0, 0.16);
+}
+
+.customer-form-header-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.customer-form-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.customer-form-heading {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.customer-form-subtitle {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.customer-form-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.customer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.customer-pill-new {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  border: 1px solid rgba(214, 40, 40, 0.24);
+}
+
+.customer-pill-edit {
+  background: #ecfdf3;
+  color: #166534;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.customer-pill-soft {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: var(--text-muted);
+  border: 1px solid var(--border-soft);
+}
+
+.customer-form-top-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.customer-form-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.customer-form-section + .customer-form-section {
+  margin-top: 12px;
+}
+
+.customer-form-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.customer-form-section-header h4 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.customer-form-section-header p {
+  font-size: 13px;
+  color: var(--text-soft);
 }
 
 .customer-cep-inline {
@@ -2710,6 +2860,7 @@ textarea.cash-notes-textarea {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  color: black !important;
 }
 
 /*Título + tag categoria*/
@@ -2728,7 +2879,8 @@ textarea.cash-notes-textarea {
 /*descrição curta do produto*/
 .product-description {
   font-size: 12px;
-  color: #6b7280;
+  color: black;
+
   margin: 0;
   margin-left: 2px;
 }
@@ -6386,6 +6538,7 @@ body.has-modal-open {
     }
 
     .extras-item-name {
+      color: black;
       font-size: 14px;
       font-weight: 500;
     }
@@ -6809,11 +6962,13 @@ body.has-modal-open {
 }
 
 .stock-product-name {
+  color: black;
   font-weight: 500;
   font-size: 0.9rem;
 }
 
 .stock-product-meta {
+  color: black;
   font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -6871,6 +7026,8 @@ body.has-modal-open {
    ================================ */
 
 .product-ingredients-wrapper {
+  color: black;
+
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -6879,6 +7036,8 @@ body.has-modal-open {
 .product-ingredients-chips {
   display: flex;
   flex-wrap: wrap;
+  color: black;
+
   gap: 0.4rem;
 }
 
@@ -6891,7 +7050,8 @@ body.has-modal-open {
   font-size: 0.75rem;
   line-height: 1;
   background: #f3f4f6; // cinza clarinho
-  color: #111827;
+  color: black;
+
   border: 1px solid #e5e7eb;
   box-shadow: 0 0 0 0 transparent;
   transition:
@@ -6954,12 +7114,15 @@ body.has-modal-open {
 /* Caso queira deixar o wrapper com cara de campo "multi-input" */
 .product-ingredients-wrapper .product-input--ingredients {
   margin-top: 0.1rem;
+  color: black;
 }
 
 
 .product-ingredients-wrapper {
   padding: 0.5rem 0.75rem;
   border-radius: 0.75rem;
+  color: black;
+
   border: 1px dashed #e5e7eb;
   background: #f9fafb;
 }

@@ -26,6 +26,10 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
   // compat: aceita initialData OU customer
   const editingData = initialData || customer || null;
 
+  const displayName = editingData
+    ? editingData.name?.trim() || "Cliente sem nome"
+    : "Novo cliente";
+
   const [form, setForm] = useState(() => ({
     id: editingData?.id || undefined,
     name: editingData?.name || "",
@@ -50,6 +54,8 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
 
   const [cepStatus, setCepStatus] = useState("idle"); // idle | loading | ok | error
   const [cepMessage, setCepMessage] = useState("");
+  const customerInitial =
+    form.name.trim().charAt(0).toUpperCase() || displayName.charAt(0);
 
   // se o cliente mudar (editar outro), atualiza o form
   useEffect(() => {
@@ -187,13 +193,56 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
         </div>
       }
     >
+      <div className="customer-form-header">
+        <div className="customer-form-avatar">{customerInitial}</div>
+        <div className="customer-form-header-body">
+          <div className="customer-form-heading-row">
+            <h3 className="customer-form-heading">{displayName}</h3>
+            <span
+              className={
+                "customer-pill " +
+                (editingData ? "customer-pill-edit" : "customer-pill-new")
+              }
+            >
+              {editingData ? "Em ediÇõo" : "Novo cadastro"}
+            </span>
+          </div>
+          <p className="customer-form-subtitle">
+            {editingData
+              ? "Revise contato, endereÇõo e observaÇõÇæes antes de salvar."
+              : "Preencha os campos de contato e endereÇõo para cadastrar."}
+          </p>
+          <div className="customer-form-meta">
+            <span className="customer-pill-soft">
+              {form.phone ? "Telefone informado" : "Telefone pendente"}
+            </span>
+            <span className="customer-pill-soft">
+              {form.address.city || form.address.street
+                ? "EndereÇõo preenchido"
+                : "EndereÇõo pendente"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="customer-form-top-actions">
+        <Button variant="primary" type="submit" form="customer-form">
+          {editingData ? "Salvar alteraÇõÇæes" : "Cadastrar cliente"}
+        </Button>
+        {editingData?.id && (
+          <Button variant="danger" type="button" onClick={handleDelete}>
+            Excluir cliente
+          </Button>
+        )}
+      </div>
+
       <form
         id="customer-form"
         className="customer-form-grid"
         onSubmit={handleSubmit}
       >
         {/* Dados principais */}
-        <section className="customer-form-section">
+        <section className="customer-form-section customer-form-card">
           <header className="customer-form-section-header">
             <h4>Dados do cliente</h4>
             <p>Informações de identificação e contato.</p>
@@ -232,7 +281,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
         </section>
 
         {/* Endereço e entrega */}
-        <section className="customer-form-section">
+        <section className="customer-form-section customer-form-card">
           <header className="customer-form-section-header">
             <h4>Endereço e entrega</h4>
             <p>Dados usados para cálculo de rota e taxa de entrega.</p>
@@ -376,7 +425,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
         </section>
 
         {/* Observações */}
-        <section className="customer-form-section">
+        <section className="customer-form-section customer-form-card">
           <header className="customer-form-section-header">
             <h4>Observações</h4>
             <p>Informações importantes sobre este cliente.</p>
@@ -391,6 +440,16 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
               placeholder="Ex: prefere contato por WhatsApp, alergias, etc."
             />
           </label>
+                <div className="customer-form-top-actions">
+        <Button variant="primary" type="submit" form="customer-form">
+          Cadastrar cliente
+        </Button>
+        {editingData?.id && (
+          <Button variant="danger" type="button" onClick={handleDelete}>
+            Excluir cliente
+          </Button>
+        )}
+      </div>
         </section>
       </form>
     </Modal>
