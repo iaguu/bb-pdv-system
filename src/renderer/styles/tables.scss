@@ -1,0 +1,29 @@
+// ============================================================================
+// TABLES
+// ============================================================================
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table thead {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.table th,
+.table td {
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-soft);
+}
+
+.table tbody tr:nth-child(even) {
+  background: rgba(5, 7, 12, 0.8);
+}

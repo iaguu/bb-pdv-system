@@ -1,0 +1,126 @@
+// ============================================================================
+// PEOPLE / MOTOBOYS
+// ============================================================================
+.people-page {
+  padding: 18px 22px;
+}
+
+.people-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.people-title {
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+
+.people-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-soft);
+}
+
+.people-table-wrapper {
+  background: rgba(10, 12, 22, 0.98);
+  border-radius: 16px;
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-subtle);
+  overflow: hidden;
+}
+
+.people-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.people-table thead {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.people-table th,
+.people-table td {
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.people-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-soft);
+}
+
+.people-table tbody tr:nth-child(even) {
+  background: rgba(5, 7, 12, 0.8);
+}
+
+.people-table__empty {
+  text-align: center;
+  color: var(--color-text-soft);
+}
+
+.people-table__actions {
+  width: 220px;
+}
+
+.status-pill {
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-soft);
+}
+
+.status-pill--active {
+  border-color: var(--color-primary-soft);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary-soft);
+}
+
+.status-pill--inactive {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+// switch (shared)
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.switch input {
+  display: none;
+}
+
+.switch__track {
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border-subtle);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.switch__thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.switch input:checked + .switch__track .switch__thumb {
+  transform: translateX(16px);
+  background: var(--color-primary-soft);
+}

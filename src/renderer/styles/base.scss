@@ -1,0 +1,73 @@
+// ============================================================================
+// BASE / RESET
+// ============================================================================
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: radial-gradient(circle at top left, #15192a 0, #05060a 55%);
+  color: var(--color-text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+// links
+a {
+  color: var(--color-primary-soft);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+// headings / text
+h1,
+h2,
+h3,
+h4,
+h5 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+// layout defaults for main pages
+.main-view {
+  min-height: 100vh;
+  display: flex;
+  background: radial-gradient(circle at top left, #181c2f 0, #05060a 55%);
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px 24px;
+  overflow: auto;
+}
+
+.page-title {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: var(--color-text-soft);
+  margin-bottom: 16px;
+}

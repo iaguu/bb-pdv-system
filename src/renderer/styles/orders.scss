@@ -1,0 +1,65 @@
+// ============================================================================
+// ORDERS PAGE / LIST
+// ============================================================================
+.orders-page {
+  padding: 18px 22px;
+}
+
+.orders-header {
+  margin-bottom: 16px;
+}
+
+.orders-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 16px;
+}
+
+.orders-filters__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.orders-filters__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-soft);
+}
+
+.orders-list {
+  background: rgba(10, 12, 22, 0.98);
+  border-radius: 16px;
+  border: 1px solid var(--color-border-subtle);
+  padding: 14px 16px;
+}
+
+.orders-list__section-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-soft);
+  margin-bottom: 6px;
+}
+
+.orders-list__item {
+  padding: 8px 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+}
+
+.orders-list__item:first-of-type {
+  border-top: 0;
+}
+
+.orders-list__item-meta {
+  font-size: 12px;
+  color: var(--color-text-soft);
+}
+
+.orders-list__item-total {
+  font-weight: 600;
+}

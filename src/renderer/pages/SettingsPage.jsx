@@ -3,6 +3,77 @@ import React, { useEffect, useState } from "react";
 import Page from "../components/layout/Page";
 import Button from "../components/common/Button";
 
+const buildDefaultDeliveryConfig = () => ({
+  mode: "km_table", // cálculo padrão por distância em km
+  baseLocationLabel: "Chora Menino (bairro base)",
+  ranges: [
+    // TABELA PADRÃO – MESMA DA IMAGEM
+    {
+      id: "r0_0_8",
+      label: "até 0,8 km",
+      minKm: 0,
+      maxKm: 0.8,
+      price: 3.5,
+    },
+    {
+      id: "r0_81_1_5",
+      label: "0,81 a 1,5 km",
+      minKm: 0.81,
+      maxKm: 1.5,
+      price: 5.9,
+    },
+    {
+      id: "r1_6_2",
+      label: "de 1,6 a 2,0 km",
+      minKm: 1.6,
+      maxKm: 2.0,
+      price: 7.5,
+    },
+    {
+      id: "r2_1_4",
+      label: "de 2,1 a 4,0 km",
+      minKm: 2.1,
+      maxKm: 4.0,
+      price: 8.9,
+    },
+    {
+      id: "r4_1_5_5",
+      label: "de 4,1 a 5,5 km",
+      minKm: 4.1,
+      maxKm: 5.5,
+      price: 10.9,
+    },
+    {
+      id: "r5_6_9",
+      label: "de 5,6 a 9,0 km",
+      minKm: 5.6,
+      maxKm: 9.0,
+      price: 12.9,
+    },
+    {
+      id: "r9_1_11_5",
+      label: "de 9,1 a 11,5 km",
+      minKm: 9.1,
+      maxKm: 11.5,
+      price: 18.0,
+    },
+    {
+      id: "r11_6_15",
+      label: "de 11,6 a 15,0 km",
+      minKm: 11.6,
+      maxKm: 15.0,
+      price: 22.0,
+    },
+    {
+      id: "pickup",
+      label: "Retirar / até 0,1 km",
+      minKm: 0,
+      maxKm: 0.1,
+      price: 0.0,
+    },
+  ],
+});
+
 const buildDefaultSettings = () => ({
   id: "default",
   pizzaria: "Anne & Tom",
@@ -18,6 +89,7 @@ const buildDefaultSettings = () => ({
     silentMode: true,
     autoPrintWebsiteOrders: false,
   },
+  delivery: buildDefaultDeliveryConfig(),
 });
 
 const normalizeSettingsData = (data) => {
@@ -49,8 +121,7 @@ function buildThermalTestTicket({
 }) {
   const now = new Date().toLocaleString("pt-BR");
 
-  const profileLabel =
-    profile === "kitchen" ? "COZINHA" : "BALCÃO / CONTA";
+  const profileLabel = profile === "kitchen" ? "COZINHA" : "BALCÃO / CONTA";
 
   const header = "ANNE & TOM PIZZARIA";
   const separator = "--------------------------------";
@@ -144,6 +215,34 @@ const SettingsPage = () => {
           };
         }
 
+        // Normaliza configuração de entrega
+        if (!item.delivery || !Array.isArray(item.delivery.ranges)) {
+          item.delivery = buildDefaultDeliveryConfig();
+        } else {
+          item.delivery = {
+            mode: item.delivery.mode || "km_table",
+            baseLocationLabel:
+              item.delivery.baseLocationLabel ||
+              "Chora Menino (bairro base)",
+            ranges: item.delivery.ranges.map((r, idx) => ({
+              id: r.id || `r_${idx}`,
+              label: r.label || "",
+              minKm:
+                typeof r.minKm === "number"
+                  ? r.minKm
+                  : Number(r.minKm || 0),
+              maxKm:
+                typeof r.maxKm === "number"
+                  ? r.maxKm
+                  : Number(r.maxKm || 0),
+              price:
+                typeof r.price === "number"
+                  ? r.price
+                  : Number(r.price || 0),
+            })),
+          };
+        }
+
         setSettings(item);
       } catch (err) {
         console.error("[Settings] Erro ao carregar:", err);
@@ -212,6 +311,90 @@ const SettingsPage = () => {
         [field]: value,
       },
     }));
+  };
+
+  // ------- ENTREGA / DISTÂNCIA -------
+
+  const handleDeliveryFieldChange = (field, value) => {
+    setSettings((prev) => ({
+      ...prev,
+      delivery: {
+        ...(prev.delivery || buildDefaultDeliveryConfig()),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleDeliveryRangeChange = (index, field, value) => {
+    setSettings((prev) => {
+      const current = prev.delivery || buildDefaultDeliveryConfig();
+      const ranges = [...(current.ranges || [])];
+
+      const parseNumber = (val) => {
+        if (val === "" || val === null || val === undefined) return "";
+        const normalized = val.toString().replace(",", ".");
+        const n = Number(normalized);
+        return Number.isNaN(n) ? "" : n;
+      };
+
+      const updated = { ...(ranges[index] || {}) };
+
+      if (field === "minKm" || field === "maxKm" || field === "price") {
+        updated[field] = parseNumber(value);
+      } else {
+        updated[field] = value;
+      }
+
+      ranges[index] = updated;
+
+      return {
+        ...prev,
+        delivery: {
+          ...current,
+          ranges,
+        },
+      };
+    });
+  };
+
+  const handleAddDeliveryRange = () => {
+    setSettings((prev) => {
+      const current = prev.delivery || buildDefaultDeliveryConfig();
+      const ranges = [...(current.ranges || [])];
+      const newIndex = ranges.length + 1;
+
+      ranges.push({
+        id: `custom_${newIndex}`,
+        label: `Nova faixa ${newIndex}`,
+        minKm: 0,
+        maxKm: 0,
+        price: 0,
+      });
+
+      return {
+        ...prev,
+        delivery: {
+          ...current,
+          ranges,
+        },
+      };
+    });
+  };
+
+  const handleRemoveDeliveryRange = (index) => {
+    setSettings((prev) => {
+      const current = prev.delivery || buildDefaultDeliveryConfig();
+      const ranges = [...(current.ranges || [])];
+      ranges.splice(index, 1);
+
+      return {
+        ...prev,
+        delivery: {
+          ...current,
+          ranges,
+        },
+      };
+    });
   };
 
   const handleSave = async () => {
@@ -329,11 +512,12 @@ const SettingsPage = () => {
 
   const kitchenPrinterName = settings.printing?.kitchenPrinterName || "";
   const counterPrinterName = settings.printing?.counterPrinterName || "";
+  const delivery = settings.delivery || buildDefaultDeliveryConfig();
 
   return (
     <Page
       title="Configurações"
-      subtitle="Ajustes gerais da pizzaria, integrações e impressão."
+      subtitle="Ajustes gerais da pizzaria, integrações, entrega e impressão."
       actions={
         <Button
           variant="primary"
@@ -371,7 +555,7 @@ const SettingsPage = () => {
       )}
 
       <div className="settings-layout">
-        {/* COLUNA ESQUERDA – Geral / Aparência / Integração */}
+        {/* COLUNA ESQUERDA – Geral / Aparência / Integração / Entrega */}
         <div className="settings-column">
           {/* Pizzaria */}
           <div className="settings-section">
@@ -450,6 +634,163 @@ const SettingsPage = () => {
                   Não compartilhe essa chave com terceiros.
                 </span>
               </label>
+            </div>
+          </div>
+
+          {/* ENTREGA / TABELA POR KM */}
+          <div className="settings-section">
+            <div className="settings-section-title">
+              Taxas de entrega (distância em km)
+            </div>
+
+            <div className="form-grid settings-grid">
+              <label className="field">
+                <span className="field-label">
+                  Bairro / ponto de referência
+                </span>
+                <input
+                  className="input"
+                  value={delivery.baseLocationLabel || ""}
+                  onChange={(e) =>
+                    handleDeliveryFieldChange(
+                      "baseLocationLabel",
+                      e.target.value
+                    )
+                  }
+                  placeholder="Ex.: Chora Menino"
+                />
+                <span className="field-helper">
+                  Ponto a partir do qual será considerada a distância em
+                  km da entrega.
+                </span>
+              </label>
+
+              <label className="field">
+                <span className="field-label">Modo de cálculo</span>
+                <select
+                  className="input"
+                  value={delivery.mode || "km_table"}
+                  onChange={(e) =>
+                    handleDeliveryFieldChange("mode", e.target.value)
+                  }
+                >
+                  <option value="km_table">
+                    Tabela por faixa de km (padrão)
+                  </option>
+                  <option value="manual_bairro">
+                    Valor manual por bairro / zona
+                  </option>
+                </select>
+                <span className="field-helper">
+                  Outros módulos podem usar este modo para decidir qual
+                  lógica aplicar ao calcular a taxa.
+                </span>
+              </label>
+            </div>
+
+            <div className="delivery-table">
+              <div className="delivery-table-header">
+                <div>Km mín.</div>
+                <div>Km máx.</div>
+                <div>Descrição</div>
+                <div>Valor (R$)</div>
+                <div />
+              </div>
+
+              {delivery.ranges.map((range, idx) => (
+                <div
+                  key={range.id || idx}
+                  className="delivery-table-row"
+                >
+                  <input
+                    type="number"
+                    step="0.1"
+                    className="input"
+                    value={
+                      range.minKm === "" || range.minKm === null
+                        ? ""
+                        : range.minKm
+                    }
+                    onChange={(e) =>
+                      handleDeliveryRangeChange(
+                        idx,
+                        "minKm",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <input
+                    type="number"
+                    step="0.1"
+                    className="input"
+                    value={
+                      range.maxKm === "" || range.maxKm === null
+                        ? ""
+                        : range.maxKm
+                    }
+                    onChange={(e) =>
+                      handleDeliveryRangeChange(
+                        idx,
+                        "maxKm",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <input
+                    className="input"
+                    value={range.label || ""}
+                    onChange={(e) =>
+                      handleDeliveryRangeChange(
+                        idx,
+                        "label",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <input
+                    type="number"
+                    step="0.1"
+                    className="input"
+                    value={
+                      range.price === "" || range.price === null
+                        ? ""
+                        : range.price
+                    }
+                    onChange={(e) =>
+                      handleDeliveryRangeChange(
+                        idx,
+                        "price",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRemoveDeliveryRange(idx)}
+                  >
+                    Remover
+                  </Button>
+                </div>
+              ))}
+
+              <div style={{ marginTop: 8 }}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleAddDeliveryRange}
+                >
+                  Adicionar faixa
+                </Button>
+              </div>
+
+              <p className="field-helper" style={{ marginTop: 8 }}>
+                Esta tabela é o padrão para cálculo da taxa de entrega
+                com base na distância em km. Os módulos de pedidos podem
+                ler essas faixas para calcular o valor automaticamente.
+              </p>
             </div>
           </div>
         </div>

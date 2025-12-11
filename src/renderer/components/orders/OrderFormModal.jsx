@@ -6,32 +6,199 @@ function digitsOnly(s) {
 }
 
 /**
- * Tabela de taxas por bairro – pode ser customizada via settings em outro momento.
+ * Endereço base fixo da pizzaria
+ * Usado para calcular a distância até o cliente.
  */
-const DELIVERY_FEES_BY_NEIGHBORHOOD = {
-  Santana: 6,
-  "Alto de Santana": 7,
-  Tucuruvi: 7,
-  Mandaqui: 7,
-  "Santa Teresinha": 7,
-  "Casa Verde": 8,
-  "Vila Guilherme": 9,
-  "Outros bairros": 10,
+const BASE_DELIVERY_ADDRESS =
+  "Rua Dona Elfrida, 719 - Santa Teresinha, São Paulo - SP";
+
+/**
+ * Tabela padrão de entrega por km (fallback caso não exista em settings)
+ */
+const DEFAULT_DELIVERY_CONFIG = {
+  baseLocationLabel: "Rua Dona Elfrida, 719 - Santa Teresinha",
+  ranges: [
+    {
+      id: "r0_0_8",
+      label: "até 0,8 km",
+      minKm: 0,
+      maxKm: 0.8,
+      price: 3.5,
+    },
+    {
+      id: "r0_81_1_5",
+      label: "0,81 a 1,5 km",
+      minKm: 0.81,
+      maxKm: 1.5,
+      price: 5.9,
+    },
+    {
+      id: "r1_6_2",
+      label: "de 1,6 a 2,0 km",
+      minKm: 1.6,
+      maxKm: 2.0,
+      price: 7.5,
+    },
+    {
+      id: "r2_1_4",
+      label: "de 2,1 a 4,0 km",
+      minKm: 2.1,
+      maxKm: 4.0,
+      price: 8.9,
+    },
+    {
+      id: "r4_1_5_5",
+      label: "de 4,1 a 5,5 km",
+      minKm: 4.1,
+      maxKm: 5.5,
+      price: 10.9,
+    },
+    {
+      id: "r5_6_9",
+      label: "de 5,6 a 9,0 km",
+      minKm: 5.6,
+      maxKm: 9.0,
+      price: 12.9,
+    },
+    {
+      id: "r9_1_11_5",
+      label: "de 9,1 a 11,5 km",
+      minKm: 9.1,
+      maxKm: 11.5,
+      price: 18.0,
+    },
+    {
+      id: "r11_6_15",
+      label: "de 11,6 a 15,0 km",
+      minKm: 11.6,
+      maxKm: 15.0,
+      price: 22.0,
+    },
+    {
+      id: "pickup",
+      label: "Retirar / até 0,1 km",
+      minKm: 0,
+      maxKm: 0.1,
+      price: 0.0,
+    },
+  ],
 };
 
 /**
+ * Normaliza deliveryConfig vindo de settings (caso exista)
+ */
+function normalizeDeliveryConfigFromSettings(rawSettings) {
+  if (!rawSettings) return DEFAULT_DELIVERY_CONFIG;
+
+  let settingsObj = null;
+  if (Array.isArray(rawSettings?.items) && rawSettings.items.length > 0) {
+    settingsObj = rawSettings.items[0];
+  } else if (Array.isArray(rawSettings) && rawSettings.length > 0) {
+    settingsObj = rawSettings[0];
+  } else if (typeof rawSettings === "object") {
+    settingsObj = rawSettings;
+  }
+
+  const delivery = settingsObj?.delivery;
+  if (!delivery || !Array.isArray(delivery.ranges)) {
+    return DEFAULT_DELIVERY_CONFIG;
+  }
+
+  return {
+    baseLocationLabel:
+      delivery.baseLocationLabel ||
+      DEFAULT_DELIVERY_CONFIG.baseLocationLabel,
+    ranges: delivery.ranges.map((r, idx) => ({
+      id: r.id || `r_${idx}`,
+      label:
+        r.label ||
+        DEFAULT_DELIVERY_CONFIG.ranges[idx]?.label ||
+        `Faixa ${idx + 1}`,
+      minKm:
+        typeof r.minKm === "number"
+          ? r.minKm
+          : Number(r.minKm ?? DEFAULT_DELIVERY_CONFIG.ranges[idx]?.minKm ?? 0),
+      maxKm:
+        typeof r.maxKm === "number"
+          ? r.maxKm
+          : Number(r.maxKm ?? DEFAULT_DELIVERY_CONFIG.ranges[idx]?.maxKm ?? 0),
+      price:
+        typeof r.price === "number"
+          ? r.price
+          : Number(r.price ?? DEFAULT_DELIVERY_CONFIG.ranges[idx]?.price ?? 0),
+    })),
+  };
+}
+
+/**
+ * Converte string "1,5" ou "1.5" para número
+ */
+function parseKmValue(value) {
+  if (value === null || value === undefined || value === "") return 0;
+  const normalized = String(value).replace(",", ".");
+  const n = Number(normalized);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+/**
+ * Encontra faixa de entrega pela distância em km
+ */
+function findDeliveryRangeForKm(distanceKm, deliveryConfig) {
+  if (!deliveryConfig || !Array.isArray(deliveryConfig.ranges)) return null;
+  const km = parseKmValue(distanceKm);
+  if (km <= 0) return null;
+
+  for (const r of deliveryConfig.ranges) {
+    const min = parseKmValue(r.minKm);
+    const max = parseKmValue(r.maxKm);
+    if (km >= min && km <= max) {
+      return r;
+    }
+  }
+
+  // se não encontrou, usa última faixa como padrão
+  return deliveryConfig.ranges[deliveryConfig.ranges.length - 1] || null;
+}
+
+/**
+ * Tenta usar um bridge JS -> main para calcular a distância (em km)
+ * A ideia é você implementar um desses caminhos no main:
+ *  - window.deliveryApi.calculateDistanceKm(origin, destination)
+ *  - ipcRenderer.invoke("delivery:calculateDistanceKm", { origin, destination })
+ */
+async function calculateDistanceKmUsingBridge(origin, destination) {
+  try {
+    // 1) API exposta direto no preload
+    if (window?.deliveryApi?.calculateDistanceKm) {
+      const result = await window.deliveryApi.calculateDistanceKm(
+        origin,
+        destination
+      );
+      if (typeof result === "number") return result;
+      if (result && typeof result.distanceKm === "number")
+        return result.distanceKm;
+      if (result && typeof result.km === "number") return result.km;
+    }
+
+    // 2) IPC padrão
+    if (window?.electron?.ipcRenderer?.invoke) {
+      const result = await window.electron.ipcRenderer.invoke(
+        "delivery:calculateDistanceKm",
+        { origin, destination }
+      );
+      if (typeof result === "number") return result;
+      if (result && typeof result.distanceKm === "number")
+        return result.distanceKm;
+      if (result && typeof result.km === "number") return result.km;
+    }
+  } catch (err) {
+    console.error("[NewOrderModal] calculateDistanceKmUsingBridge error:", err);
+  }
+  return null;
+}
+
+/**
  * Normaliza coleção de produtos vinda do DataEngine / catálogo
- * Aceita:
- * - { items: [...] }
- * - { products: [...] }
- * - [ ... ]
- *
- * Retorna:
- * {
- *   pizzas: [{ id, name, description, categoria, type: 'pizza', prices: { broto, grande } }],
- *   drinks: [{ ... type: 'drink', prices: { unit } (usa grande como base) }],
- *   extras: [{ ... type: 'extra', prices: { broto, grande } }]
- * }
  */
 function normalizeProductsCollections(raw) {
   let arr = [];
@@ -80,9 +247,7 @@ function normalizeProductsCollections(raw) {
     const description = p.description || p.descricao || "";
     const categoria = p.categoria || p.category || "";
 
-    // Aceita tanto priceBroto/priceGrande quanto preco_broto/preco_grande/preco
     const priceBroto = p.priceBroto ?? p.preco_broto ?? null;
-
     const priceGrande = p.priceGrande ?? p.preco_grande ?? p.preco ?? null;
 
     const prices = {
@@ -127,30 +292,11 @@ function findById(id, collection) {
   return collection.find((p) => String(p.id) === String(id));
 }
 
-function getNeighborhoodFee(neighborhoodRaw) {
-  if (!neighborhoodRaw) return 0;
-  const key = neighborhoodRaw.trim();
-  if (DELIVERY_FEES_BY_NEIGHBORHOOD[key] != null) {
-    return DELIVERY_FEES_BY_NEIGHBORHOOD[key];
-  }
-  // fallback – se tiver "Santana" dentro, por exemplo
-  const normalized = key.toLowerCase();
-  const found = Object.entries(DELIVERY_FEES_BY_NEIGHBORHOOD).find(([name]) =>
-    normalized.includes(name.toLowerCase())
-  );
-  if (found) return found[1];
-  return DELIVERY_FEES_BY_NEIGHBORHOOD["Outros bairros"] || 0;
-}
-
 export default function NewOrderModal({
   isOpen,
   onClose,
   onConfirm,
   formatCurrency,
-  /**
-   * opcional: catálogo já carregado (para testes / injeção externa)
-   * se não vier, usa window.dataEngine.get("products")
-   */
   initialCatalog,
 }) {
   // -----------------------------
@@ -160,6 +306,7 @@ export default function NewOrderModal({
   const [pizzaCatalog, setPizzaCatalog] = useState([]);
   const [drinkCatalog, setDrinkCatalog] = useState([]);
   const [extraCatalog, setExtraCatalog] = useState([]);
+  const [deliveryConfig, setDeliveryConfig] = useState(DEFAULT_DELIVERY_CONFIG);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
 
@@ -184,6 +331,10 @@ export default function NewOrderModal({
   const [twoFlavorsEnabled, setTwoFlavorsEnabled] = useState(false);
   const [threeFlavorsEnabled, setThreeFlavorsEnabled] = useState(false);
   const [selectedExtras, setSelectedExtras] = useState([]); // array de IDs de extras
+  const [extrasOpen, setExtrasOpen] = useState(false); // toggle para exibir/ocultar adicionais
+
+  // slot ativo para seleção por cards
+  const [activeFlavorSlot, setActiveFlavorSlot] = useState("flavor1");
 
   // -----------------------------
   // Bebida atual (editor)
@@ -200,20 +351,25 @@ export default function NewOrderModal({
   // -----------------------------
   // Dados adicionais do pedido
   // -----------------------------
-  const [status] = useState("open"); // padrão: em aberto
-  const [orderType, setOrderType] = useState("delivery"); // delivery | counter
+  const [status] = useState("open");
+  const [orderType, setOrderType] = useState("delivery");
   const [paymentMethod, setPaymentMethod] = useState("");
 
-  const [deliveryNeighborhood, setDeliveryNeighborhood] = useState("");
-  const [deliveryFee, setDeliveryFee] = useState("0");
+  const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(""); // distância em km (auto)
+  const [deliveryNeighborhood, setDeliveryNeighborhood] = useState(""); // rótulo da faixa (label exibida)
+  const [deliveryFee, setDeliveryFee] = useState("0"); // valor em R$, calculado pela faixa
+  const [selectedDeliveryRangeId, setSelectedDeliveryRangeId] = useState(""); // faixa de entrega escolhida
 
   const [discountType, setDiscountType] = useState("none"); // none | value | percent
   const [discountValue, setDiscountValue] = useState("0");
   const [orderNotes, setOrderNotes] = useState("");
   const [kitchenNotes, setKitchenNotes] = useState("");
 
-  // Troco
   const [cashGiven, setCashGiven] = useState("");
+
+  // estados auxiliares do cálculo automático
+  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+  const [distanceError, setDistanceError] = useState("");
 
   // -----------------------------
   // Load do banco
@@ -235,9 +391,10 @@ export default function NewOrderModal({
             throw new Error("API local window.dataEngine não encontrada.");
           }
 
-          const [customersDb, products] = await Promise.all([
+          const [customersDb, products, settingsDb] = await Promise.all([
             window.dataEngine.get("customers"),
             window.dataEngine.get("products"),
+            window.dataEngine.get("settings"),
           ]);
 
           if (cancel) return;
@@ -251,12 +408,14 @@ export default function NewOrderModal({
           const { pizzas, drinks, extras } =
             normalizeProductsCollections(products);
 
+          const dCfg = normalizeDeliveryConfigFromSettings(settingsDb);
+
           setCustomers(customersArr);
           setPizzaCatalog(pizzas);
           setDrinkCatalog(drinks);
           setExtraCatalog(extras);
+          setDeliveryConfig(dCfg);
 
-          // resets gerais
           setCustomerMode(customersArr.length ? "registered" : "counter");
           setCustomerSearch("");
           setSelectedCustomerId(null);
@@ -268,10 +427,13 @@ export default function NewOrderModal({
           setThreeFlavorsEnabled(false);
           setSize("grande");
           setQuantity(1);
-          setFlavor1("");
+          setFlavor1(pizzas[0]?.id || "");
           setFlavor2("");
           setFlavor3("");
           setSelectedExtras([]);
+          setExtrasOpen(false);
+          setActiveFlavorSlot("flavor1");
+
           setOrderItems([]);
 
           setDrinkSearch("");
@@ -280,6 +442,7 @@ export default function NewOrderModal({
 
           setOrderType("delivery");
           setPaymentMethod("");
+          setDeliveryDistanceKm("");
           setDeliveryNeighborhood("");
           setDeliveryFee("0");
           setDiscountType("none");
@@ -288,23 +451,21 @@ export default function NewOrderModal({
           setKitchenNotes("");
           setCashGiven("");
 
-          if (pizzas.length > 0) {
-            setFlavor1(pizzas[0].id);
-          } else {
-            setFlavor1("");
-          }
+          setDistanceError("");
+          setIsCalculatingDistance(false);
 
           return;
         }
 
-        // Caso catálogo seja injetado via props
+        // caminho com initialCatalog (sem DataEngine completo)
         const { pizzas, drinks, extras } =
           normalizeProductsCollections(productsDb);
 
-        setCustomers([]); // sem clientes via catálogo externo
+        setCustomers([]);
         setPizzaCatalog(pizzas);
         setDrinkCatalog(drinks);
         setExtraCatalog(extras);
+        setDeliveryConfig(DEFAULT_DELIVERY_CONFIG);
 
         setCustomerMode("counter");
         setCustomerSearch("");
@@ -314,10 +475,16 @@ export default function NewOrderModal({
 
         setFlavorSearch("");
         setTwoFlavorsEnabled(false);
+        setThreeFlavorsEnabled(false);
         setSize("grande");
         setQuantity(1);
+        setFlavor1(pizzas[0]?.id || "");
         setFlavor2("");
+        setFlavor3("");
         setSelectedExtras([]);
+        setExtrasOpen(false);
+        setActiveFlavorSlot("flavor1");
+
         setOrderItems([]);
 
         setDrinkSearch("");
@@ -326,6 +493,7 @@ export default function NewOrderModal({
 
         setOrderType("delivery");
         setPaymentMethod("");
+        setDeliveryDistanceKm("");
         setDeliveryNeighborhood("");
         setDeliveryFee("0");
         setDiscountType("none");
@@ -334,11 +502,8 @@ export default function NewOrderModal({
         setKitchenNotes("");
         setCashGiven("");
 
-        if (pizzas.length > 0) {
-          setFlavor1(pizzas[0].id);
-        } else {
-          setFlavor1("");
-        }
+        setDistanceError("");
+        setIsCalculatingDistance(false);
       } catch (err) {
         console.error("[NewOrderModal] load error:", err);
         if (!cancel) setLoadError(err.message || "Erro ao carregar dados.");
@@ -382,31 +547,103 @@ export default function NewOrderModal({
     return customers.find((c) => c.id === selectedCustomerId) || null;
   }, [selectedCustomerId, customers]);
 
-  // Quando o cliente muda, tenta puxar bairro e taxa automaticamente
-  useEffect(() => {
-    if (!selectedCustomer || orderType !== "delivery") return;
-
-    const addr = selectedCustomer.address || {};
-    const neighborhood = addr.neighborhood || addr.bairro || "";
-    if (!neighborhood) return;
-
-    const fee = getNeighborhoodFee(neighborhood);
-    setDeliveryNeighborhood(neighborhood);
-    setDeliveryFee(String(fee).replace(".", ","));
-  }, [selectedCustomer, orderType]);
-
-  // Se mudar o tipo de pedido para balcão, zera taxa
+  // Quando troca para balcão, zera taxa; quando é delivery, recalc pela distância
   useEffect(() => {
     if (orderType === "counter") {
       setDeliveryFee("0");
-    } else if (orderType === "delivery" && deliveryNeighborhood) {
-      const fee = getNeighborhoodFee(deliveryNeighborhood);
-      setDeliveryFee(String(fee).replace(".", ","));
+      setDeliveryNeighborhood("");
+      setSelectedDeliveryRangeId("");
+      return;
     }
-  }, [orderType, deliveryNeighborhood]);
+
+    if (orderType === "delivery" && deliveryConfig) {
+      const range = findDeliveryRangeForKm(
+        deliveryDistanceKm,
+        deliveryConfig
+      );
+      const fee = range ? Number(range.price || 0) : 0;
+
+      setSelectedDeliveryRangeId(range ? range.id || "" : "");
+      setDeliveryFee(fee ? String(fee).replace(".", ",") : "0");
+      setDeliveryNeighborhood(range ? range.label || "" : "");
+    }
+  }, [orderType, deliveryDistanceKm, deliveryConfig, deliveryConfig?.ranges]);
 
   // -----------------------------
-  // Filtro de pizzas
+  // Ação: calcular distância usando endereço do cliente
+  // -----------------------------
+  const handleAutoDistanceFromCustomer = async (customerParam) => {
+    const customer = customerParam || selectedCustomer;
+
+    if (orderType !== "delivery" || !customer || !customer.address) {
+      setDistanceError(
+        "Selecione um cliente com endereço para calcular automaticamente."
+      );
+      return;
+    }
+
+    const addr = customer.address || {};
+    const parts = [];
+
+    if (addr.street) {
+      let line1 = addr.street;
+      if (addr.number) line1 += `, ${addr.number}`;
+      parts.push(line1);
+    }
+
+    const neighborhood = addr.neighborhood || addr.bairro;
+    if (neighborhood) parts.push(neighborhood);
+    if (addr.city) parts.push(addr.city);
+    if (addr.state) parts.push(addr.state);
+    if (addr.cep) parts.push(`CEP ${addr.cep}`);
+
+    const destination = parts.filter(Boolean).join(" - ");
+
+    if (!destination) {
+      setDistanceError(
+        "Endereço do cliente incompleto. Preencha rua/bairro/cidade para usar o cálculo automático."
+      );
+      return;
+    }
+
+    setIsCalculatingDistance(true);
+    setDistanceError("");
+
+    const km = await calculateDistanceKmUsingBridge(
+      BASE_DELIVERY_ADDRESS,
+      destination
+    );
+
+    setIsCalculatingDistance(false);
+
+    if (km === null) {
+      setDistanceError(
+        "Não foi possível calcular a distância automaticamente. Verifique a integração ou preencha manualmente."
+      );
+      return;
+    }
+
+    const rounded = Math.round(km * 10) / 10; // 1 casa decimal
+    const asString = String(rounded).replace(".", ",");
+
+    setDeliveryDistanceKm(asString);
+    // efeito de recalcular taxa entra pelo useEffect de orderType/deliveryDistanceKm
+  };
+
+  // Calcula automaticamente assim que um cliente com endereço é selecionado
+  useEffect(() => {
+    if (
+      orderType !== "delivery" ||
+      !selectedCustomer ||
+      !selectedCustomer.address
+    ) {
+      return;
+    }
+    handleAutoDistanceFromCustomer(selectedCustomer);
+  }, [orderType, selectedCustomer]);
+
+  // -----------------------------
+  // Filtro de pizzas e drinks
   // -----------------------------
   const filteredPizzas = useMemo(() => {
     const t = flavorSearch.trim().toLowerCase();
@@ -420,9 +657,6 @@ export default function NewOrderModal({
     );
   }, [pizzaCatalog, flavorSearch]);
 
-  // -----------------------------
-  // Filtro de bebidas
-  // -----------------------------
   const filteredDrinks = useMemo(() => {
     const t = drinkSearch.trim().toLowerCase();
     if (!t) return drinkCatalog;
@@ -435,8 +669,22 @@ export default function NewOrderModal({
     );
   }, [drinkCatalog, drinkSearch]);
 
+  // pizzas selecionadas (para mostrar nome nos chips)
+  const flavor1Pizza = useMemo(
+    () => (flavor1 ? findById(flavor1, pizzaCatalog) : null),
+    [flavor1, pizzaCatalog]
+  );
+  const flavor2Pizza = useMemo(
+    () => (flavor2 ? findById(flavor2, pizzaCatalog) : null),
+    [flavor2, pizzaCatalog]
+  );
+  const flavor3Pizza = useMemo(
+    () => (flavor3 ? findById(flavor3, pizzaCatalog) : null),
+    [flavor3, pizzaCatalog]
+  );
+
   // -----------------------------
-  // Extras selecionados → valor unitário por pizza
+  // Extras selecionados
   // -----------------------------
   const extrasUnitTotal = useMemo(() => {
     if (!selectedExtras.length || !extraCatalog.length) return 0;
@@ -455,7 +703,7 @@ export default function NewOrderModal({
   }, [selectedExtras, extraCatalog, size]);
 
   // -----------------------------
-  // Preço unitário da pizza atual (pizza + extras)
+  // Preço unitário da pizza
   // -----------------------------
   const unitPizzaPrice = useMemo(() => {
     const pizza1 = findById(flavor1, pizzaCatalog);
@@ -463,7 +711,10 @@ export default function NewOrderModal({
 
     const basePrice1 = pizza1.prices[size] || 0;
 
-    if ((!twoFlavorsEnabled && !threeFlavorsEnabled) || (!flavor2 && !flavor3)) {
+    if (
+      (!twoFlavorsEnabled && !threeFlavorsEnabled) ||
+      (!flavor2 && !flavor3)
+    ) {
       return basePrice1 + extrasUnitTotal;
     }
 
@@ -496,8 +747,36 @@ export default function NewOrderModal({
   ]);
 
   // -----------------------------
-  // Adicionar pizza à lista
+  // Seleção de sabores via cards
   // -----------------------------
+  const handleSelectFlavorCard = (pizzaId) => {
+    if (!pizzaId) return;
+
+    if (
+      activeFlavorSlot === "flavor2" &&
+      !(twoFlavorsEnabled || threeFlavorsEnabled)
+    ) {
+      setActiveFlavorSlot("flavor1");
+    }
+    if (activeFlavorSlot === "flavor3" && !threeFlavorsEnabled) {
+      setActiveFlavorSlot("flavor1");
+    }
+
+    if (activeFlavorSlot === "flavor1") {
+      setFlavor1(pizzaId);
+    } else if (
+      activeFlavorSlot === "flavor2" &&
+      (twoFlavorsEnabled || threeFlavorsEnabled)
+    ) {
+      setFlavor2(pizzaId);
+    } else if (activeFlavorSlot === "flavor3" && threeFlavorsEnabled) {
+      setFlavor3(pizzaId);
+    } else {
+      setFlavor1(pizzaId);
+      setActiveFlavorSlot("flavor1");
+    }
+  };
+
   const handleToggleExtra = (extraId) => {
     setSelectedExtras((prev) =>
       prev.includes(extraId)
@@ -506,6 +785,9 @@ export default function NewOrderModal({
     );
   };
 
+  // -----------------------------
+  // Adicionar pizza à lista
+  // -----------------------------
   const handleAddPizza = () => {
     if (!pizzaCatalog.length) {
       alert("Nenhuma pizza cadastrada.");
@@ -520,14 +802,14 @@ export default function NewOrderModal({
 
     const pizza1 = findById(flavor1, pizzaCatalog);
     if (!pizza1) {
-      alert("Selecione o sabor 1.");
+      alert("Selecione ao menos o 1º sabor.");
       return;
     }
 
     let pizza2 = null;
     if (twoFlavorsEnabled || threeFlavorsEnabled) {
       if (!flavor2) {
-        alert("Selecione o sabor 2 ou volte para 1 sabor.");
+        alert("Selecione o 2º sabor ou volte para 1 sabor.");
         return;
       }
       pizza2 = findById(flavor2, pizzaCatalog);
@@ -540,7 +822,7 @@ export default function NewOrderModal({
     let pizza3 = null;
     if (threeFlavorsEnabled) {
       if (!flavor3) {
-        alert("Selecione o sabor 3 ou volte para 1/2 sabores.");
+        alert("Selecione o 3º sabor ou volte para 1/2 sabores.");
         return;
       }
       pizza3 = findById(flavor3, pizzaCatalog);
@@ -591,16 +873,19 @@ export default function NewOrderModal({
 
     setOrderItems((prev) => [...prev, newItem]);
 
+    // reset para próxima pizza
     setQuantity(1);
     setTwoFlavorsEnabled(false);
     setThreeFlavorsEnabled(false);
     setFlavor2("");
     setFlavor3("");
     setSelectedExtras([]);
+    setExtrasOpen(false);
+    setActiveFlavorSlot("flavor1");
   };
 
   // -----------------------------
-  // Adicionar bebida à lista
+  // Adicionar bebida
   // -----------------------------
   const handleAddDrink = () => {
     if (!drinkCatalog.length) {
@@ -647,7 +932,7 @@ export default function NewOrderModal({
   };
 
   // -----------------------------
-  // Totais e métricas
+  // Totais
   // -----------------------------
   const subtotal = useMemo(
     () => orderItems.reduce((acc, it) => acc + (it.total || 0), 0),
@@ -697,7 +982,7 @@ export default function NewOrderModal({
   );
 
   // -----------------------------
-  // Build draft + submit (save / save_and_print)
+  // Build draft + submit
   // -----------------------------
   const buildDraft = () => {
     if (!orderItems.length) {
@@ -788,6 +1073,8 @@ export default function NewOrderModal({
       deliveryFee: deliveryFeeNumber,
       deliveryNeighborhood:
         orderType === "delivery" ? deliveryNeighborhood || null : null,
+      deliveryDistanceKm:
+        orderType === "delivery" ? parseKmValue(deliveryDistanceKm) : 0,
       discount: {
         type: discountType,
         value: discountRaw,
@@ -819,8 +1106,6 @@ export default function NewOrderModal({
       return;
     }
 
-    // Permite a tela de Pedidos decidir se imprime ou não
-    // options.action: "save" | "save_and_print"
     if (typeof onConfirm === "function") {
       onConfirm(draft, options);
     }
@@ -833,7 +1118,7 @@ export default function NewOrderModal({
   const hasDrinks = drinkCatalog.length > 0;
   const hasExtras = extraCatalog.length > 0;
 
-  const neighborhoodOptions = Object.keys(DELIVERY_FEES_BY_NEIGHBORHOOD);
+  const extrasDisabled = !hasPizzas || !flavor1;
 
   // -----------------------------
   // Render
@@ -865,8 +1150,8 @@ export default function NewOrderModal({
           className="modal-body"
           onSubmit={(e) => handleSubmit(e, { action: "save" })}
         >
-          {/* ===================== COLUNA ESQUERDA ===================== */}
           <div className="neworder-grid">
+            {/* ===================== COLUNA ESQUERDA ===================== */}
             <div className="neworder-column">
               {/* CLIENTE */}
               <div className="modal-section">
@@ -908,7 +1193,6 @@ export default function NewOrderModal({
                   </button>
                 </div>
 
-                {/* Cliente cadastrado → card resumido + botão trocar */}
                 {customerMode === "registered" && selectedCustomer && (
                   <div className="customer-summary-card">
                     <div className="customer-summary-header">
@@ -962,7 +1246,6 @@ export default function NewOrderModal({
                   </div>
                 )}
 
-                {/* Lista de clientes + busca */}
                 {customerMode === "registered" &&
                   hasCustomers &&
                   showCustomerSearch && (
@@ -1011,7 +1294,6 @@ export default function NewOrderModal({
                     </div>
                   )}
 
-                {/* Balcão */}
                 {customerMode === "counter" && (
                   <div className="counter-block">
                     <div className="field-label">Identificação rápida</div>
@@ -1028,12 +1310,19 @@ export default function NewOrderModal({
                 )}
               </div>
 
-              {/* CONFIGURAÇÕES GERAIS DO PEDIDO */}
+              {/* CONFIGURAÇÕES GERAIS */}
               <div className="modal-section">
-                <div className="modal-section-title">Configurações</div>
+                <div className="modal-section-header-row">
+                  <div className="modal-section-title">Configurações</div>
+                  <div className="modal-section-subtitle">
+                    Organize o tipo de pedido, pagamento, entrega e resumo
+                    rápido do pedido.
+                  </div>
+                </div>
 
-                <div className="modal-grid-2">
-                  <div>
+                {/* Linha 1 – Tipo, Pagamento, Status + resumo */}
+                <div className="config-cards-row">
+                  <div className="config-card">
                     <div className="field-label">Tipo de pedido</div>
                     <select
                       className="field-input"
@@ -1045,7 +1334,7 @@ export default function NewOrderModal({
                     </select>
                   </div>
 
-                  <div>
+                  <div className="config-card">
                     <div className="field-label">Forma de pagamento</div>
                     <select
                       className="field-input"
@@ -1059,59 +1348,137 @@ export default function NewOrderModal({
                       <option value="debit_card">Cartão débito</option>
                       <option value="vr">Vale refeição</option>
                     </select>
+
+                    {paymentMethod === "money" && (
+                      <div className="config-card-inline-block">
+                        <div className="field-label">Troco para</div>
+                        <input
+                          className="field-input"
+                          value={cashGiven}
+                          onChange={(e) => setCashGiven(e.target.value)}
+                          placeholder="Ex: 100,00"
+                        />
+                        <div className="field-helper">
+                          Troco estimado:{" "}
+                          {formatCurrency(changeAmount || 0)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="config-card config-card-narrow">
+                    <div className="field-label">Status do pedido</div>
+                    <div className="status-chip status-chip-open">
+                      Em aberto
+                    </div>
+                    <div className="config-mini-summary">
+                      <div>
+                        Itens: <strong>{totalItems}</strong>
+                      </div>
+                      <div>
+                        Total: <strong>{formatCurrency(total)}</strong>
+                      </div>
+                    </div>
+                    <div className="field-helper small">
+                      Após salvar, o status pode ser alterado na tela de
+                      Pedidos.
+                    </div>
                   </div>
                 </div>
 
-                {/* Taxa por bairro */}
-                <div className="modal-grid-2">
-                  <div>
-                    <div className="field-label">Bairro (Entrega)</div>
+                {/* Linha 2 – Distância + Faixa de entrega */}
+                <div className="config-cards-row">
+                  <div className="config-card">
+                    <div className="field-label">Distância até o cliente</div>
+
+                    <div className="distance-summary-row">
+                      {orderType !== "delivery" ? (
+                        <span className="chip chip-soft">
+                          Disponível apenas para pedidos de entrega.
+                        </span>
+                      ) : isCalculatingDistance ? (
+                        <span className="chip chip-soft">
+                          Calculando distância...
+                        </span>
+                      ) : deliveryDistanceKm ? (
+                        <div className="distance-km-pill">
+                          <span className="distance-km-value">
+                            {deliveryDistanceKm}
+                          </span>
+                          <span className="distance-km-suffix">km</span>
+                        </div>
+                      ) : (
+                        <span className="chip chip-soft">
+                          Selecione um cliente com endereço para calcular
+                          automaticamente.
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="field-helper">
+                      Partindo de{" "}
+                      <strong>
+                        {deliveryConfig.baseLocationLabel ||
+                          "Rua Dona Elfrida, 719 - Santa Teresinha"}
+                      </strong>
+                      . A distância é calculada automaticamente e não pode ser
+                      editada manualmente.
+                    </div>
+
+                    {distanceError && (
+                      <div className="field-error-text">{distanceError}</div>
+                    )}
+                  </div>
+
+                  <div className="config-card">
+                    <div className="field-label">Faixa de entrega</div>
                     <select
                       className="field-input"
-                      value={deliveryNeighborhood}
+                      value={
+                        orderType === "delivery" ? selectedDeliveryRangeId : ""
+                      }
                       onChange={(e) => {
-                        const bairro = e.target.value;
-                        setDeliveryNeighborhood(bairro);
-                        if (orderType === "delivery" && bairro) {
-                          const fee = getNeighborhoodFee(bairro);
-                          setDeliveryFee(String(fee).replace(".", ","));
+                        const rangeId = e.target.value;
+                        setSelectedDeliveryRangeId(rangeId);
+                        const range =
+                          deliveryConfig?.ranges?.find(
+                            (r) => String(r.id) === String(rangeId)
+                          ) || null;
+                        if (range) {
+                          const fee = Number(range.price || 0);
+                          setDeliveryFee(
+                            fee ? String(fee).replace(".", ",") : "0"
+                          );
+                          setDeliveryNeighborhood(range.label || "");
+                        } else {
+                          setDeliveryFee("0");
+                          setDeliveryNeighborhood("");
                         }
                       }}
                       disabled={orderType !== "delivery"}
                     >
-                      <option value="">Selecione o bairro</option>
-                      {neighborhoodOptions.map((bairro) => (
-                        <option key={bairro} value={bairro}>
-                          {bairro} —{" "}
-                          {formatCurrency(
-                            DELIVERY_FEES_BY_NEIGHBORHOOD[bairro] || 0
-                          )}
+                      <option value="">
+                        {orderType === "delivery"
+                          ? "Selecione a faixa de entrega"
+                          : "Apenas para pedidos de entrega"}
+                      </option>
+                      {deliveryConfig?.ranges?.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.label} — {formatCurrency(Number(r.price || 0))}
                         </option>
                       ))}
                     </select>
                     <div className="field-helper">
-                      O bairro pode vir preenchido pelo cadastro do cliente.
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="field-label">Taxa de entrega</div>
-                    <input
-                      className="field-input"
-                      value={deliveryFee}
-                      onChange={(e) => setDeliveryFee(e.target.value)}
-                      placeholder="0,00"
-                      disabled={orderType !== "delivery"}
-                    />
-                    <div className="field-helper">
-                      Use 0 para pedidos de balcão ou retirada.
+                      A taxa é definida pela faixa de entrega escolhida. Valor
+                      atual:{" "}
+                      <strong>{formatCurrency(deliveryFeeNumber)}</strong>.
                     </div>
                   </div>
                 </div>
 
-                {/* Desconto */}
-                <div className="modal-grid-2">
-                  <div>
+                {/* Linha 3 – Desconto + resumo de entrega */}
+                <div className="config-cards-row">
+                  <div className="config-card">
                     <div className="field-label">Desconto</div>
                     <div className="discount-row">
                       <select
@@ -1127,54 +1494,56 @@ export default function NewOrderModal({
                         <input
                           className="field-input discount-value-input"
                           value={discountValue}
-                          onChange={(e) => setDiscountValue(e.target.value)}
+                          onChange={(e) =>
+                            setDiscountValue(e.target.value)
+                          }
                           placeholder={
-                            discountType === "value" ? "Ex: 10,00" : "Ex: 10"
+                            discountType === "value"
+                              ? "Ex: 10,00"
+                              : "Ex: 10"
                           }
                         />
                       )}
                     </div>
-                  </div>
-
-                  {/* Troco */}
-                  <div>
-                    {paymentMethod === "money" && (
-                      <>
-                        <div className="field-label">Troco para</div>
-                        <input
-                          className="field-input"
-                          value={cashGiven}
-                          onChange={(e) => setCashGiven(e.target.value)}
-                          placeholder="Ex: 100,00"
-                        />
-                        <div className="field-helper">
-                          Troco estimado:{" "}
-                          {formatCurrency(changeAmount || 0)}
-                        </div>
-                      </>
+                    {discountType !== "none" && (
+                      <div className="field-helper">
+                        Desconto aplicado:{" "}
+                        <strong>{formatCurrency(discountAmount)}</strong>.
+                      </div>
                     )}
                   </div>
-                </div>
 
-                <div className="modal-grid-2">
-                  <div>
-                    <div className="field-label">Status do pedido</div>
-                    <div className="status-chip status-chip-open">
-                      Em aberto
-                    </div>
-                    <div className="field-helper">
-                      Após salvar, o status pode ser alterado na tela de
-                      Pedidos.
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="field-label">Resumo rápido</div>
-                    <div className="field-helper">
-                      Itens no pedido: <strong>{totalItems}</strong>
-                      <br />
-                      Total atual: <strong>{formatCurrency(total)}</strong>
-                    </div>
+                  <div className="config-card config-card-soft">
+                    <div className="field-label">Resumo da entrega</div>
+                    {orderType === "delivery" ? (
+                      <>
+                        <div className="config-delivery-summary-line">
+                          Distância:{" "}
+                          <strong>
+                            {deliveryDistanceKm
+                              ? `${deliveryDistanceKm} km`
+                              : "--"}
+                          </strong>
+                        </div>
+                        <div className="config-delivery-summary-line">
+                          Faixa:{" "}
+                          <strong>
+                            {deliveryNeighborhood || "Não definida"}
+                          </strong>
+                        </div>
+                        <div className="config-delivery-summary-line">
+                          Taxa:{" "}
+                          <strong>
+                            {formatCurrency(deliveryFeeNumber)}
+                          </strong>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="config-delivery-summary-line">
+                        Pedido de balcão / retirada. Nenhuma taxa de entrega
+                        será aplicada.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1234,34 +1603,7 @@ export default function NewOrderModal({
                   </div>
                 </div>
 
-                <div className="pizza-search-and-select">
-                  <div className="field-label">Sabor 1</div>
-
-                  <div className="field-input-with-icon">
-                    <span className="field-input-icon">🔍</span>
-                    <input
-                      className="field-input"
-                      value={flavorSearch}
-                      onChange={(e) => setFlavorSearch(e.target.value)}
-                      placeholder="Buscar por nome, categoria ou ingrediente..."
-                      disabled={!hasPizzas}
-                    />
-                  </div>
-
-                  <select
-                    className="field-input"
-                    value={flavor1}
-                    onChange={(e) => setFlavor1(e.target.value)}
-                    disabled={!hasPizzas || filteredPizzas.length === 0}
-                  >
-                    {filteredPizzas.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {`${p.name} — ${formatCurrency(p.prices[size] || 0)}`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
+                {/* Quantidade de sabores */}
                 <div className="pizza-flavor-mode">
                   <div className="field-label">Quantidade de sabores</div>
                   <div className="field-pill-group">
@@ -1278,6 +1620,7 @@ export default function NewOrderModal({
                         setThreeFlavorsEnabled(false);
                         setFlavor2("");
                         setFlavor3("");
+                        setActiveFlavorSlot("flavor1");
                       }}
                       disabled={!hasPizzas}
                     >
@@ -1295,6 +1638,7 @@ export default function NewOrderModal({
                         setTwoFlavorsEnabled(true);
                         setThreeFlavorsEnabled(false);
                         setFlavor3("");
+                        setActiveFlavorSlot("flavor2");
                       }}
                       disabled={!hasPizzas}
                     >
@@ -1309,6 +1653,7 @@ export default function NewOrderModal({
                       onClick={() => {
                         setTwoFlavorsEnabled(false);
                         setThreeFlavorsEnabled(true);
+                        setActiveFlavorSlot("flavor3");
                       }}
                       disabled={!hasPizzas}
                     >
@@ -1316,107 +1661,262 @@ export default function NewOrderModal({
                     </button>
                   </div>
                   <div className="field-helper">
-                    A pizza com 2 ou 3 sabores considera sempre o maior valor
-                    entre os sabores.
+                    Ao usar 2 ou 3 sabores, o sistema considera sempre o maior
+                    valor entre os sabores.
                   </div>
                 </div>
 
-                {(twoFlavorsEnabled || threeFlavorsEnabled) && (
-                  <div className="pizza-flavor-block">
-                    <div className="field-label">Sabor 2</div>
-                    <select
-                      className="field-input"
-                      value={flavor2}
-                      onChange={(e) => setFlavor2(e.target.value)}
-                      disabled={!hasPizzas || filteredPizzas.length === 0}
+                {/* Slots de sabores + busca + cards */}
+                <div className="pizza-search-and-select">
+                  <div className="field-label">Sabores selecionados</div>
+                  <div className="field-pill-group pizza-flavor-slots-row">
+                    <button
+                      type="button"
+                      className={
+                        "field-pill flavor-slot-pill" +
+                        (activeFlavorSlot === "flavor1"
+                          ? " field-pill-active"
+                          : "")
+                      }
+                      onClick={() => setActiveFlavorSlot("flavor1")}
+                      disabled={!hasPizzas}
                     >
-                      <option value="">Selecione</option>
-                      {filteredPizzas.map((p) => {
-                        if (String(p.id) === String(flavor1)) return null;
-                        return (
-                          <option key={p.id} value={p.id}>
-                            {`${p.name} — ${formatCurrency(
-                              p.prices[size] || 0
-                            )}`}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                )}
+                      1º sabor
+                      {flavor1Pizza && (
+                        <span className="flavor-slot-sub">
+                          {flavor1Pizza.name}
+                        </span>
+                      )}
+                    </button>
 
-                {threeFlavorsEnabled && (
-                  <div className="pizza-flavor-block">
-                    <div className="field-label">Sabor 3</div>
-                    <select
-                      className="field-input"
-                      value={flavor3}
-                      onChange={(e) => setFlavor3(e.target.value)}
-                      disabled={!hasPizzas || filteredPizzas.length === 0}
-                    >
-                      <option value="">Selecione</option>
-                      {filteredPizzas.map((p) => {
-                        const idStr = String(p.id);
-                        if (idStr === String(flavor1)) return null;
-                        if (idStr === String(flavor2)) return null;
-                        return (
-                          <option key={p.id} value={p.id}>
-                            {`${p.name} — ${formatCurrency(
-                              p.prices[size] || 0
-                            )}`}
-                          </option>
-                        );
-                      })}
-                    </select>
+                    {(twoFlavorsEnabled || threeFlavorsEnabled) && (
+                      <button
+                        type="button"
+                        className={
+                          "field-pill flavor-slot-pill" +
+                          (activeFlavorSlot === "flavor2"
+                            ? " field-pill-active"
+                            : "")
+                        }
+                        onClick={() => setActiveFlavorSlot("flavor2")}
+                        disabled={!hasPizzas}
+                      >
+                        2º sabor
+                        {flavor2Pizza && (
+                          <span className="flavor-slot-sub">
+                            {flavor2Pizza.name}
+                          </span>
+                        )}
+                      </button>
+                    )}
+
+                    {threeFlavorsEnabled && (
+                      <button
+                        type="button"
+                        className={
+                          "field-pill flavor-slot-pill" +
+                          (activeFlavorSlot === "flavor3"
+                            ? " field-pill-active"
+                            : "")
+                        }
+                        onClick={() => setActiveFlavorSlot("flavor3")}
+                        disabled={!hasPizzas}
+                      >
+                        3º sabor
+                        {flavor3Pizza && (
+                          <span className="flavor-slot-sub">
+                            {flavor3Pizza.name}
+                          </span>
+                        )}
+                      </button>
+                    )}
                   </div>
-                )}
+
+                  <div className="field-label">Buscar sabores</div>
+                  <div className="field-input-with-icon">
+                    <span className="field-input-icon">🔍</span>
+                    <input
+                      className="field-input"
+                      value={flavorSearch}
+                      onChange={(e) => setFlavorSearch(e.target.value)}
+                      placeholder="Busque por nome, categoria ou ingrediente..."
+                      disabled={!hasPizzas}
+                    />
+                  </div>
+
+                  <div className="pizza-cards-grid">
+                    {!hasPizzas && (
+                      <div className="empty small">
+                        Nenhuma pizza cadastrada.
+                      </div>
+                    )}
+
+                    {hasPizzas && filteredPizzas.length === 0 && (
+                      <div className="empty small">
+                        Nenhum sabor encontrado para essa busca.
+                      </div>
+                    )}
+
+                    {filteredPizzas.map((p) => {
+                      const isFlavor1 = String(p.id) === String(flavor1);
+                      const isFlavor2 = String(p.id) === String(flavor2);
+                      const isFlavor3 = String(p.id) === String(flavor3);
+                      const isSelected = isFlavor1 || isFlavor2 || isFlavor3;
+
+                      const price =
+                        p.prices[size] ||
+                        p.prices.grande ||
+                        p.prices.broto ||
+                        0;
+
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className={
+                            "pizza-card" +
+                            (isSelected ? " pizza-card-selected" : "")
+                          }
+                          onClick={() => handleSelectFlavorCard(p.id)}
+                          disabled={!hasPizzas}
+                        >
+                          <div className="pizza-card-header">
+                            <div className="pizza-card-name">{p.name}</div>
+                            <div className="pizza-card-price">
+                              {formatCurrency(price)}
+                            </div>
+                          </div>
+                          {p.categoria && (
+                            <div className="pizza-card-badge">
+                              {p.categoria}
+                            </div>
+                          )}
+                          {p.description && (
+                            <div className="pizza-card-desc">
+                              {p.description}
+                            </div>
+                          )}
+
+                          {isSelected && (
+                            <div className="pizza-card-flavor-tags">
+                              {isFlavor1 && (
+                                <span className="chip chip-soft">1º sabor</span>
+                              )}
+                              {isFlavor2 && (
+                                <span className="chip chip-soft">2º sabor</span>
+                              )}
+                              {isFlavor3 && (
+                                <span className="chip chip-soft">3º sabor</span>
+                              )}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* ADICIONAIS DA PIZZA */}
                 <div className="pizza-extras-block">
-                  <div className="field-label">Adicionais</div>
+                  <div className="pizza-extras-header">
+                    <div>
+                      <div className="field-label">Adicionais</div>
+                      <div className="field-helper">
+                        Liberados por pizza. O valor é somado ao preço
+                        unitário.
+                      </div>
+                    </div>
+
+                    {hasExtras && (
+                      <button
+                        type="button"
+                        className={
+                          "extras-toggle-chip" +
+                          (extrasOpen ? " extras-toggle-chip-on" : "") +
+                          (extrasDisabled
+                            ? " extras-toggle-chip-disabled"
+                            : "")
+                        }
+                        onClick={() =>
+                          !extrasDisabled &&
+                          setExtrasOpen((prev) => !prev)
+                        }
+                        disabled={extrasDisabled}
+                      >
+                        <span className="extras-toggle-thumb" />
+                        <span className="extras-toggle-label">
+                          {extrasOpen
+                            ? "Esconder adicionais"
+                            : "Mostrar adicionais"}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+
                   {!hasExtras && (
                     <div className="field-helper">
                       Cadastre adicionais na tela de Produtos para aparecerem
                       aqui.
                     </div>
                   )}
-                  {hasExtras && (
-                    <div className="extras-list">
-                      {extraCatalog.map((extra) => {
-                        const checked = selectedExtras.includes(extra.id);
-                        const price =
-                          size === "broto"
-                            ? extra.prices.broto || extra.prices.grande || 0
-                            : extra.prices.grande ||
-                              extra.prices.broto ||
-                              0;
-                        return (
-                          <label
-                            key={extra.id}
-                            className={
-                              "extras-item" +
-                              (checked ? " extras-item-active" : "")
-                            }
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => handleToggleExtra(extra.id)}
-                            />
-                            <span className="extras-item-name">
-                              {extra.name}
-                            </span>
-                            <span className="extras-item-price">
-                              + {formatCurrency(price)}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
+
+                  {hasExtras && extrasOpen && (
+                    <>
+                      <div className="field-helper">
+                        Selecione os adicionais desejados para esta pizza
+                        antes de clicar em “Adicionar pizza ao pedido”.
+                      </div>
+                      <div className="extras-list">
+                        {extraCatalog.map((extra) => {
+                          const checked = selectedExtras.includes(extra.id);
+                          const price =
+                            size === "broto"
+                              ? extra.prices.broto ||
+                                extra.prices.grande ||
+                                0
+                              : extra.prices.grande ||
+                                extra.prices.broto ||
+                                0;
+                          return (
+                            <label
+                              key={extra.id}
+                              className={
+                                "extras-item" +
+                                (checked ? " extras-item-active" : "") +
+                                (extrasDisabled
+                                  ? " extras-item-disabled"
+                                  : "")
+                              }
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() =>
+                                  handleToggleExtra(extra.id)
+                                }
+                                disabled={extrasDisabled}
+                              />
+                              <span className="extras-item-name">
+                                {extra.name}
+                              </span>
+                              <span className="extras-item-price">
+                                + {formatCurrency(price)}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
-                  {selectedExtras.length > 0 && (
-                    <div className="field-helper">
-                      Adicionais por pizza: {formatCurrency(extrasUnitTotal)}
+
+                  {selectedExtras.length > 0 && !extrasDisabled && (
+                    <div className="pizza-extras-footer">
+                      <span className="chip chip-soft">
+                        {selectedExtras.length} adicional(is) selecionado(s)
+                      </span>
+                      <span className="pizza-extras-footer-total">
+                        + {formatCurrency(extrasUnitTotal)} por pizza
+                      </span>
                     </div>
                   )}
                 </div>
@@ -1425,11 +1925,22 @@ export default function NewOrderModal({
                   <span className="chip chip-soft">
                     {quantity || 1}x {size === "broto" ? "Broto" : "Grande"}
                   </span>
-                  {flavor1 && <span className="chip">Sabor principal</span>}
-                  {twoFlavorsEnabled && flavor2 && (
-                    <span className="chip chip-alt">Meio a meio</span>
+                  {flavor1 && (
+                    <span className="chip">
+                      1º sabor: {flavor1Pizza?.name || "Selecionado"}
+                    </span>
                   )}
-                  {selectedExtras.length > 0 && (
+                  {twoFlavorsEnabled && flavor2 && (
+                    <span className="chip chip-alt">
+                      2º sabor: {flavor2Pizza?.name || "Selecionado"}
+                    </span>
+                  )}
+                  {threeFlavorsEnabled && flavor3 && (
+                    <span className="chip chip-alt">
+                      3º sabor: {flavor3Pizza?.name || "Selecionado"}
+                    </span>
+                  )}
+                  {selectedExtras.length > 0 && !extrasDisabled && (
                     <span className="chip chip-soft">
                       Adicionais ({selectedExtras.length})
                     </span>
@@ -1442,7 +1953,7 @@ export default function NewOrderModal({
                 <div className="neworder-addline-footer">
                   <button
                     type="button"
-                    className="btn btn-sm btn-primary"
+                    className="btn btn-primary btn-lg neworder-addpizza-btn"
                     onClick={handleAddPizza}
                     disabled={!hasPizzas || isLoading}
                   >
@@ -1480,7 +1991,9 @@ export default function NewOrderModal({
                         <select
                           className="field-input"
                           value={selectedDrinkId}
-                          onChange={(e) => setSelectedDrinkId(e.target.value)}
+                          onChange={(e) =>
+                            setSelectedDrinkId(e.target.value)
+                          }
                         >
                           {filteredDrinks.map((d) => {
                             const unit =
@@ -1500,7 +2013,9 @@ export default function NewOrderModal({
                           type="number"
                           min="1"
                           value={drinkQuantity}
-                          onChange={(e) => setDrinkQuantity(e.target.value)}
+                          onChange={(e) =>
+                            setDrinkQuantity(e.target.value)
+                          }
                         />
                       </div>
                     </div>
@@ -1508,7 +2023,7 @@ export default function NewOrderModal({
                     <div className="neworder-addline-footer">
                       <button
                         type="button"
-                        className="btn btn-sm btn-outline"
+                        className="btn btn-outline neworder-adddrink-btn"
                         onClick={handleAddDrink}
                         disabled={isLoading || !hasDrinks}
                       >
@@ -1560,12 +2075,15 @@ export default function NewOrderModal({
                             item.extras.length > 0 && (
                               <div className="order-item-extras">
                                 Adicionais:{" "}
-                                {item.extras.map((ex) => ex.name).join(", ")}
+                                {item.extras
+                                  .map((ex) => ex.name)
+                                  .join(", ")}
                               </div>
                             )}
                           <div className="order-item-meta">
                             <span>
-                              Unitário: {formatCurrency(item.unitPrice)}
+                              Unitário:{" "}
+                              {formatCurrency(item.unitPrice)}
                             </span>
                             <span>
                               Linha: {formatCurrency(item.total)}
@@ -1615,33 +2133,35 @@ export default function NewOrderModal({
                 </div>
               </div>
 
-                <div className="modal-section">
-                  <div className="modal-section-title">Observações</div>
-                  <div className="modal-grid-2">
-                    <div>
-                      <div className="field-label">Observações gerais</div>
-                      <textarea
-                        className="field-input neworder-textarea"
-                        rows={3}
-                        value={orderNotes}
-                        onChange={(e) => setOrderNotes(e.target.value)}
-                        placeholder="Ex: Entregar no portão, troco para 100..."
-                      />
+              <div className="modal-section">
+                <div className="modal-section-title">Observações</div>
+                <div className="modal-grid-2">
+                  <div>
+                    <div className="field-label">Observações gerais</div>
+                    <textarea
+                      className="field-input neworder-textarea"
+                      rows={3}
+                      value={orderNotes}
+                      onChange={(e) => setOrderNotes(e.target.value)}
+                      placeholder="Ex: Entregar no portão, troco para 100..."
+                    />
+                  </div>
+                  <div>
+                    <div className="field-label">
+                      Observações para cozinha
                     </div>
-                    <div>
-                      <div className="field-label">
-                        Observações para cozinha
-                      </div>
-                      <textarea
-                        className="field-input neworder-textarea"
-                        rows={3}
-                        value={kitchenNotes}
-                        onChange={(e) => setKitchenNotes(e.target.value)}
-                        placeholder="Ex: Tirar cebola, ponto da massa..."
-                      />
-                    </div>
+                    <textarea
+                      className="field-input neworder-textarea"
+                      rows={3}
+                      value={kitchenNotes}
+                      onChange={(e) =>
+                        setKitchenNotes(e.target.value)
+                      }
+                      placeholder="Ex: Tirar cebola, ponto da massa..."
+                    />
                   </div>
                 </div>
+              </div>
             </div>
           </div>
 

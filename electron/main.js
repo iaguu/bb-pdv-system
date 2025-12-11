@@ -6,6 +6,14 @@ const QRCode = require("qrcode"); // QR Code para tickets HTML
 
 // Módulo de acesso ao "banco" em JSON
 const db = require("./db"); // ajuste o path se necessário
+require("dotenv").config();
+const fetch = require("node-fetch");
+// Helper fetch no processo main (Node/Electron)
+// Usa fetch nativo se existir; caso contrário, faz import dinâmico do node-fetch.
+const fetchFn = global.fetch
+  ? global.fetch
+  : (...args) =>
+      import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 const isDev = !app.isPackaged;
 let mainWindow;
@@ -118,11 +126,86 @@ async function generateQrDataUrl(value) {
   }
 }
 
+
+// -------------------------------------
+// Entrega: cálculo de distância via Google Distance Matrix
+// -------------------------------------
+
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+
+/**
+ * Usa a Google Distance Matrix API para obter a distância (em km)
+ * entre origin e destination.
+ */
+async function getDistanceKmFromGoogle(origin, destination) {
+  if (!GOOGLE_MAPS_API_KEY) {
+    console.error("[distance] GOOGLE_MAPS_API_KEY não definida");
+    throw new Error("GOOGLE_MAPS_API_KEY não definida (.env).");
+  }
+
+  const params = new URLSearchParams({
+    origins: origin,
+    destinations: destination,
+    mode: "driving",
+    language: "pt-BR",
+    region: "br",
+    key: GOOGLE_MAPS_API_KEY,
+  });
+
+  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?${params.toString()}`;
+
+  console.log("[distance] Chamando Distance Matrix:", url);
+
+  const response = await fetchFn(url);
+
+  console.log("[distance] HTTP status:", response.status);
+
+  if (!response.ok) {
+    throw new Error(`Erro HTTP Distance Matrix: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log("[distance] JSON:", JSON.stringify(data, null, 2));
+
+  const element = data?.rows?.[0]?.elements?.[0];
+  if (!element || element.status !== "OK") {
+    console.error("[distance] Element status:", element?.status, "element:", element);
+    throw new Error(
+      `Distance Matrix retornou status inválido: ${element?.status || "sem dados"}`
+    );
+  }
+
+  const meters = element.distance.value;
+  const km = meters / 1000;
+  console.log("[distance] Distância calculada (km):", km);
+  return km;
+}
+
 // -------------------------------------
 // IPC: DataEngine
 // -------------------------------------
 ipcMain.handle("data:get", async (_event, collection) => {
   return db.getCollection(collection);
+});
+
+// -------------------------------------
+// IPC: cálculo de distância para entrega
+// Frontend pode chamar via:
+//   window.deliveryApi.calculateDistanceKm(origin, destination)
+//   ou ipcRenderer.invoke("delivery:calculateDistanceKm", { origin, destination })
+// -------------------------------------
+ipcMain.handle("delivery:calculateDistanceKm", async (_event, { origin, destination }) => {
+  try {
+    if (!origin || !destination) {
+      throw new Error("Origin ou destination vazios.");
+    }
+
+    const distanceKm = await getDistanceKmFromGoogle(origin, destination);
+    return distanceKm; // número em km
+  } catch (err) {
+    console.error("[main] delivery:calculateDistanceKm error:", err);
+    return null;
+  }
 });
 
 ipcMain.handle("data:set", async (_event, collection, data) => {

@@ -59,3 +59,16 @@ contextBridge.exposeInMainWorld('printerConfig', {
   testPrinter: (role) => ipcRenderer.invoke('print:test', { role })
   // role pode ser "kitchen", "counter", "cashReport", etc.
 });
+
+
+// ---------------------------
+// Entrega: cálculo automático de distância (Google Distance Matrix via main)
+// ---------------------------
+contextBridge.exposeInMainWorld('deliveryApi', {
+  /**
+   * Calcula a distância em km entre dois endereços.
+   * origin e destination devem ser strings completas (rua, número, bairro, cidade/UF).
+   */
+  calculateDistanceKm: (origin, destination) =>
+    ipcRenderer.invoke('delivery:calculateDistanceKm', { origin, destination })
+});

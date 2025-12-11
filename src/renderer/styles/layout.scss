@@ -1,0 +1,22 @@
+// ============================================================================
+// LAYOUT
+// ============================================================================
+.app-shell {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
+  background: radial-gradient(circle at top left, #181c2f 0, #05060a 55%);
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-main__content {
+  flex: 1;
+  overflow: auto;
+  padding: 18px 22px 22px;
+}

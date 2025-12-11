@@ -1,4 +1,3 @@
-// src/renderer/components/catalog/ProductFormModal.jsx
 import React, { useEffect, useState } from "react";
 import Modal from "../common/Modal";
 import Button from "../common/Button";
@@ -26,134 +25,55 @@ const parseMoney = (value) => {
   return Number.isNaN(n) ? null : n;
 };
 
-const formatNumberToCurrencyString = (num) => {
-  if (typeof num !== "number" || Number.isNaN(num)) return "";
-  const cents = Math.round(num * 100);
-  const value = (cents / 100).toFixed(2);
-  const [intPart, decimal] = value.split(".");
-  const intWithDots = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return `${intWithDots},${decimal}`;
+const formatMoneyInput = (value) => {
+  if (value === null || value === undefined || value === "") return "";
+  const n = Number(value);
+  if (Number.isNaN(n)) return "";
+  return n.toFixed(2).replace(".", ",");
 };
 
-const maskCurrency = (raw) => {
-  if (!raw) return "";
-  const digits = raw.toString().replace(/\D/g, "");
-  if (!digits) return "";
-  const cents = parseInt(digits, 10);
-  const value = (cents / 100).toFixed(2);
-  const [intPart, decimal] = value.split(".");
-  const intWithDots = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return `${intWithDots},${decimal}`;
-};
-
-const ProductFormModal = ({ tab, initialData, product, onClose, onSaved }) => {
-  const editingData = initialData || product || null;
-  const isEditing = !!(editingData && editingData.id);
-
-  const baseType = editingData?.type || inferTypeFromTab(tab);
-
-  const [categories, setCategories] = useState([]);
-
+const ProductFormModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  product,
+  activeTab = "pizzas",
+}) => {
   const [form, setForm] = useState(() => ({
-    id: editingData?.id || undefined,
-    name: editingData?.name || "",
-    description: editingData?.description || "",
-    type: baseType,
-    category: editingData?.category || "",
-    priceBroto:
-      typeof editingData?.priceBroto === "number"
-        ? formatNumberToCurrencyString(editingData.priceBroto)
-        : "",
-    priceGrande:
-      typeof editingData?.priceGrande === "number"
-        ? formatNumberToCurrencyString(editingData.priceGrande)
-        : "",
-    price:
-      typeof editingData?.price === "number"
-        ? formatNumberToCurrencyString(editingData.price)
-        : "",
-    isAvailable:
-      typeof editingData?.isAvailable === "boolean"
-        ? editingData.isAvailable
-        : editingData?.active !== false,
-
-    // 🧀 Ingredientes (array) + input temporário
-    ingredients: Array.isArray(editingData?.ingredientes)
-      ? editingData.ingredientes
-      : Array.isArray(editingData?.ingredients)
-      ? editingData.ingredients
+    id: product?.id || null,
+    name: product?.name || "",
+    description: product?.description || "",
+    type: product?.type || inferTypeFromTab(activeTab),
+    price: product?.price || null,
+    priceBroto: product?.priceBroto || null,
+    priceGrande: product?.priceGrande || null,
+    active: product?.active ?? true,
+    ingredients: Array.isArray(product?.ingredients)
+      ? product.ingredients
       : [],
-    ingredientsInput: "",
   }));
 
-  const isPizza = form.type === "pizza";
+  const [newIngredient, setNewIngredient] = useState("");
 
-  // Ajusta tipo ao trocar de aba se não estiver editando
   useEffect(() => {
-    if (editingData) return;
+    if (!product) return;
     setForm((prev) => ({
       ...prev,
-      type: inferTypeFromTab(tab),
-    }));
-  }, [tab, editingData]);
-
-  // Recarrega form ao mudar o produto em edição
-  useEffect(() => {
-    if (!editingData) return;
-    setForm({
-      id: editingData.id || undefined,
-      name: editingData.name || "",
-      description: editingData.description || "",
-      type: editingData.type || baseType,
-      category: editingData.category || "",
-      priceBroto:
-        typeof editingData.priceBroto === "number"
-          ? formatNumberToCurrencyString(editingData.priceBroto)
-          : "",
-      priceGrande:
-        typeof editingData.priceGrande === "number"
-          ? formatNumberToCurrencyString(editingData.priceGrande)
-          : "",
-      price:
-        typeof editingData.price === "number"
-          ? formatNumberToCurrencyString(editingData.price)
-          : "",
-      isAvailable:
-        typeof editingData.isAvailable === "boolean"
-          ? editingData.isAvailable
-          : editingData.active !== false,
-
-      ingredients: Array.isArray(editingData.ingredientes)
-        ? editingData.ingredientes
-        : Array.isArray(editingData.ingredients)
-        ? editingData.ingredients
+      id: product.id || null,
+      name: product.name || "",
+      description: product.description || "",
+      type: product.type || inferTypeFromTab(activeTab),
+      price: product.price || null,
+      priceBroto: product.priceBroto || null,
+      priceGrande: product.priceGrande || null,
+      active: product.active ?? true,
+      ingredients: Array.isArray(product.ingredients)
+        ? product.ingredients
         : [],
-      ingredientsInput: "",
-    });
-  }, [editingData, baseType]);
+    }));
+  }, [product, activeTab]);
 
-  // Carrega categorias
-  useEffect(() => {
-    async function loadCategories() {
-      try {
-        const data = await window.dataEngine.get("products");
-        const items = normalizeProductsData(data);
-        const cats = Array.from(
-          new Set(
-            items
-              .map((p) => (p.category || "").trim())
-              .filter(Boolean)
-          )
-        ).sort((a, b) => a.localeCompare(b, "pt-BR"));
-        setCategories(cats);
-      } catch (err) {
-        console.error("Erro ao carregar categorias:", err);
-      }
-    }
-    loadCategories();
-  }, []);
-
-  const handleFieldChange = (field, value) => {
+  const handleChange = (field, value) => {
     setForm((prev) => ({
       ...prev,
       [field]: value,
@@ -161,421 +81,203 @@ const ProductFormModal = ({ tab, initialData, product, onClose, onSaved }) => {
   };
 
   const handlePriceChange = (field, raw) => {
-    const masked = maskCurrency(raw);
+    const parsed = parseMoney(raw);
     setForm((prev) => ({
       ...prev,
-      [field]: masked,
+      [field]: parsed,
     }));
   };
 
-  const handleTypeClick = (typeValue) => {
+  const addIngredientFromInput = () => {
+    const trimmed = newIngredient.trim();
+    if (!trimmed) return;
     setForm((prev) => ({
       ...prev,
-      type: typeValue,
+      ingredients: [...(prev.ingredients || []), trimmed],
     }));
+    setNewIngredient("");
   };
 
-  // ---------- INGREDIENTES (badges) ----------
-
-  const addIngredientsFromTokens = (tokens) => {
-    setForm((prev) => {
-      const current = prev.ingredients || [];
-      const toAdd = tokens
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0);
-
-      // evita duplicados simples (case-insensitive)
-      const lowerExisting = current.map((i) => i.toLowerCase());
-      const finalNew = toAdd.filter(
-        (t) => !lowerExisting.includes(t.toLowerCase())
-      );
-
-      return {
-        ...prev,
-        ingredients: [...current, ...finalNew],
-      };
-    });
-  };
-
-  const handleIngredientsInputChange = (raw) => {
-    // Sempre atualiza o input
-    let value = raw;
-    // Se tiver vírgula, quebrar em tokens
-    if (value.includes(",")) {
-      const parts = value.split(",");
-      const tokens = parts.slice(0, -1); // tudo menos o último vira ingrediente
-      const last = parts[parts.length - 1] || "";
-
-      if (tokens.length > 0) {
-        addIngredientsFromTokens(tokens);
-      }
-
-      setForm((prev) => ({
-        ...prev,
-        ingredientsInput: last, // o que ficar depois da última vírgula continua no input
-      }));
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        ingredientsInput: value,
-      }));
-    }
-  };
-
-  const handleIngredientsKeyDown = (e) => {
-    if (e.key === "Enter") {
+  const handleIngredientKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      const token = form.ingredientsInput.trim();
-      if (!token) return;
-      addIngredientsFromTokens([token]);
-      setForm((prev) => ({ ...prev, ingredientsInput: "" }));
+      addIngredientFromInput();
     }
   };
 
-  const handleRemoveIngredient = (indexToRemove) => {
+  const handleRemoveIngredient = (index) => {
     setForm((prev) => ({
       ...prev,
-      ingredients: prev.ingredients.filter((_, i) => i !== indexToRemove),
+      ingredients: prev.ingredients.filter((_, i) => i !== index),
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const name = form.name.trim();
-    const description = form.description.trim();
-    const category = form.category.trim();
-
-    if (!name) {
-      alert("Informe o nome do produto.");
-      return;
-    }
-
-    // Se o usuário digitou algo no input de ingredientes mas não apertou vírgula/enter,
-    // adiciona automaticamente antes de salvar:
-    if (form.ingredientsInput.trim()) {
-      addIngredientsFromTokens([form.ingredientsInput.trim()]);
-      // limpar input depois:
-      setForm((prev) => ({ ...prev, ingredientsInput: "" }));
-    }
-
+  const handleSubmit = () => {
+    if (!form.name.trim()) return;
     const payload = {
-      id: form.id,
-      name,
-      description,
-      type: form.type,
-      category,
-      isAvailable: !!form.isAvailable,
-      active: !!form.isAvailable,
-      ingredientes: form.ingredients || [],
+      ...form,
+      type: form.type || inferTypeFromTab(activeTab),
     };
-
-    if (isPizza) {
-      const priceBrotoNum = parseMoney(form.priceBroto);
-      const priceGrandeNum = parseMoney(form.priceGrande);
-
-      if (priceBrotoNum === null && priceGrandeNum === null) {
-        const confirmar = window.confirm(
-          "Os preços de broto e grande estão vazios. Deseja salvar mesmo assim?"
-        );
-        if (!confirmar) return;
-      }
-
-      payload.priceBroto = priceBrotoNum;
-      payload.priceGrande = priceGrandeNum;
-      payload.price = null;
-    } else {
-      const priceNum = parseMoney(form.price);
-
-      if (priceNum === null) {
-        const confirmar = window.confirm(
-          "O preço está vazio. Deseja salvar mesmo assim?"
-        );
-        if (!confirmar) return;
-      }
-
-      payload.price = priceNum;
-      payload.priceBroto = null;
-      payload.priceGrande = null;
-    }
-
-    try {
-      if (isEditing) {
-        await window.dataEngine.updateItem("products", editingData.id, payload);
-      } else {
-        await window.dataEngine.addItem("products", payload);
-      }
-
-      if (onSaved) onSaved();
-      onClose();
-    } catch (err) {
-      console.error("Erro ao salvar produto:", err);
-      alert("Não foi possível salvar o produto. Verifique o console.");
-    }
+    onSave && onSave(payload);
   };
 
-  const title = isEditing ? "Editar produto" : "Novo produto";
-  const primaryLabel = isEditing ? "Atualizar produto" : "Cadastrar produto";
+  const canSave = form.name.trim().length > 2;
 
   return (
-    <Modal title={title} onClose={onClose}>
-      <form
-        id="product-form"
-        className="product-form"
-        onSubmit={handleSubmit}
-      >
-        <div className="product-form-layout">
-          {/* COLUNA ESQUERDA */}
-          <section className="product-panel product-panel--main">
-            <header className="product-panel-header">
-              <div>
-                <h4>Informações do produto</h4>
-                <p>Nome, descrição, ingredientes, tipo e categoria.</p>
-              </div>
-              <div className="product-type-switch">
-                {[
-                  { value: "pizza", label: "Pizza" },
-                  { value: "drink", label: "Bebida" },
-                  { value: "extra", label: "Adicional" },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    className={
-                      "product-type-pill" +
-                      (form.type === opt.value
-                        ? " product-type-pill--active"
-                        : "")
-                    }
-                    onClick={() => handleTypeClick(opt.value)}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </header>
-
-            <div className="product-panel-body">
-              <label className="product-field">
-                <span className="product-field-label">Nome</span>
-                <input
-                  className="product-input"
-                  value={form.name}
-                  onChange={(e) => handleFieldChange("name", e.target.value)}
-                  required
-                  placeholder="Ex: Musa, Calabresa, Refrigerante 2L..."
-                />
-              </label>
-
-              <label className="product-field">
-                <span className="product-field-label">Descrição</span>
-                <textarea
-                  className="product-input product-input--textarea"
-                  value={form.description}
-                  onChange={(e) =>
-                    handleFieldChange("description", e.target.value)
-                  }
-                  placeholder={
-                    isPizza
-                      ? "Texto descritivo geral da pizza."
-                      : "Ex: Refrigerante 2L, sabor cola."
-                  }
-                  rows={3}
-                />
-              </label>
-
-              {/* INGREDIENTES COM BADGES */}
-              <label className="product-field">
-                <span className="product-field-label">
-                  Ingredientes (separar por vírgula)
-                </span>
-                <div className="product-ingredients-wrapper">
-                  <div className="product-ingredients-chips">
-                    {form.ingredients?.map((ing, idx) => (
-                      <span key={`${ing}-${idx}`} className="product-chip">
-                        <span className="product-chip-label">{ing}</span>
-                        <button
-                          type="button"
-                          className="product-chip-remove"
-                          onClick={() => handleRemoveIngredient(idx)}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <input
-                    className="product-input product-input--ingredients"
-                    value={form.ingredientsInput}
-                    onChange={(e) =>
-                      handleIngredientsInputChange(e.target.value)
-                    }
-                    onKeyDown={handleIngredientsKeyDown}
-                    placeholder="Ex: mussarela, tomate fresco, orégano..."
-                  />
-                </div>
-                <span className="product-field-hint">
-                  Digite um ingrediente e use vírgula ou Enter para adicionar
-                  como tag.
-                </span>
-              </label>
-
-              <div className="product-field-row">
-                <label className="product-field">
-                  <span className="product-field-label">Categoria</span>
-                  <input
-                    className="product-input"
-                    list="product-categories"
-                    value={form.category}
-                    onChange={(e) =>
-                      handleFieldChange("category", e.target.value)
-                    }
-                    placeholder={
-                      isPizza
-                        ? "Queijo, doce, especial..."
-                        : "Refrigerante, água, sucos..."
-                    }
-                  />
-                  <datalist id="product-categories">
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat} />
-                    ))}
-                  </datalist>
-                  <span className="product-field-hint">
-                    Use categorias para organizar o cardápio e relatórios.
-                  </span>
-                </label>
-              </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={form.id ? "Editar produto" : "Novo produto"}
+      className="product-form-modal"
+    >
+      <div className="product-form__body">
+        <section className="form-section">
+          <div className="form-grid">
+            <div className="form-field form-field--wide">
+              <label>Nome</label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => handleChange("name", e.target.value)}
+                placeholder="Ex: Calabresa, Portuguesa..."
+              />
             </div>
-          </section>
-
-          {/* COLUNA DIREITA */}
-          <section className="product-panel product-panel--side">
-            <header className="product-panel-header">
-              <div>
-                <h4>Precificação & status</h4>
-                <p>Valores usados nos pedidos e disponibilidade.</p>
-              </div>
-            </header>
-
-            <div className="product-panel-body">
-              {isPizza ? (
-                <div className="product-field-row product-field-row--2cols">
-                  <label className="product-field">
-                    <span className="product-field-label">
-                      Preço broto (R$)
-                    </span>
-                    <input
-                      className="product-input product-input--money"
-                      type="text"
-                      inputMode="decimal"
-                      value={form.priceBroto}
-                      onChange={(e) =>
-                        handlePriceChange("priceBroto", e.target.value)
-                      }
-                      placeholder="0,00"
-                    />
-                  </label>
-
-                  <label className="product-field">
-                    <span className="product-field-label">
-                      Preço grande (R$)
-                    </span>
-                    <input
-                      className="product-input product-input--money"
-                      type="text"
-                      inputMode="decimal"
-                      value={form.priceGrande}
-                      onChange={(e) =>
-                        handlePriceChange("priceGrande", e.target.value)
-                      }
-                      placeholder="0,00"
-                    />
-                  </label>
-                </div>
-              ) : (
-                <label className="product-field">
-                  <span className="product-field-label">Preço único (R$)</span>
-                  <input
-                    className="product-input product-input--money"
-                    type="text"
-                    inputMode="decimal"
-                    value={form.price}
-                    onChange={(e) =>
-                      handlePriceChange("price", e.target.value)
-                    }
-                    placeholder="0,00"
-                  />
-                </label>
-              )}
-
-              <label className="product-field product-field--inline">
-                <input
-                  type="checkbox"
-                  checked={!!form.isAvailable}
-                  onChange={(e) =>
-                    handleFieldChange("isAvailable", e.target.checked)
-                  }
-                />
-                <span className="product-field-label-inline">
-                  Disponível para venda
-                  <span className="product-field-hint-inline">
-                    {" "}
-                    (desmarque para pausar no cardápio)
-                  </span>
-                </span>
-              </label>
-
-              <div className="product-mini-summary">
-                <span className="product-mini-summary-label">
-                  Resumo rápido
-                </span>
-                <div className="product-mini-summary-body">
-                  <span>
-                    Tipo:{" "}
-                    <strong>
-                      {form.type === "pizza"
-                        ? "Pizza"
-                        : form.type === "drink"
-                        ? "Bebida"
-                        : "Adicional"}
-                    </strong>
-                  </span>
-                  <span>
-                    Categoria:{" "}
-                    <strong>{form.category || "não definida"}</strong>
-                  </span>
-                  <span>
-                    Status:{" "}
-                    <strong>
-                      {form.isAvailable ? "Ativo no catálogo" : "Pausado"}
-                    </strong>
-                  </span>
-                </div>
-              </div>
+            <div className="form-field">
+              <label>Tipo</label>
+              <select
+                value={form.type}
+                onChange={(e) => handleChange("type", e.target.value)}
+              >
+                <option value="pizza">Pizza</option>
+                <option value="drink">Bebida</option>
+                <option value="extra">Extra</option>
+              </select>
             </div>
-          </section>
-        </div>
+          </div>
 
-        {/* BOTÕES */}
-        <div className="product-form-actions">
-          <div className="product-form-actions-left">
-            {isEditing && (
-              <span className="product-modal-id-badge">
-                ID: {form.id || "-"}
+          <div className="form-field">
+            <label>Descrição</label>
+            <textarea
+              rows={2}
+              value={form.description}
+              onChange={(e) => handleChange("description", e.target.value)}
+              placeholder="Descrição curta para ajudar o cliente na escolha"
+            />
+          </div>
+        </section>
+
+        <section className="form-section">
+          <h3 className="form-section__title">Preços</h3>
+          <div className="form-grid">
+            <div className="form-field">
+              <label>Preço único</label>
+              <input
+                type="text"
+                value={formatMoneyInput(form.price)}
+                onChange={(e) => handlePriceChange("price", e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+            <div className="form-field">
+              <label>Preço broto</label>
+              <input
+                type="text"
+                value={formatMoneyInput(form.priceBroto)}
+                onChange={(e) => handlePriceChange("priceBroto", e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+            <div className="form-field">
+              <label>Preço grande</label>
+              <input
+                type="text"
+                value={formatMoneyInput(form.priceGrande)}
+                onChange={(e) =>
+                  handlePriceChange("priceGrande", e.target.value)
+                }
+                placeholder="0,00"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="form-section">
+          <div className="form-section__header">
+            <h3 className="form-section__title">Ingredientes</h3>
+            <span className="form-section__hint">
+              Digite e pressione <strong>Enter</strong> ou <strong>vírgula</strong>{" "}
+              para adicionar.
+            </span>
+          </div>
+
+          <div className="ingredients-input">
+            <input
+              type="text"
+              value={newIngredient}
+              onChange={(e) => setNewIngredient(e.target.value)}
+              onKeyDown={handleIngredientKeyDown}
+              placeholder="Ex: muçarela, calabresa, cebola..."
+            />
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={addIngredientFromInput}
+            >
+              Adicionar
+            </button>
+          </div>
+
+          <div className="ingredients-badges">
+            {(form.ingredients || []).length === 0 && (
+              <span className="ingredients-badges__empty">
+                Nenhum ingrediente cadastrado.
               </span>
             )}
+            {(form.ingredients || []).map((ing, index) => (
+              <span key={index} className="badge badge--ingredient">
+                <span className="badge__label">{ing}</span>
+                <button
+                  type="button"
+                  className="badge__remove"
+                  onClick={() => handleRemoveIngredient(index)}
+                  aria-label={`Remover ${ ing }`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
           </div>
-          <div className="product-form-actions-right">
-            <Button variant="ghost" type="button" onClick={onClose}>
-              Voltar
-            </Button>
-            <Button variant="primary" type="submit">
-              {primaryLabel}
-            </Button>
-          </div>
-        </div>
-      </form>
+        </section>
+
+        <section className="form-section form-section--compact">
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={form.active}
+              onChange={(e) => handleChange("active", e.target.checked)}
+            />
+            <span className="switch__track">
+              <span className="switch__thumb" />
+            </span>
+            <span className="switch__label">
+              Produto ativo no catálogo
+            </span>
+          </label>
+        </section>
+      </div>
+
+      <div className="product-form__footer">
+        <Button variant="ghost" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleSubmit}
+          disabled={!canSave}
+        >
+          Salvar produto
+        </Button>
+      </div>
     </Modal>
   );
 };
