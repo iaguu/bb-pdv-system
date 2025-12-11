@@ -1,37 +1,376 @@
-// ============================================================================
-// TOKENS / THEME
-// ============================================================================
+/* ==========================================================================
+   TOKENS GERAIS — ANNE & TOM
+   Este arquivo define os "building blocks" de design:
+   - Paleta de cores (CSS variables + SCSS vars)
+   - Tipografia
+   - Espaçamentos, bordas, sombras
+   - Mixins utilitários (cards, chips, scroll etc.)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. CSS CUSTOM PROPERTIES (para uso direto no CSS/JSX via var(--token))
+   -------------------------------------------------------------------------- */
+
 :root {
-  --color-bg-body: #05060a;
-  --color-bg-elevated: #101320;
-  --color-bg-elevated-soft: #141828;
-  --color-bg-muted: #1b2033;
+  /* Cores de fundo principais */
+  --color-bg-body: #050816;
+  --color-bg-elevated: #0b1020;
+  --color-bg-soft: #111827;
 
-  --color-border-subtle: #232840;
-  --color-border-strong: #3b4264;
+  /* Superfícies e bordas */
+  --color-surface: #111827;
+  --color-surface-soft: #1f2937;
+  --color-surface-muted: #020617;
+  --color-border-subtle: rgba(148, 163, 184, 0.35);
+  --color-border-strong: rgba(148, 163, 184, 0.7);
 
-  --color-primary: #f44336;
-  --color-primary-soft: #ff7961;
-  --color-primary-subtle: rgba(244, 67, 54, 0.12);
+  /* Texto */
+  --color-text-primary: #f9fafb;
+  --color-text-secondary: #e5e7eb;
+  --color-text-muted: #9ca3af;
+  --color-text-soft: #6b7280;
+  --color-text-inverse: #020617;
 
-  --color-accent: #ffc107;
-  --color-accent-soft: rgba(255, 193, 7, 0.12);
+  /* Marca / Ações */
+  --color-brand: #f97373;         /* vermelho pizza */
+  --color-brand-strong: #ef4444;
+  --color-brand-soft: rgba(248, 113, 113, 0.12);
 
-  --color-text-main: #f5f6fb;
-  --color-text-muted: #9ca3c7;
-  --color-text-soft: #6b7297;
-  --color-text-danger: #ff8a80;
+  --color-accent: #22c55e;        /* verde confirmação */
+  --color-accent-soft: rgba(34, 197, 94, 0.15);
 
-  --radius-lg: 16px;
-  --radius-md: 10px;
+  /* Estados */
+  --color-info: #38bdf8;
+  --color-info-soft: rgba(56, 189, 248, 0.15);
+
+  --color-warning: #fbbf24;
+  --color-warning-soft: rgba(251, 191, 36, 0.15);
+
+  --color-danger: #f97373;
+  --color-danger-strong: #dc2626;
+  --color-danger-soft: rgba(248, 113, 113, 0.18);
+
+  /* Badges de status */
+  --tone-open-bg: rgba(56, 189, 248, 0.14);
+  --tone-open-border: rgba(56, 189, 248, 0.5);
+  --tone-open-text: #0ea5e9;
+
+  --tone-preparing-bg: rgba(251, 191, 36, 0.16);
+  --tone-preparing-border: rgba(251, 191, 36, 0.7);
+  --tone-preparing-text: #facc15;
+
+  --tone-delivering-bg: rgba(34, 197, 94, 0.17);
+  --tone-delivering-border: rgba(34, 197, 94, 0.8);
+  --tone-delivering-text: #4ade80;
+
+  --tone-done-bg: rgba(34, 197, 94, 0.18);
+  --tone-done-border: rgba(34, 197, 94, 0.9);
+  --tone-done-text: #22c55e;
+
+  --tone-cancelled-bg: rgba(248, 113, 113, 0.20);
+  --tone-cancelled-border: rgba(248, 113, 113, 0.8);
+  --tone-cancelled-text: #f97373;
+
+  /* Inputs / campos */
+  --color-input-bg: #020617;
+  --color-input-border: rgba(148, 163, 184, 0.45);
+  --color-input-border-focus: #f97373;
+  --color-input-placeholder: #6b7280;
+
+  /* Botões */
+  --btn-primary-bg: #f97373;
+  --btn-primary-bg-hover: #fb7185;
+  --btn-primary-text: #111827;
+
+  --btn-secondary-bg: rgba(31, 41, 55, 0.9);
+  --btn-secondary-bg-hover: rgba(55, 65, 81, 1);
+  --btn-secondary-border: rgba(148, 163, 184, 0.7);
+  --btn-secondary-text: #e5e7eb;
+
+  --btn-ghost-bg-hover: rgba(15, 23, 42, 0.85);
+  --btn-ghost-text: #e5e7eb;
+
+  /* Tipografia */
+  --font-family-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+
+  /* Espaçamentos (multiplicador de 4px) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+
+  /* Raios e sombras */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
   --radius-pill: 999px;
 
-  --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.45);
-  --shadow-subtle: 0 10px 30px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.75);
+  --shadow-card: 0 18px 45px rgba(15, 23, 42, 0.9);
+  --shadow-elevated: 0 24px 75px rgba(15, 23, 42, 0.9);
 
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-    "Segoe UI", sans-serif;
+  /* Borda padrão de "cartão" */
+  --card-border-width: 1px;
+  --card-border-color: rgba(148, 163, 184, 0.35);
+}
 
-  --transition-fast: 0.15s ease-out;
-  --transition-med: 0.2s ease;
+/* Tema alternativo (se você quiser alternar via classe .theme-light / .theme-dark) */
+.theme-light {
+  --color-bg-body: #f3f4f6;
+  --color-bg-elevated: #ffffff;
+  --color-bg-soft: #f3f4f6;
+
+  --color-text-primary: #111827;
+  --color-text-secondary: #1f2937;
+  --color-text-muted: #6b7280;
+  --color-text-soft: #9ca3af;
+  --color-text-inverse: #f9fafb;
+
+  --color-surface: #ffffff;
+  --color-surface-soft: #f9fafb;
+  --color-surface-muted: #e5e7eb;
+
+  --color-border-subtle: rgba(148, 163, 184, 0.6);
+  --color-border-strong: rgba(107, 114, 128, 0.9);
+}
+
+/* --------------------------------------------------------------------------
+   2. SCSS VARIABLES (para usar dentro do SCSS, em mixins, etc.)
+   -------------------------------------------------------------------------- */
+
+$color-bg-body: var(--color-bg-body);
+$color-bg-elevated: var(--color-bg-elevated);
+$color-bg-soft: var(--color-bg-soft);
+
+$color-surface: var(--color-surface);
+$color-surface-soft: var(--color-surface-soft);
+$color-surface-muted: var(--color-surface-muted);
+
+$color-text-primary: var(--color-text-primary);
+$color-text-secondary: var(--color-text-secondary);
+$color-text-muted: var(--color-text-muted);
+$color-text-soft: var(--color-text-soft);
+$color-text-inverse: var(--color-text-inverse);
+
+$color-brand: var(--color-brand);
+$color-brand-strong: var(--color-brand-strong);
+$color-brand-soft: var(--color-brand-soft);
+
+$color-accent: var(--color-accent);
+$color-accent-soft: var(--color-accent-soft);
+
+$color-info: var(--color-info);
+$color-info-soft: var(--color-info-soft);
+
+$color-warning: var(--color-warning);
+$color-warning-soft: var(--color-warning-soft);
+
+$color-danger: var(--color-danger);
+$color-danger-strong: var(--color-danger-strong);
+$color-danger-soft: var(--color-danger-soft);
+
+$font-family-base: var(--font-family-base);
+
+/* --------------------------------------------------------------------------
+   3. MIXINS UTILITÁRIOS
+   -------------------------------------------------------------------------- */
+
+/// Card base usado em vários painéis (resumos, cards de grid etc.)
+@mixin card-base {
+  background: radial-gradient(circle at top left, rgba(248, 113, 113, 0.12), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.10), transparent 55%),
+    $color-surface;
+  border-radius: var(--radius-lg);
+  border: var(--card-border-width) solid var(--card-border-color);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+}
+
+/// Badge/chip com tom semântico
+/// Ex: @include tone-badge("delivering");
+@mixin tone-badge($tone) {
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-width: 1px;
+  border-style: solid;
+
+  @if $tone == "open" {
+    background-color: var(--tone-open-bg);
+    border-color: var(--tone-open-border);
+    color: var(--tone-open-text);
+  } @else if $tone == "preparing" {
+    background-color: var(--tone-preparing-bg);
+    border-color: var(--tone-preparing-border);
+    color: var(--tone-preparing-text);
+  } @else if $tone == "delivering" {
+    background-color: var(--tone-delivering-bg);
+    border-color: var(--tone-delivering-border);
+    color: var(--tone-delivering-text);
+  } @else if $tone == "done" {
+    background-color: var(--tone-done-bg);
+    border-color: var(--tone-done-border);
+    color: var(--tone-done-text);
+  } @else if $tone == "cancelled" {
+    background-color: var(--tone-cancelled-bg);
+    border-color: var(--tone-cancelled-border);
+    color: var(--tone-cancelled-text);
+  } @else {
+    background-color: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.4);
+    color: var(--color-text-secondary);
+  }
+}
+
+/// Scrollbar discreta, para listas e tabelas
+@mixin subtle-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.7) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: var(--radius-pill);
+    background: linear-gradient(
+      180deg,
+      rgba(248, 113, 113, 0.75),
+      rgba(34, 197, 94, 0.65)
+    );
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(248, 113, 113, 0.95),
+      rgba(34, 197, 94, 0.9)
+    );
+  }
+}
+
+/// Botão primário “Anne & Tom”
+@mixin button-primary {
+  border-radius: var(--radius-md);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  border: none;
+  padding: 8px 14px;
+  box-shadow: 0 10px 25px rgba(248, 113, 113, 0.45);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.12s ease,
+    box-shadow 0.18s ease, filter 0.18s ease;
+
+  &:hover {
+    background: var(--btn-primary-bg-hover);
+    filter: brightness(1.03);
+    transform: translateY(-1px);
+    box-shadow: 0 16px 35px rgba(248, 113, 113, 0.6);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 6px 16px rgba(248, 113, 113, 0.45);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+}
+
+/// Botão secundário / outline
+@mixin button-secondary {
+  border-radius: var(--radius-md);
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--btn-secondary-border);
+  color: var(--btn-secondary-text);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  padding: 7px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease,
+    color 0.18s ease, transform 0.12s ease;
+
+  &:hover {
+    background: var(--btn-secondary-bg-hover);
+    border-color: rgba(248, 113, 113, 0.7);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/// Botão “chip” (usado em filtros tipo catálogo / pessoas / estoque)
+@mixin chip-button($active: false) {
+  border-radius: var(--radius-pill);
+  border-width: 1px;
+  border-style: solid;
+  padding: 4px 10px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(148, 163, 184, 0.4);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease,
+    color 0.18s ease, transform 0.12s ease;
+
+  @if $active == true {
+    background: radial-gradient(circle at top left, rgba(248, 113, 113, 0.45), transparent 55%),
+      rgba(15, 23, 42, 0.95);
+    border-color: rgba(248, 113, 113, 0.9);
+    color: var(--color-text-primary);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.8);
+  }
+
+  &:hover {
+    background: radial-gradient(circle at top left, rgba(248, 113, 113, 0.32), transparent 55%),
+      rgba(15, 23, 42, 0.95);
+    border-color: rgba(248, 113, 113, 0.75);
+    color: var(--color-text-primary);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 }

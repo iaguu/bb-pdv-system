@@ -1,22 +1,112 @@
-// ============================================================================
-// LAYOUT
-// ============================================================================
+/* ============================================================================
+   APP LAYOUT — SIDEBAR + MAIN CONTENT
+   Design consistente com o PDV Anne & Tom / BB-PDV
+   ============================================================================ */
+
+/* Tokens rápidos */
+$app-bg: #f7f7f7;
+$sidebar-bg: #111;
+$sidebar-hover: #1b1b1b;
+$sidebar-active: #e63946;
+$text-light: #f1f1f1;
+$text-muted: #b9b9b9;
+$radius: 8px;
+
+/* Layout base */
 .app-shell {
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  display: flex;
   height: 100vh;
+  width: 100%;
+  background: $app-bg;
   overflow: hidden;
-  background: radial-gradient(circle at top left, #181c2f 0, #05060a 55%);
 }
 
-.app-main {
+/* ============================================================================
+   SIDEBAR
+   ============================================================================ */
+.app-sidebar {
+  width: 260px;
+  background: $sidebar-bg;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  padding: 22px;
+  box-shadow: 3px 0 8px rgba(0, 0, 0, 0.15);
+
+  @media (max-width: 900px) {
+    width: 210px;
+    padding: 18px;
+  }
+
+  .app-sidebar-brand {
+    display: flex;
+    align-items: center;
+    margin-bottom: 34px;
+
+    .app-logo {
+      font-size: 32px;
+      margin-right: 10px;
+    }
+
+    .app-brand-text {
+      font-size: 20px;
+      font-weight: 600;
+      color: $text-light;
+      letter-spacing: 0.5px;
+    }
+  }
 }
 
-.app-main__content {
+/* ============================================================================
+   NAV
+   ============================================================================ */
+.app-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .app-nav-link {
+    display: block;
+    padding: 12px 14px;
+    border-radius: $radius;
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    color: $text-muted;
+    background: transparent;
+    transition: 0.25s ease;
+    cursor: pointer;
+
+    &:hover {
+      background: $sidebar-hover;
+      color: $text-light;
+    }
+
+    &.app-nav-link-active {
+      background: $sidebar-active;
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 0 0 2px rgba($sidebar-active, 0.35);
+    }
+  }
+}
+
+/* ============================================================================
+   MAIN CONTENT AREA
+   ============================================================================ */
+.app-main {
   flex: 1;
-  overflow: auto;
-  padding: 18px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .app-content {
+    flex: 1;
+    padding: 28px 34px;
+    overflow-y: auto;
+    background: $app-bg;
+
+    @media (max-width: 900px) {
+      padding: 20px;
+    }
+  }
 }

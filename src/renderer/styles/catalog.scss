@@ -1,0 +1,263 @@
+/* ============================================================================
+   CATALOG PAGE
+   Cards de resumo + toolbar + lista de produtos
+   ============================================================================ */
+
+$catalog-card-bg: #ffffff;
+$catalog-border: #e3e3ea;
+$catalog-radius: 10px;
+$catalog-pill-radius: 999px;
+$catalog-text-main: #111827;
+$catalog-text-muted: #6b7280;
+$catalog-text-soft: #9ca3af;
+$catalog-accent: #e63946;
+
+/* ========================================================================== */
+/* HEADER ACTIONS (IMPORTAR / EXPORTAR / NOVO PRODUTO)                        */
+/* ========================================================================== */
+
+.catalog-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+
+  > * {
+    white-space: nowrap;
+  }
+}
+
+/* ========================================================================== */
+/* STATUS DE IMPORTAÇÃO                                                      */
+/* ========================================================================== */
+
+.catalog-import-status {
+  margin: 8px 0 12px;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: $catalog-pill-radius;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  &::before {
+    content: "●";
+    font-size: 10px;
+  }
+}
+
+.catalog-import-status-ok {
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+  color: #166534;
+
+  &::before {
+    color: #16a34a;
+  }
+}
+
+.catalog-import-status-error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+
+  &::before {
+    color: #ef4444;
+  }
+}
+
+/* ========================================================================== */
+/* RESUMO DO CATÁLOGO (GRID DE CARDS)                                        */
+/* ========================================================================== */
+
+.catalog-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 520px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.catalog-summary-card {
+  background: $catalog-card-bg;
+  border-radius: $catalog-radius;
+  border: 1px solid $catalog-border;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 70px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.catalog-summary-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $catalog-text-soft;
+}
+
+.catalog-summary-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: $catalog-text-main;
+}
+
+/* ========================================================================== */
+/* TOOLBAR (BUSCA + FILTROS)                                                 */
+/* ========================================================================== */
+
+.catalog-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.catalog-toolbar-left {
+  flex: 1 1 260px;
+}
+
+.catalog-toolbar-right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+
+  @media (max-width: 900px) {
+    justify-content: flex-start;
+  }
+}
+
+.catalog-filter-group {
+  display: flex;
+  align-items: center;
+}
+
+/* Chips de filtro compartilham com outros contextos que usam .chip / .chip-active */
+.catalog-filter-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ========================================================================== */
+/* FIELD / INPUT (reutilizável)                                              */
+/* ========================================================================== */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: $catalog-text-muted;
+}
+
+.input {
+  border-radius: 8px;
+  border: 1px solid $catalog-border;
+  padding: 7px 10px;
+  font-size: 14px;
+  background: #f9fafb;
+  color: $catalog-text-main;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: #111827;
+    box-shadow: 0 0 0 1px #11182718;
+    background: #ffffff;
+  }
+}
+
+/* ========================================================================== */
+/* CHIPS (FILTROS)                                                           */
+/* ========================================================================== */
+
+.chip {
+  border-radius: $catalog-pill-radius;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: $catalog-text-muted;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    background: #e5e7eb;
+    border-color: #d1d5db;
+    color: $catalog-text-main;
+  }
+}
+
+.chip-active {
+  background: #111827;
+  border-color: #111827;
+  color: #f9fafb;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+}
+
+/* ========================================================================== */
+/* ESTADOS GERAIS                                                            */
+/* ========================================================================== */
+
+.catalog-loading {
+  font-size: 14px;
+  color: $catalog-text-muted;
+}
+
+/* Estes nomes (empty-state / empty-title / empty-description)
+   já são genéricos e podem ser compartilhados com outras páginas */
+.empty-state {
+  margin-top: 12px;
+  border-radius: $catalog-radius;
+  border: 1px dashed $catalog-border;
+  padding: 18px 16px;
+  background: #f9fafb;
+  text-align: center;
+}
+
+.empty-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: $catalog-text-main;
+}
+
+.empty-description {
+  margin: 0;
+  font-size: 13px;
+  color: $catalog-text-muted;
+}

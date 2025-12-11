@@ -1,0 +1,439 @@
+/* ============================================================================
+   DASHBOARD PAGE
+   ============================================================================ */
+
+$dash-bg: #f5f5f7;
+$dash-card-bg: #ffffff;
+$dash-border: #e3e3ea;
+$dash-radius: 10px;
+$dash-radius-pill: 999px;
+$dash-text-main: #111827;
+$dash-text-muted: #6b7280;
+$dash-text-soft: #9ca3af;
+$dash-accent: #e63946; // alerta / vermelho Anne & Tom
+$dash-accent-soft: rgba(230, 57, 70, 0.1);
+$dash-success: #16a34a;
+$dash-warning: #f59e0b;
+
+/* Container geral da página */
+.dashboard-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 4px;
+}
+
+/* ============================================================================
+   TOPO (TÍTULO + PERÍODO + EXPORT)
+   ============================================================================ */
+.dashboard-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.dashboard-top-text {
+  max-width: 520px;
+
+  .dashboard-main-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: $dash-text-main;
+    margin: 0 0 4px;
+  }
+
+  .dashboard-main-subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: $dash-text-muted;
+    line-height: 1.5;
+  }
+}
+
+.dashboard-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+
+  @media (max-width: 900px) {
+    justify-content: space-between;
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.dashboard-period {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashboard-period-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: $dash-text-soft;
+}
+
+.dashboard-period-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: $dash-radius-pill;
+}
+
+/* Botões de período */
+.dashboard-period-btn {
+  border: none;
+  border-radius: $dash-radius-pill;
+  padding: 6px 12px;
+  font-size: 13px;
+  background: transparent;
+  color: $dash-text-muted;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    background: #e5e7eb;
+    color: $dash-text-main;
+  }
+
+  &.dashboard-period-btn-active {
+    background: #111827;
+    color: #f9fafb;
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.6);
+  }
+}
+
+/* Botão export */
+.dashboard-export-btn {
+  font-size: 13px;
+  padding-inline: 14px;
+  height: 34px;
+  border-radius: $dash-radius-pill;
+  border-width: 1px;
+  border-style: solid;
+  border-color: $dash-border;
+  background: #ffffff;
+  color: $dash-text-main;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+/* ============================================================================
+   ESTADOS GERAIS
+   ============================================================================ */
+
+.dashboard-loading {
+  font-size: 14px;
+  color: $dash-text-muted;
+}
+
+.dashboard-empty {
+  border-radius: $dash-radius;
+  padding: 20px 18px;
+  background: #f9fafb;
+  border: 1px dashed $dash-border;
+  font-size: 14px;
+  color: $dash-text-muted;
+}
+
+/* ============================================================================
+   GRID PRINCIPAL DE CARDS
+   ============================================================================ */
+.dashboard-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dashboard-card {
+  background: $dash-card-bg;
+  border-radius: $dash-radius;
+  padding: 14px 14px 12px;
+  border: 1px solid $dash-border;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 88px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+
+  &.dashboard-card--alert {
+    border-color: rgba($dash-accent, 0.25);
+    background: #fff5f5;
+  }
+}
+
+.dashboard-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: $dash-text-soft;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.dashboard-card-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: $dash-text-main;
+
+  &.dashboard-card-value--alert {
+    color: $dash-accent;
+  }
+}
+
+.dashboard-card-helper {
+  margin: 0;
+  font-size: 12px;
+  color: $dash-text-muted;
+}
+
+/* ============================================================================
+   GRID SECUNDÁRIO (INSIGHTS + RECENTES)
+   ============================================================================ */
+.dashboard-secondary-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 18px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dashboard-insights-card,
+.dashboard-recent-card {
+  background: $dash-card-bg;
+  border-radius: $dash-radius;
+  border: 1px solid $dash-border;
+  padding: 16px 16px 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+/* Cabeçalho das seções (Insights + Últimos pedidos) */
+.dashboard-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.dashboard-section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: $dash-text-main;
+}
+
+.dashboard-section-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: $dash-text-muted;
+}
+
+/* ----------------- Insights rápidos ----------------- */
+.dashboard-insights-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin-bottom: 14px;
+}
+
+.dashboard-insight-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+}
+
+.dashboard-insight-label {
+  font-size: 12px;
+  color: $dash-text-soft;
+}
+
+.dashboard-insight-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: $dash-text-main;
+}
+
+/* ----------------- Gráfico de canais ----------------- */
+.dashboard-insights-chart {
+  border-top: 1px solid $dash-border;
+  padding-top: 12px;
+}
+
+.dashboard-insights-chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: $dash-text-main;
+  margin-bottom: 8px;
+}
+
+.dashboard-insights-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashboard-insights-bar-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 50px;
+  align-items: center;
+  gap: 8px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 100px minmax(0, 1fr) 44px;
+  }
+}
+
+.dashboard-insights-bar-label {
+  font-size: 12px;
+  color: $dash-text-muted;
+}
+
+.dashboard-insights-bar-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  overflow: hidden;
+}
+
+.dashboard-insights-bar-fill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    #111827,
+    #e63946
+  );
+  transition: width 0.3s ease-out;
+}
+
+.dashboard-insights-bar-value {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: $dash-text-main;
+  text-align: right;
+}
+
+.dashboard-insights-empty {
+  font-size: 12px;
+  color: $dash-text-muted;
+  margin: 4px 0 0;
+}
+
+/* ----------------- Últimos pedidos ----------------- */
+.dashboard-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* Se você quiser dar um leve fundo para o OrderRow quando isNew=true,
+   pode fazer isso usando uma classe interna em OrderRow.
+   Aqui mantemos só o container. */
+
+/* ============================================================================
+   CARD DE CANAIS (CONTAGEM ABSOLUTA)
+   ============================================================================ */
+.dashboard-channels-card {
+  background: $dash-card-bg;
+  border-radius: $dash-radius;
+  border: 1px solid $dash-border;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashboard-channels-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+
+  .dashboard-card-title {
+    margin: 0;
+  }
+}
+
+.dashboard-channels-total {
+  font-size: 13px;
+  color: $dash-text-muted;
+}
+
+/* Pills com contagem de canais */
+.dashboard-channels-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dashboard-channel-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: $dash-radius-pill;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.dashboard-channel-label {
+  font-size: 12px;
+  color: $dash-text-muted;
+}
+
+.dashboard-channel-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: $dash-text-main;
+}
+
+/* ============================================================================
+   AJUSTES DE BACKGROUND PARA A PÁGINA
+   (caso queira diferenciar levemente da base)
+   ============================================================================ */
+.dashboard-shell {
+  background: transparent;
+}

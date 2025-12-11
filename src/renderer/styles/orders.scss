@@ -1,65 +1,114 @@
-// ============================================================================
-// ORDERS PAGE / LIST
-// ============================================================================
-.orders-page {
-  padding: 18px 22px;
+/* ============================================================================
+   ORDERS PAGE
+   KPIs do dia + toolbar + lista
+   ============================================================================ */
+
+$orders-card-bg: #ffffff;
+$orders-border: #e3e3ea;
+$orders-radius: 10px;
+$orders-pill-radius: 999px;
+$orders-text-main: #111827;
+$orders-text-muted: #6b7280;
+$orders-text-soft: #9ca3af;
+$orders-accent: #e63946;
+
+/* ============================================================================
+   BARRA DE KPIs
+   ============================================================================ */
+
+.orders-kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 840px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.orders-header {
-  margin-bottom: 16px;
-}
-
-.orders-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 10px 0 16px;
-}
-
-.orders-filters__group {
+.orders-kpi-card {
+  background: $orders-card-bg;
+  border-radius: $orders-radius;
+  border: 1px solid $orders-border;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 180px;
+  min-height: 70px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+
+  &.orders-kpi-card--alert {
+    border-color: rgba($orders-accent, 0.35);
+    background: #fff5f5;
+  }
+
+  &.orders-kpi-card--sources {
+    min-height: 80px;
+  }
 }
 
-.orders-filters__label {
+.orders-kpi-label {
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-soft);
-}
-
-.orders-list {
-  background: rgba(10, 12, 22, 0.98);
-  border-radius: 16px;
-  border: 1px solid var(--color-border-subtle);
-  padding: 14px 16px;
-}
-
-.orders-list__section-title {
-  font-size: 13px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text-soft);
-  margin-bottom: 6px;
+  color: $orders-text-soft;
 }
 
-.orders-list__item {
-  padding: 8px 0;
-  border-top: 1px dashed rgba(255, 255, 255, 0.06);
-  font-size: 13px;
+.orders-kpi-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: $orders-text-main;
+
+  &.orders-kpi-value--alert {
+    color: $orders-accent;
+  }
 }
 
-.orders-list__item:first-of-type {
-  border-top: 0;
+/* Canais (hoje) dentro do card */
+.orders-kpi-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 4px;
+
+  span {
+    font-size: 11px;
+    color: $orders-text-muted;
+    padding: 3px 8px;
+    border-radius: $orders-pill-radius;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    white-space: nowrap;
+  }
 }
 
-.orders-list__item-meta {
-  font-size: 12px;
-  color: var(--color-text-soft);
-}
+/* ============================================================================
+   TOOLBAR SUPERIOR (FILTROS + BOTÃO ATUALIZAR)
+   ============================================================================ */
 
-.orders-list__item-total {
-  font-weight: 600;
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+    align-items: stretch;
+
+    > * {
+      width: 100%;
+    }
+  }
 }

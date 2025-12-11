@@ -1,0 +1,307 @@
+/* ============================================================================
+   STOCK PAGE
+   Estoque & Disponibilidade – Ingredientes + Produtos
+   ============================================================================ */
+
+$stock-card-bg: #ffffff;
+$stock-border: #e3e3ea;
+$stock-radius: 10px;
+$stock-pill-radius: 999px;
+$stock-text-main: #111827;
+$stock-text-muted: #6b7280;
+$stock-text-soft: #9ca3af;
+$stock-accent: #e63946;
+$stock-accent-soft: rgba(230, 57, 70, 0.08);
+
+/* ========================================================================== */
+/* ROOT / HEADER ACTIONS                                                     */
+/* ========================================================================== */
+
+.stock-page {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stock-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ========================================================================== */
+/* RESUMO (CARDS)                                                            */
+/* ========================================================================== */
+
+.stock-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 10px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 840px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 560px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.stock-summary-card {
+  background: $stock-card-bg;
+  border-radius: $stock-radius;
+  border: 1px solid $stock-border;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 70px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.stock-summary-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $stock-text-soft;
+}
+
+.stock-summary-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: $stock-text-main;
+
+  &.highlight {
+    color: $stock-accent;
+  }
+}
+
+/* ========================================================================== */
+/* ALERTA DE ERRO                                                            */
+/* ========================================================================== */
+
+.stock-error {
+  border-radius: 8px;
+  border: 1px solid rgba($stock-accent, 0.35);
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
+/* ========================================================================== */
+/* SEÇÃO GENÉRICA (INGREDIENTS / PRODUCTS)                                   */
+/* ========================================================================== */
+
+.stock-section {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ========================================================================== */
+/* TOOLBAR (SEARCH + BOTÕES / SELECT)                                        */
+/* ========================================================================== */
+
+.stock-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stock-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stock-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stock-filter-label {
+  font-size: 12px;
+  color: $stock-text-muted;
+}
+
+/* Select simples, alinhado ao resto do app */
+.stock-select {
+  border-radius: 999px;
+  border: 1px solid $stock-border;
+  padding: 5px 10px;
+  font-size: 13px;
+  background: #f9fafb;
+  color: $stock-text-main;
+  min-width: 140px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+  &:focus-visible {
+    outline: none;
+    border-color: #111827;
+    box-shadow: 0 0 0 1px #11182718;
+    background: #ffffff;
+  }
+}
+
+/* ========================================================================== */
+/* TABELAS                                                                   */
+/* ========================================================================== */
+
+.stock-table-wrapper {
+  border-radius: $stock-radius;
+  border: 1px solid $stock-border;
+  background: $stock-card-bg;
+  overflow: hidden;
+}
+
+.stock-empty {
+  margin: 0;
+  padding: 18px 16px;
+  font-size: 13px;
+  color: $stock-text-muted;
+  text-align: center;
+}
+
+.stock-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead {
+    background: #f3f4f6;
+
+    th {
+      text-align: left;
+      padding: 8px 10px;
+      font-weight: 600;
+      color: $stock-text-muted;
+      border-bottom: 1px solid $stock-border;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid #f3f4f6;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &.is-missing {
+        background: $stock-accent-soft;
+      }
+
+      td {
+        padding: 8px 10px;
+        vertical-align: middle;
+        color: $stock-text-main;
+      }
+    }
+  }
+}
+
+/* Inputs numéricos dentro da tabela de ingredientes */
+.stock-input {
+  width: 100%;
+  max-width: 90px;
+  border-radius: 6px;
+  border: 1px solid $stock-border;
+  padding: 4px 6px;
+  font-size: 13px;
+  background: #f9fafb;
+  color: $stock-text-main;
+  text-align: right;
+  -moz-appearance: textfield;
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: #111827;
+    background: #ffffff;
+    box-shadow: 0 0 0 1px #11182718;
+  }
+}
+
+/* ========================================================================== */
+/* PRODUTOS – COLUNA DE NOME / META / STATUS                                 */
+/* ========================================================================== */
+
+.stock-product-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stock-product-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: $stock-text-main;
+}
+
+.stock-product-meta {
+  font-size: 12px;
+  color: $stock-text-muted;
+}
+
+/* Status pill */
+.stock-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 3px 10px;
+  border-radius: $stock-pill-radius;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  color: $stock-text-muted;
+
+  &.active {
+    background: #ecfdf3;
+    border-color: #bbf7d0;
+    color: #166534;
+  }
+
+  &.paused {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+  }
+}
+
+/* ========================================================================== */
+/* HINT / TEXTO INFORMATIVO                                                  */
+/* ========================================================================== */
+
+.stock-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: $stock-text-muted;
+  line-height: 1.5;
+
+  strong {
+    color: $stock-text-main;
+  }
+}

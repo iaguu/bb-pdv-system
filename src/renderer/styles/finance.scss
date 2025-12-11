@@ -1,0 +1,458 @@
+/* ============================================================================
+   FINANCE PAGE
+   Caixa & Financeiro – Sessões, relatórios e comissões
+   ============================================================================ */
+
+$finance-card-bg: #ffffff;
+$finance-border: #e3e3ea;
+$finance-radius: 10px;
+$finance-pill-radius: 999px;
+$finance-text-main: #111827;
+$finance-text-muted: #6b7280;
+$finance-text-soft: #9ca3af;
+$finance-accent: #e63946;
+$finance-accent-soft: rgba(230, 57, 70, 0.06);
+
+/* ========================================================================== */
+/* HEADER                                                                    */
+/* ========================================================================== */
+
+.finance-header {
+  margin-top: 6px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.finance-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 240px;
+}
+
+.finance-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: $finance-text-main;
+}
+
+.finance-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: $finance-text-muted;
+}
+
+.finance-open-badge {
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: $finance-pill-radius;
+  font-size: 11px;
+  font-weight: 500;
+  color: #065f46;
+  background: #ecfdf3;
+  border: 1px solid #bbf7d0;
+}
+
+/* ========================================================================== */
+/* HEADER RIGHT: FILTROS + AÇÕES                                             */
+/* ========================================================================== */
+
+.finance-header-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  flex: 1;
+  min-width: 280px;
+}
+
+.finance-filters {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.finance-period {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.finance-period-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $finance-text-soft;
+}
+
+.finance-period-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.finance-period-btn {
+  border-radius: $finance-pill-radius;
+  border: 1px solid $finance-border;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  background: #f9fafb;
+  color: $finance-text-muted;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: #111827;
+    box-shadow: 0 0 0 1px #11182718;
+    background: #ffffff;
+  }
+
+  &.finance-period-btn-active {
+    background: #111827;
+    border-color: #111827;
+    color: #f9fafb;
+  }
+}
+
+.finance-status-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.finance-status-select {
+  border-radius: $finance-pill-radius;
+  border: 1px solid $finance-border;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #f9fafb;
+  color: $finance-text-main;
+  min-width: 130px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:focus-visible {
+    outline: none;
+    border-color: #111827;
+    background: #ffffff;
+    box-shadow: 0 0 0 1px #11182718;
+  }
+}
+
+/* ========================================================================== */
+/* AÇÕES PRINCIPAIS (BOTÕES)                                                 */
+/* ========================================================================== */
+
+.finance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+
+  .finance-open-btn {
+    white-space: nowrap;
+  }
+
+  .finance-close-btn {
+    white-space: nowrap;
+  }
+
+  .finance-export-btn,
+  .finance-export-pdf-btn,
+  .finance-refresh-btn {
+    white-space: nowrap;
+  }
+}
+
+/* ========================================================================== */
+/* CONTEÚDO POR ABA                                                          */
+/* ========================================================================== */
+
+.finance-tab-content {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.finance-loading {
+  font-size: 13px;
+  color: $finance-text-muted;
+}
+
+/* ========================================================================== */
+/* GRID DE CARDS (RESUMO)                                                    */
+/* ========================================================================== */
+
+.finance-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.finance-card {
+  background: $finance-card-bg;
+  border-radius: $finance-radius;
+  border: 1px solid $finance-border;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.finance-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $finance-text-soft;
+}
+
+.finance-card-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: $finance-text-main;
+}
+
+.finance-card-helper {
+  margin: 0;
+  font-size: 12px;
+  color: $finance-text-muted;
+}
+
+/* ========================================================================== */
+/* ÚLTIMO FECHAMENTO                                                         */
+/* ========================================================================== */
+
+.finance-last-closure {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: $finance-radius;
+  border: 1px solid $finance-border;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.finance-last-closure-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: $finance-text-main;
+  }
+}
+
+.finance-last-closure-tag {
+  padding: 4px 8px;
+  border-radius: $finance-pill-radius;
+  font-size: 11px;
+  font-weight: 500;
+  color: $finance-text-main;
+  background: #ffffff;
+  border: 1px solid $finance-border;
+}
+
+.finance-last-closure-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 520px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.finance-last-closure-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .label {
+    font-size: 11px;
+    color: $finance-text-soft;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  strong {
+    font-size: 14px;
+    color: $finance-text-main;
+  }
+}
+
+/* ========================================================================== */
+/* RESUMO DE PEDIDOS                                                         */
+/* ========================================================================== */
+
+.finance-orders-summary {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: $finance-text-main;
+  }
+}
+
+.finance-orders-empty {
+  margin: 0;
+  font-size: 12px;
+  color: $finance-text-muted;
+}
+
+/* Lista de sessões de caixa */
+.cash-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ========================================================================== */
+/* COMISSÃO DO SISTEMA                                                       */
+/* ========================================================================== */
+
+.finance-commission-panel {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: $finance-radius;
+  border: 1px dashed $finance-border;
+  background: #f9fafb;
+
+  h3 {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: $finance-text-main;
+  }
+}
+
+.finance-commission-helper {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: $finance-text-muted;
+}
+
+/* ========================================================================== */
+/* TABELA RESUMO DE SESSÕES (ABA RELATÓRIOS)                                 */
+/* ========================================================================== */
+
+.finance-report-table {
+  margin-top: 12px;
+  border-radius: $finance-radius;
+  border: 1px solid $finance-border;
+  background: #ffffff;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.finance-report-header,
+.finance-report-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.7fr 1.1fr 0.9fr 0.9fr;
+  gap: 0;
+}
+
+.finance-report-header {
+  background: #f3f4f6;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $finance-text-soft;
+
+  span {
+    padding: 7px 10px;
+    border-bottom: 1px solid $finance-border;
+  }
+}
+
+.finance-report-row {
+  border-top: 1px solid #f3f4f6;
+
+  span {
+    padding: 7px 10px;
+    color: $finance-text-main;
+  }
+
+  &:nth-child(odd) {
+    background: #fcfcfd;
+  }
+}
+
+/* Responsividade para tabela de relatórios */
+@media (max-width: 900px) {
+  .finance-report-header,
+  .finance-report-row {
+    grid-template-columns: 1.4fr 0.8fr 1.2fr 1fr;
+  }
+
+  .finance-report-header span:nth-child(3),
+  .finance-report-row span:nth-child(3) {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .finance-report-header,
+  .finance-report-row {
+    grid-template-columns: 1.4fr 1fr;
+  }
+
+  .finance-report-header span:nth-child(3),
+  .finance-report-header span:nth-child(4),
+  .finance-report-row span:nth-child(3),
+  .finance-report-row span:nth-child(4) {
+    display: none;
+  }
+}
