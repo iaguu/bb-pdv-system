@@ -1514,3 +1514,96 @@ select.field-input {
     grid-template-columns: 1fr;
   }
 }
+/* ========================================================================== */
+/* PATCH — NewOrder: config cards (distância/entrega/desconto) simplificado     */
+/* Cole NO FINAL do SCSS do NewOrderModal                                     */
+/* ========================================================================== */
+
+.neworder-modal {
+  /* mais respiro no fundo (além do footer fixo) */
+  .neworder-column {
+    padding-bottom: calc(var(--footer-h) + 34px);
+  }
+
+  /* --- Linha dos cards de configuração (Distância / Faixa / Resumo) --- */
+  .config-cards-row {
+    /* troca layout “3 colunas rígidas” por grid estável e simples */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px; /* um pouco mais de ar */
+    align-items: stretch;
+  }
+
+  /* o 3º card (resumo) ocupa a linha de baixo inteira */
+  .config-cards-row > .config-card:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .config-card {
+    /* deixa conteúdo bem organizado e evita “desníveis” */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    padding: 14px;
+    border-radius: 16px;
+    box-shadow: 0 14px 34px rgba(2, 6, 23, 0.08);
+  }
+
+  /* labels + helpers mais discretos e com espaçamento consistente */
+  .config-card .field-label {
+    margin: 0 0 6px;
+    font-size: 11.5px;
+    letter-spacing: 0.14px;
+  }
+
+  .config-card .field-helper {
+    margin-top: 8px;
+    line-height: 1.35;
+  }
+
+  /* select/inputs sempre 100% e alinhados */
+  .config-card .field-input,
+  .config-card select.field-input {
+    width: 100%;
+    height: 42px;
+  }
+
+  /* o bloco “inline” dentro do card (quando existir) não deve “grudar” */
+  .config-card-inline-block {
+    margin-top: 8px;
+    padding-top: 10px;
+  }
+
+  /* resumo da entrega: mais legível e sem parecer “caixa separada estranha” */
+  .config-mini-summary {
+    margin-top: 2px;
+    padding-top: 10px;
+    display: grid;
+    gap: 6px;
+
+    font-size: 12px;
+    color: rgba(71, 85, 105, 0.92);
+
+    strong {
+      font-weight: 950;
+      color: rgba(2, 6, 23, 0.92);
+    }
+  }
+
+  /* “Desconto” — evita aquele bloco desalinhado: label em cima, select embaixo */
+  .discount-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  /* responsivo: tudo em 1 coluna sem quebrar */
+  @media (max-width: 980px) {
+    .config-cards-row {
+      grid-template-columns: 1fr;
+    }
+    .config-cards-row > .config-card:nth-child(3) {
+      grid-column: auto;
+    }
+  }
+}

@@ -577,7 +577,7 @@ export default function NewOrderModal({
 
     if (orderType !== "delivery" || !customer || !customer.address) {
       setDistanceError(
-        "Selecione um cliente com endereço para calcular automaticamente."
+        "Selecione um cliente."
       );
       return;
     }

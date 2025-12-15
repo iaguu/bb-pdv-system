@@ -696,47 +696,7 @@ const OrdersPage = () => {
         </button>
       }
     >
-      {/* KPIs DO DIA */}
-      <div className="orders-kpi-bar">
-        <div className="orders-kpi-card">
-          <span className="orders-kpi-label">Faturamento hoje</span>
-          <strong className="orders-kpi-value">
-            {formatCurrency(kpis.totalRevenueToday)}
-          </strong>
-        </div>
 
-        <div className="orders-kpi-card">
-          <span className="orders-kpi-label">Pedidos hoje</span>
-          <strong className="orders-kpi-value">
-            {kpis.totalOrdersToday}
-          </strong>
-        </div>
-
-        <div className="orders-kpi-card">
-          <span className="orders-kpi-label">Ticket médio</span>
-          <strong className="orders-kpi-value">
-            {formatCurrency(kpis.avgTicket)}
-          </strong>
-        </div>
-
-        {/* NOVO: contador de atrasados */}
-        <div className="orders-kpi-card orders-kpi-card--alert">
-          <span className="orders-kpi-label">Pedidos atrasados</span>
-          <strong className="orders-kpi-value orders-kpi-value--alert">
-            {kpis.lateCountToday}
-          </strong>
-        </div>
-
-        <div className="orders-kpi-card orders-kpi-card--sources">
-          <span className="orders-kpi-label">Canais (hoje)</span>
-          <div className="orders-kpi-sources">
-            <span>Site: {kpis.bySource.website}</span>
-            <span>WhatsApp: {kpis.bySource.whatsapp}</span>
-            <span>iFood: {kpis.bySource.ifood}</span>
-            <span>Balcão/Sistema: {kpis.bySource.local}</span>
-          </div>
-        </div>
-      </div>
 
       {/* Toolbar: filtros + botão atualizar */}
       <div className="page-toolbar">

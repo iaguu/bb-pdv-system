@@ -456,3 +456,99 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
     display: none;
   }
 }
+/* ============================================================================
+   PATCH — Page header + Tabs (Sessões de caixa / Relatórios) + micro-spacing
+   - Escopado para esta página via :has(.finance-header)
+   - Não exige mudanças no JSX
+   ============================================================================ */
+
+/* Title/subtitle do componente <Page /> (melhora hierarquia e respiro) */
+.page:has(.finance-header) :where(.page-title, h1) {
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.2px;
+  margin-bottom: 6px;
+}
+
+.page:has(.finance-header) :where(.page-subtitle, .page-description, p.page-subtitle, p.page-description) {
+  font-size: 13px;
+  color: rgba(17, 24, 39, 0.65);
+  max-width: 820px;
+  margin-bottom: 14px;
+}
+
+/* Tabs do componente <Tabs /> (pills premium, sem ficar “quadradão”) */
+.page:has(.finance-header) :where(.tabs, .tabs-root, .tabs-container, [role="tablist"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.04);
+  border: 1px solid rgba(227, 227, 234, 0.9);
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.05);
+  margin: 6px 0 14px 0;
+}
+
+/* Botões/abas */
+.page:has(.finance-header) :where(.tabs button, .tabs .tab, .tabs .tabs-item, [role="tab"]) {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(17, 24, 39, 0.70);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.page:has(.finance-header) :where(.tabs button:hover, .tabs .tab:hover, .tabs .tabs-item:hover, [role="tab"]:hover) {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(17, 24, 39, 0.10);
+  transform: translateY(-1px);
+}
+
+/* Estado ativo (cobre classes comuns + aria-selected) */
+.page:has(.finance-header) :where(
+  .tabs .active,
+  .tabs .is-active,
+  .tabs .tabs-item--active,
+  .tabs button.active,
+  .tabs button.is-active,
+  [role="tab"][aria-selected="true"]
+) {
+  background: #111827;
+  color: #f9fafb;
+  border-color: rgba(17, 24, 39, 0.30);
+  box-shadow: 0 10px 22px rgba(17, 24, 39, 0.18);
+}
+
+/* Header interno da página (corrige o “colado” do h2/subtitle à esquerda) */
+.finance-header-left {
+  gap: 8px;
+}
+
+.finance-title {
+  font-size: 20px;
+  letter-spacing: -0.1px;
+}
+
+.finance-subtitle {
+  line-height: 1.45;
+}
+
+/* Ajuste fino para o agrupamento “Sessões de caixa | Relatórios” caso o Tabs renderize links */
+.page:has(.finance-header) :where(.tabs a) {
+  text-decoration: none;
+}
+
+/* Mobile: tabs quebra bonito */
+@media (max-width: 900px) {
+  .page:has(.finance-header) :where(.tabs, .tabs-root, .tabs-container, [role="tablist"]) {
+    border-radius: 16px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}

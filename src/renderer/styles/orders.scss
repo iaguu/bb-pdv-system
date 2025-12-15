@@ -112,3 +112,211 @@ $orders-accent: #e63946;
     }
   }
 }
+/* ============================================================================
+   PATCH — Toolbar spacing + form controls (select/input) + primary action
+   - Não altera nomes de classes existentes
+   - Aumenta consistência visual e corrige espaçamento/alinhamento
+   Target: OrdersPage / toolbar com filtros + botão "+ Novo pedido"
+   ============================================================================ */
+
+/* Toolbar: cria ritmo e evita “elementos soltos” */
+.page-toolbar {
+  padding: 12px 12px;
+  border: 1px solid rgba(227, 227, 234, 0.75);
+  border-radius: $orders-radius;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
+  box-shadow: 0 10px 30px rgba(17, 24, 39, 0.05);
+}
+
+/* Layout interno (se houver grupos/linhas) */
+.page-toolbar :where(.toolbar-left, .toolbar-right, .toolbar-actions, .filters, .filters-row) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Botão principal (cobre: button, a, .btn, etc. sem exigir refactor de JSX) */
+.page-toolbar :where(button, a, .btn, .button) {
+  border-radius: $orders-pill-radius;
+}
+
+.page-toolbar :where(button, a, .btn, .button)[class*="new"],
+.page-toolbar :where(button, a, .btn, .button)[class*="novo"],
+.page-toolbar :where(button, a, .btn, .button)[aria-label*="novo"],
+.page-toolbar :where(button, a, .btn, .button)[aria-label*="Novo"] {
+  height: 40px;
+  padding: 0 16px;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+  border: 0;
+  cursor: pointer;
+
+  /* destaque premium sem “gritar” */
+  background: linear-gradient(180deg, #ff8a2a 0%, #ff6a00 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(255, 106, 0, 0.25);
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px rgba(255, 106, 0, 0.32);
+    filter: brightness(1.02);
+  }
+
+  &:active {
+    transform: translateY(0px);
+    box-shadow: 0 10px 22px rgba(255, 106, 0, 0.22);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 3px rgba(255, 106, 0, 0.20),
+      0 10px 22px rgba(255, 106, 0, 0.25);
+  }
+}
+
+/* Controles (select/input): altura, borda, focus ring e aparência “clean” */
+.page-toolbar :where(select, input[type="text"], input[type="search"], input:not([type])) {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(227, 227, 234, 1);
+  background: #ffffff;
+  color: $orders-text-main;
+  font-size: 14px;
+  line-height: 1;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+
+  &::placeholder {
+    color: $orders-text-soft;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 106, 0, 0.75);
+    box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.12);
+  }
+}
+
+/* Select: seta custom (sem depender de libs) */
+.page-toolbar select {
+  appearance: none;
+  padding-right: 34px;
+
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(17, 24, 39, 0.55) 50%),
+    linear-gradient(135deg, rgba(17, 24, 39, 0.55) 50%, transparent 50%),
+    linear-gradient(to right, rgba(227, 227, 234, 0.9), rgba(227, 227, 234, 0.9));
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 13px) 50%,
+    calc(100% - 34px) 50%;
+  background-size:
+    5px 5px,
+    5px 5px,
+    1px 18px;
+  background-repeat: no-repeat;
+
+  &:hover {
+    background-color: #fff;
+    border-color: rgba(201, 201, 216, 1);
+  }
+}
+
+/* Labels na toolbar (Status/Origem/Buscar): melhora legibilidade */
+.page-toolbar :where(label, .label, .field-label) {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(17, 24, 39, 0.70);
+  margin-right: 6px;
+}
+
+/* Campos “colados” (ex.: label + select/input em linha) ficam alinhados */
+.page-toolbar :where(.field, .filter, .control, .toolbar-field) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Responsivo: evita quebra feia nos selects/inputs */
+@media (max-width: 900px) {
+  .page-toolbar {
+    padding: 12px;
+  }
+
+  .page-toolbar :where(select, input[type="text"], input[type="search"], input:not([type])) {
+    width: 100%;
+    min-width: 220px;
+  }
+}
+/* ======================================================================
+   PATCH — Espaçamento e destaque do botão "Atualizar"
+   Target: OrdersPage toolbar
+   ====================================================================== */
+
+.page-toolbar {
+  /* garante respiro vertical melhor */
+  padding: 16px;
+}
+
+/* Área da direita (onde fica o botão Atualizar) */
+.page-toolbar :where(.toolbar-right, .toolbar-actions) {
+  margin-left: auto; /* empurra para a direita */
+  padding-left: 12px;
+}
+
+/* Botão Atualizar (ação secundária) */
+.page-toolbar
+  :where(button, .btn, .button):not([class*="new"]):not([class*="novo"]) {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+
+  font-weight: 700;
+  font-size: 13px;
+
+  background: #ffffff;
+  color: rgba(17, 24, 39, 0.9);
+  border: 1px solid rgba(227, 227, 234, 1);
+
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.06);
+  transition: all 160ms ease;
+
+  &:hover {
+    background: #f9fafb;
+    border-color: rgba(17, 24, 39, 0.25);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 10px rgba(17, 24, 39, 0.05);
+  }
+}
+
+/* Mobile: botão separado dos filtros */
+@media (max-width: 900px) {
+  .page-toolbar :where(.toolbar-right, .toolbar-actions) {
+    margin-left: 0;
+    margin-top: 10px;
+  }
+}
+/* ======================================================================
+   PATCH — Espaçamento entre o botão do Page (actions) e a page-toolbar
+   Target: OrdersPage (Page actions + toolbar)
+   ====================================================================== */
+
+/* Cria o “respiro” que está faltando entre header (onde fica o + Novo pedido)
+   e a primeira seção do conteúdo (toolbar) */
+.page-toolbar {
+  margin-top: 14px; /* <- principal correção do print */
+}
+
+/* Opcional: garante que o botão (actions) tenha um pouco de folga embaixo
+   sem afetar botões em outras partes */
+.page:has(.page-toolbar) .btn.btn-primary {
+  margin-bottom: 6px;
+}
