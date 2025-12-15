@@ -1,0 +1,103 @@
+/* =============================================================================
+   PEOPLE COMPONENTS
+   Listagens de clientes e motoboys com ênfase em legibilidade
+   ============================================================================= */
+
+.customer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06);
+    transform: translateY(-1px);
+  }
+}
+
+.customer-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.customer-row-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.customer-row-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.customer-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.customer-row-neighborhood {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.customer-row-side {
+  color: #111827;
+  font-weight: 600;
+}
+
+.people-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+
+  th,
+  td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  th {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+    background: #f9fafb;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr.is-inactive td {
+    color: #9ca3af;
+  }
+}
+
+.people-table__actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}

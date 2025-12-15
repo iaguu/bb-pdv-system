@@ -1,0 +1,134 @@
+/* =============================================================================
+   FINANCE COMPONENTS
+   Estilos para modais e linhas de sessão de caixa
+   Mantém layout simples, legível e consistente
+   ============================================================================= */
+
+.cash-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #111827;
+}
+
+.cash-modal-description {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.cash-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.cash-summary-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+
+  .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+  }
+
+  strong {
+    font-size: 16px;
+    color: #0f172a;
+  }
+
+  small {
+    color: #6b7280;
+  }
+}
+
+.cash-diff-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+
+  .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+  }
+
+  strong {
+    font-size: 16px;
+  }
+}
+
+.cash-diff-zero {
+  color: #111827;
+}
+
+.cash-diff-positive {
+  color: #16a34a;
+}
+
+.cash-diff-negative {
+  color: #dc2626;
+}
+
+.cash-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.cash-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06);
+    transform: translateY(-1px);
+  }
+}
+
+.cash-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cash-row-title {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cash-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.cash-row-side {
+  color: #111827;
+  font-weight: 600;
+}
