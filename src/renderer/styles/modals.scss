@@ -27,6 +27,7 @@ body.has-modal-open {
 
 .modal-window,
 .modal-dialog {
+.modal-window {
   width: min(960px, 100%);
   max-height: calc(100vh - 64px);
 
