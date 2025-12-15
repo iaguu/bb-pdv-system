@@ -25,6 +25,8 @@ body.has-modal-open {
   backdrop-filter: blur(6px);
 }
 
+.modal-window,
+.modal-dialog {
 .modal-window {
   width: min(960px, 100%);
   max-height: calc(100vh - 64px);
@@ -40,6 +42,21 @@ body.has-modal-open {
   box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18);
 }
 
+.modal-window.modal-sm,
+.modal-dialog.modal-sm {
+  width: min(560px, 100%);
+}
+
+.modal-window.modal-md,
+.modal-dialog.modal-md {
+  width: min(760px, 100%);
+}
+
+.modal-window.modal-lg,
+.modal-dialog.modal-lg {
+  width: min(960px, 100%);
+}
+
 .modal-header {
   display: flex;
   align-items: flex-start;
@@ -49,6 +66,20 @@ body.has-modal-open {
   padding: 18px 24px 12px;
   border-bottom: 1px solid #e2e8f0;
   background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.modal-header-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.modal-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .modal-title {
@@ -118,6 +149,12 @@ body.has-modal-open {
 
   padding: 16px 24px 20px;
   background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-form {
   display: flex;
   flex-direction: column;
   gap: 14px;

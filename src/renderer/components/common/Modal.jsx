@@ -16,7 +16,12 @@ const Modal = ({
   isOpen,
   onClose,
   title,
+  subtitle = null,
+  headerContent = null,
   size = "md",
+  className = "",
+  bodyClassName = "",
+  footer = null,
   children,
 }) => {
   const hasControlProp =
@@ -73,24 +78,38 @@ const Modal = ({
       onMouseDown={handleBackdropMouseDown}
     >
       <div
-        className={`modal-dialog modal-${size}`}
+        className={["modal-window", `modal-${size}`, className]
+          .filter(Boolean)
+          .join(" ")}
         onMouseDown={stopPropagation}
       >
         <div className="modal-header">
-          {title && <h2 className="modal-title">{title}</h2>}
-          {onClose && (
-            <button
-              type="button"
-              className="modal-close"
-              onClick={onClose}
-              aria-label="Fechar"
-            >
-              ×
-            </button>
-          )}
+          <div className="modal-header-main">
+            {title && <h2 className="modal-title">{title}</h2>}
+            {subtitle && <p className="modal-subtitle">{subtitle}</p>}
+          </div>
+
+          <div className="modal-header-actions">
+            {headerContent}
+            {onClose && (
+              <button
+                type="button"
+                className="modal-close"
+                onClick={onClose}
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="modal-body">{children}</div>
+        <div
+          className={["modal-body", bodyClassName].filter(Boolean).join(" ")}
+        >
+          {children}
+        </div>
+        {footer && <div className="modal-footer">{footer}</div>}
       </div>
     </div>
   );
