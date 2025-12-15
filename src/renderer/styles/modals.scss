@@ -1,0 +1,258 @@
+/* ============================================================================
+   Base modal styling
+   - Visual clean e consistente para todos os modais
+   - Resolve problemas de overflow adicionando scroll interno seguro
+   - Padroniza espaçamentos, hierarquia e alinhamentos
+   ============================================================================ */
+
+body.has-modal-open {
+  overflow: hidden;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  padding: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: radial-gradient(1200px 520px at 20% 0%, rgba(59, 130, 246, 0.12), transparent 60%),
+    radial-gradient(900px 380px at 86% 0%, rgba(249, 115, 22, 0.10), transparent 60%),
+    rgba(15, 23, 42, 0.64);
+  backdrop-filter: blur(6px);
+}
+
+.modal-window,
+.modal-dialog {
+  width: min(960px, 100%);
+  max-height: calc(100vh - 64px);
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  border-radius: 18px;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18);
+}
+
+.modal-window.modal-sm,
+.modal-dialog.modal-sm {
+  width: min(560px, 100%);
+}
+
+.modal-window.modal-md,
+.modal-dialog.modal-md {
+  width: min(760px, 100%);
+}
+
+.modal-window.modal-lg,
+.modal-dialog.modal-lg {
+  width: min(960px, 100%);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 18px 24px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.modal-header-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.modal-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.1px;
+}
+
+.modal-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.45;
+  max-width: 880px;
+}
+
+.modal-helper-text {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.modal-error-text {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecdd3;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.modal-close {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+
+  background: #ffffff;
+  color: #0f172a;
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease,
+    border-color 140ms ease;
+}
+
+.modal-close:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  transform: translateY(-1px);
+}
+
+.modal-close:active {
+  transform: translateY(0);
+}
+
+.modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+
+  padding: 16px 24px 20px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-footer {
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.modal-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+}
+
+.modal-section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.modal-section-subtitle {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.modal-section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.modal-grid-2,
+.modal-grid.modal-grid-2-main {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.modal-grid.modal-grid-cep {
+  grid-template-columns: 150px 1fr;
+}
+
+.modal-grid.modal-grid-street {
+  grid-template-columns: 1.4fr 0.8fr;
+}
+
+.modal-grid.modal-grid-complement {
+  grid-template-columns: 1fr 0.8fr;
+}
+
+.modal-grid.modal-grid-city {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 960px) {
+  .modal-window {
+    max-height: calc(100vh - 36px);
+  }
+}
+
+@media (max-width: 780px) {
+  .modal-backdrop {
+    padding: 14px;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .modal-grid-2,
+  .modal-grid.modal-grid-2-main,
+  .modal-grid.modal-grid-city,
+  .modal-grid.modal-grid-cep,
+  .modal-grid.modal-grid-street,
+  .modal-grid.modal-grid-complement {
+    grid-template-columns: 1fr;
+  }
+}
