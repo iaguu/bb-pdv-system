@@ -1,0 +1,97 @@
+/* Auto-split from components.scss (stubs refinados) */
+
+.config-card {
+  background: var(--surface-elevated, #020617);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.9);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.6);
+}
+
+.config-card-soft {
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(55, 65, 81, 0.7);
+}
+
+.config-card-narrow {
+  padding-block: 8px;
+}
+
+.config-card-inline-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mini resumos de config (ex: tabelas de entrega) */
+
+.config-mini-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #9ca3af;
+
+  strong {
+    color: #e5e7eb;
+  }
+}
+
+.config-delivery-summary-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #9ca3af;
+
+  span:last-child {
+    font-weight: 500;
+    color: #e5e7eb;
+  }
+}
+
+/* Bloco simples de contagem */
+
+.counter-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(31, 41, 55, 0.9);
+
+  .counter-label {
+    font-size: 11px;
+    color: #9ca3af;
+  }
+
+  .counter-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f9fafb;
+  }
+}
+
+/* Descontos (pedido/produto) */
+
+.discount-type-select,
+
+.discount-value-input {
+  width: 100%;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5e7eb;
+
+  &:focus {
+    outline: none;
+    border-color: #f97316;
+    box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.4);
+  }
+}
+
+/* Distância em km (pedido / entrega) */

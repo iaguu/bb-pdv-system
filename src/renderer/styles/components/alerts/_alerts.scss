@@ -1,0 +1,28 @@
+/* Auto-split from components.scss (stubs refinados) */
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: var(--text-muted, #e5e7eb);
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    opacity: 0.9;
+  }
+}
+
+.alert-warning {
+  background: rgba(250, 204, 21, 0.08);
+  border-color: #facc15;
+  color: #fbbf24;
+}
+
+/* CEP / status de busca */

@@ -1,0 +1,113 @@
+/* Auto-split from components.scss (stubs refinados) */
+
+.product-form-modal {
+  max-width: 720px;
+}
+
+.product-form__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.product-form__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.product-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.product-modal-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.product-modal-body {
+  margin-top: 8px;
+}
+
+.product-modal-helper {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.product-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.product-description {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.product-price-small,
+
+.product-price-large {
+  font-size: 14px;
+}
+
+/* Linha de produto em listas */
+
+.product-price-small {
+  font-size: 12px;
+}
+
+.product-price-large {
+  font-size: 14px;
+}
+
+/* Linha de produto em listas */
+
+.product-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.product-row-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.product-row-meta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.product-row-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.product-row-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+/* Badges tipo de produto */
+
+.product-type-badge {
+  @extend .chip;
+  font-size: 10px;
+}
+
+/* Tipografia utilitária */

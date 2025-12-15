@@ -1,0 +1,78 @@
+/* Auto-split from components.scss (stubs refinados) */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.3;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(15, 23, 42, 0.8);
+  color: #e5e7eb;
+  white-space: nowrap;
+
+  svg {
+    font-size: 12px;
+  }
+}
+
+.chip--extra {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #bbf7d0;
+}
+
+.chip-alt {
+  background: rgba(30, 64, 175, 0.18);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #bfdbfe;
+}
+
+.chip-outline {
+  background: transparent;
+  border-style: dashed;
+}
+
+.chip-soft {
+  border: none;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+/* Bloco compacto de cliente (nome + endereço) */
+
+.small {
+  font-size: 11px;
+}
+
+/* Pill de status genérico */
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(31, 41, 55, 0.95);
+  color: #e5e7eb;
+
+  &--success {
+    background: rgba(22, 163, 74, 0.16);
+    color: #bbf7d0;
+  }
+
+  &--danger {
+    background: rgba(248, 113, 113, 0.18);
+    color: #fecaca;
+  }
+
+  &--warning {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fed7aa;
+  }
+}
+
+/* Textarea genérica */

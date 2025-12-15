@@ -1,0 +1,30 @@
+/* Auto-split from components.scss (stubs refinados) */
+
+.cep-status {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted, #9ca3af);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #22c55e;
+    opacity: 0.8;
+  }
+
+  &--error::before {
+    background: #ef4444;
+  }
+
+  &--loading::before {
+    background: #f59e0b;
+  }
+}
+
+/* Chips / tags */

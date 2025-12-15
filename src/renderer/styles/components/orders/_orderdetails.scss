@@ -1,0 +1,713 @@
+/* ==========================================================================
+   ORDER DETAILS MODAL — Anne & Tom (PREMIUM / WHITE)
+   Target: OrderDetailsModal.jsx
+   - NÃO muda nomes de classes
+   - Layout 2 colunas com scroll interno
+   - Visual premium + chips de status + lista de itens organizada
+   ========================================================================== */ /* :contentReference[oaicite:0]{index=0} */
+
+/* --------------------------------------------------------------------------
+   ESCOPOS / TOKENS
+--------------------------------------------------------------------------- */
+
+.order-details-modal {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #f1f5f9;
+
+  --ink: rgba(2, 6, 23, 0.92);
+  --ink-2: rgba(2, 6, 23, 0.72);
+  --muted: rgba(71, 85, 105, 0.88);
+
+  --line: rgba(2, 6, 23, 0.10);
+  --line-2: rgba(2, 6, 23, 0.16);
+
+  --shadow-sm: 0 10px 28px rgba(2, 6, 23, 0.10);
+  --shadow-md: 0 18px 46px rgba(2, 6, 23, 0.14);
+
+  --r-sm: 12px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 22px;
+
+  --ease: cubic-bezier(0.2, 0.9, 0.2, 1);
+  --fast: 120ms;
+  --med: 180ms;
+
+  /* tones */
+  --t-open-bg: rgba(59, 130, 246, 0.12);
+  --t-open-bd: rgba(59, 130, 246, 0.30);
+  --t-open-ink: rgba(30, 64, 175, 0.95);
+
+  --t-prep-bg: rgba(245, 158, 11, 0.12);
+  --t-prep-bd: rgba(245, 158, 11, 0.32);
+  --t-prep-ink: rgba(146, 64, 14, 0.95);
+
+  --t-deliv-bg: rgba(139, 92, 246, 0.12);
+  --t-deliv-bd: rgba(139, 92, 246, 0.32);
+  --t-deliv-ink: rgba(91, 33, 182, 0.95);
+
+  --t-done-bg: rgba(34, 197, 94, 0.12);
+  --t-done-bd: rgba(34, 197, 94, 0.32);
+  --t-done-ink: rgba(20, 83, 45, 0.95);
+
+  --t-cancel-bg: rgba(239, 68, 68, 0.12);
+  --t-cancel-bd: rgba(239, 68, 68, 0.32);
+  --t-cancel-ink: rgba(127, 29, 29, 0.95);
+
+  color: var(--ink);
+}
+
+/* --------------------------------------------------------------------------
+   BODY LAYOUT (2 colunas + scroll interno)
+--------------------------------------------------------------------------- */
+
+.order-details__body {
+  position: relative;
+
+  display: grid;
+  grid-template-columns: 1.02fr 1fr;
+  gap: 18px;
+
+  /* modal deve permitir scroll interno */
+  min-height: 0;
+  max-height: calc(92vh - 140px);
+  overflow: hidden;
+
+  padding: 14px 14px 0;
+
+  background:
+    radial-gradient(1100px 360px at 20% 0%, rgba(249, 115, 22, 0.06), transparent 62%),
+    radial-gradient(900px 320px at 90% 0%, rgba(37, 99, 235, 0.06), transparent 62%),
+    linear-gradient(180deg, var(--surface-2), var(--surface));
+}
+
+/* cada coluna com scroll */
+.order-details__column {
+  min-width: 0;
+  min-height: 0;
+
+  overflow: auto;
+  padding-right: 6px;
+  padding-bottom: 14px;
+
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable both-edges;
+}
+
+.order-details__column--left {
+  padding-right: 16px;
+  border-right: 1px dashed rgba(2, 6, 23, 0.12);
+}
+
+.order-details__column--right {
+  padding-left: 16px;
+}
+
+/* scrollbars */
+.order-details__column::-webkit-scrollbar {
+  width: 10px;
+}
+.order-details__column::-webkit-scrollbar-thumb {
+  background: rgba(2, 6, 23, 0.16);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.order-details__column::-webkit-scrollbar-thumb:hover {
+  background: rgba(2, 6, 23, 0.26);
+  background-clip: content-box;
+}
+
+/* --------------------------------------------------------------------------
+   SECTIONS (cards)
+--------------------------------------------------------------------------- */
+
+.order-section {
+  background:
+    radial-gradient(800px 220px at 18% 0%, rgba(249, 115, 22, 0.05), transparent 55%),
+    radial-gradient(800px 220px at 86% 0%, rgba(37, 99, 235, 0.05), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 16px;
+
+  box-shadow:
+    0 18px 44px rgba(2, 6, 23, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  transition: transform var(--med) var(--ease),
+    box-shadow var(--med) var(--ease),
+    border-color var(--med) var(--ease);
+}
+
+.order-section + .order-section {
+  margin-top: 14px;
+}
+
+.order-section:hover {
+  border-color: rgba(2, 6, 23, 0.14);
+  box-shadow:
+    0 26px 62px rgba(2, 6, 23, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+/* header dentro da section */
+.order-section__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+
+  border-bottom: 1px dashed rgba(2, 6, 23, 0.14);
+}
+
+.order-section__title {
+  font-size: 13.5px;
+  font-weight: 950;
+  letter-spacing: 0.2px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.order-section__sub {
+  font-size: 11.5px;
+  font-weight: 900;
+  color: rgba(71, 85, 105, 0.92);
+
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  background: rgba(2, 6, 23, 0.05);
+  border: 1px solid rgba(2, 6, 23, 0.10);
+}
+
+/* "Editar pedido" */
+.order-section__link {
+  border: 1px solid rgba(2, 6, 23, 0.14);
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(2, 6, 23, 0.84);
+
+  padding: 7px 10px;
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 950;
+
+  cursor: pointer;
+  transition: transform var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+}
+
+.order-section__link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(2, 6, 23, 0.22);
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.12);
+}
+
+.order-section__link:active {
+  transform: translateY(0);
+}
+
+.order-section--compact {
+  padding: 12px;
+}
+
+/* --------------------------------------------------------------------------
+   KV (key-value)
+--------------------------------------------------------------------------- */
+
+.order-kv {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  margin-top: 12px;
+}
+
+.order-kv:first-of-type {
+  margin-top: 0;
+}
+
+.order-kv > div {
+  min-width: 0;
+
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(2, 6, 23, 0.10);
+  border-radius: var(--r-lg);
+
+  padding: 10px 12px;
+
+  box-shadow: 0 10px 22px rgba(2, 6, 23, 0.06);
+}
+
+.order-kv__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.14px;
+  color: rgba(2, 6, 23, 0.62);
+  margin-bottom: 6px;
+}
+
+.order-kv__value {
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+  color: rgba(2, 6, 23, 0.90);
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* inline (label + select) */
+.order-kv__inline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.order-kv__inline select {
+  height: 40px;
+  border-radius: 14px;
+  padding: 0 12px;
+
+  border: 1px solid rgba(2, 6, 23, 0.14);
+  background: rgba(255, 255, 255, 0.98);
+  color: rgba(2, 6, 23, 0.88);
+
+  font-size: 13px;
+  font-weight: 800;
+
+  transition: transform var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.order-kv__inline select:hover {
+  transform: translateY(-1px);
+  border-color: rgba(2, 6, 23, 0.22);
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.10);
+}
+
+.order-kv__inline select:focus {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.50);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   TAGS (pagamento)
+--------------------------------------------------------------------------- */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 7px 10px;
+  border-radius: 999px;
+
+  border: 1px solid rgba(2, 6, 23, 0.14);
+  background: rgba(241, 245, 249, 0.86);
+
+  font-size: 12px;
+  font-weight: 950;
+  color: rgba(2, 6, 23, 0.82);
+}
+
+/* money */
+.tag--money {
+  border-color: rgba(245, 158, 11, 0.34);
+  background: rgba(245, 158, 11, 0.12);
+  color: rgba(146, 64, 14, 0.95);
+}
+
+/* pix */
+.tag--pix {
+  border-color: rgba(34, 197, 94, 0.34);
+  background: rgba(34, 197, 94, 0.12);
+  color: rgba(20, 83, 45, 0.95);
+}
+
+/* card */
+.tag--card {
+  border-color: rgba(59, 130, 246, 0.34);
+  background: rgba(59, 130, 246, 0.12);
+  color: rgba(30, 64, 175, 0.95);
+}
+
+/* ifood */
+.tag--ifood {
+  border-color: rgba(239, 68, 68, 0.34);
+  background: rgba(239, 68, 68, 0.12);
+  color: rgba(127, 29, 29, 0.95);
+}
+
+.tag--default {
+  border-color: rgba(2, 6, 23, 0.14);
+  background: rgba(241, 245, 249, 0.86);
+  color: rgba(2, 6, 23, 0.82);
+}
+
+/* --------------------------------------------------------------------------
+   ITENS (lista)
+--------------------------------------------------------------------------- */
+
+.order-items-list {
+  display: grid;
+  gap: 10px;
+}
+
+.order-item-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+
+  padding: 12px;
+  border-radius: var(--r-xl);
+
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(2, 6, 23, 0.10);
+
+  box-shadow: 0 16px 34px rgba(2, 6, 23, 0.08);
+
+  transition: transform var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.order-item-row:hover {
+  transform: translateY(-1px);
+  border-color: rgba(2, 6, 23, 0.16);
+  box-shadow: 0 22px 48px rgba(2, 6, 23, 0.12);
+}
+
+.order-item-row__main {
+  min-width: 0;
+}
+
+.order-item-row__title {
+  font-size: 13.5px;
+  font-weight: 950;
+  color: rgba(2, 6, 23, 0.92);
+  line-height: 1.25;
+}
+
+.order-item-row__details {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(71, 85, 105, 0.90);
+  line-height: 1.35;
+}
+
+.order-item-row__extras {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-item-row__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+
+  padding-left: 10px;
+  border-left: 1px dashed rgba(2, 6, 23, 0.14);
+}
+
+.order-item-row__qty {
+  font-size: 11.5px;
+  font-weight: 950;
+  color: rgba(71, 85, 105, 0.92);
+
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  border: 1px solid rgba(2, 6, 23, 0.10);
+  background: rgba(2, 6, 23, 0.05);
+}
+
+.order-item-row__price {
+  font-size: 13px;
+  font-weight: 1000;
+  color: rgba(234, 88, 12, 0.96);
+
+  padding: 8px 10px;
+  border-radius: 14px;
+
+  border: 1px solid rgba(249, 115, 22, 0.24);
+  background: rgba(249, 115, 22, 0.10);
+}
+
+/* chips extras */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 950;
+
+  border: 1px solid rgba(2, 6, 23, 0.12);
+  background: rgba(248, 250, 252, 0.92);
+  color: rgba(2, 6, 23, 0.78);
+}
+
+.chip--extra {
+  border-color: rgba(249, 115, 22, 0.22);
+  background: rgba(249, 115, 22, 0.10);
+  color: rgba(124, 45, 18, 0.92);
+}
+
+/* --------------------------------------------------------------------------
+   STATUS CHIPS
+--------------------------------------------------------------------------- */
+
+.status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.status-chip {
+  border: 1px solid rgba(2, 6, 23, 0.14);
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(2, 6, 23, 0.82);
+
+  padding: 10px 12px;
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 950;
+
+  cursor: pointer;
+
+  transition: transform var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+}
+
+.status-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(2, 6, 23, 0.22);
+  box-shadow: 0 16px 34px rgba(2, 6, 23, 0.12);
+}
+
+.status-chip:active {
+  transform: translateY(0);
+}
+
+.status-chip--active {
+  box-shadow: 0 0 0 4px rgba(2, 6, 23, 0.06);
+}
+
+/* tones */
+.status-chip--open {
+  border-color: var(--t-open-bd);
+  background: var(--t-open-bg);
+  color: var(--t-open-ink);
+}
+
+.status-chip--preparing {
+  border-color: var(--t-prep-bd);
+  background: var(--t-prep-bg);
+  color: var(--t-prep-ink);
+}
+
+.status-chip--delivering {
+  border-color: var(--t-deliv-bd);
+  background: var(--t-deliv-bg);
+  color: var(--t-deliv-ink);
+}
+
+.status-chip--done {
+  border-color: var(--t-done-bd);
+  background: var(--t-done-bg);
+  color: var(--t-done-ink);
+}
+
+.status-chip--cancelled {
+  border-color: var(--t-cancel-bd);
+  background: var(--t-cancel-bg);
+  color: var(--t-cancel-ink);
+}
+
+/* active refinements (mais “premium”) */
+.status-chip--active.status-chip--open {
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+.status-chip--active.status-chip--preparing {
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.12);
+}
+.status-chip--active.status-chip--delivering {
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+}
+.status-chip--active.status-chip--done {
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+}
+.status-chip--active.status-chip--cancelled {
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   RESUMO (totais)
+--------------------------------------------------------------------------- */
+
+.order-summary {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(2, 6, 23, 0.10);
+  border-radius: var(--r-xl);
+  padding: 12px;
+
+  box-shadow: 0 16px 34px rgba(2, 6, 23, 0.08);
+}
+
+.order-summary__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding: 10px 8px;
+
+  font-size: 13px;
+  color: rgba(2, 6, 23, 0.78);
+
+  border-bottom: 1px dashed rgba(2, 6, 23, 0.12);
+}
+
+.order-summary__row:last-child {
+  border-bottom: 0;
+}
+
+.order-summary__row span:first-child {
+  color: rgba(71, 85, 105, 0.92);
+  font-weight: 900;
+}
+
+.order-summary__row span:last-child {
+  font-weight: 950;
+  color: rgba(2, 6, 23, 0.88);
+}
+
+.order-summary__row--total {
+  margin-top: 6px;
+  padding-top: 12px;
+
+  border-top: 1px dashed rgba(2, 6, 23, 0.14);
+  border-bottom: 0;
+
+  font-size: 14px;
+}
+
+.order-summary__row--total span:last-child {
+  color: rgba(234, 88, 12, 0.96);
+  font-weight: 1000;
+
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(249, 115, 22, 0.24);
+  background: rgba(249, 115, 22, 0.10);
+}
+
+/* --------------------------------------------------------------------------
+   AÇÕES (impressão)
+--------------------------------------------------------------------------- */
+
+.order-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.order-actions > * {
+  flex: 1 1 180px;
+  min-width: 180px;
+}
+
+/* --------------------------------------------------------------------------
+   FOOTER
+--------------------------------------------------------------------------- */
+
+.order-details__footer {
+  padding: 12px 14px 14px;
+
+  display: flex;
+  justify-content: flex-end;
+
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.0), rgba(248, 250, 252, 0.92));
+  border-top: 1px solid rgba(2, 6, 23, 0.10);
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVO
+--------------------------------------------------------------------------- */
+
+@media (max-width: 980px) {
+  .order-details__body {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    max-height: calc(92vh - 160px);
+  }
+
+  .order-details__column--left {
+    border-right: 0;
+    padding-right: 6px;
+  }
+
+  .order-details__column--right {
+    padding-left: 0;
+  }
+
+  .order-kv {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .order-details__body {
+    padding: 12px 12px 0;
+  }
+
+  .order-section {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .order-item-row {
+    grid-template-columns: 1fr;
+  }
+
+  .order-item-row__right {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+
+    border-left: 0;
+    border-top: 1px dashed rgba(2, 6, 23, 0.14);
+    padding-left: 0;
+    padding-top: 10px;
+  }
+
+  .order-actions > * {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+}

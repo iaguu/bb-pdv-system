@@ -1,0 +1,211 @@
+/* ==========================================================================
+   ORDER LIST — Anne & Tom (PREMIUM / WHITE)
+   Target: src/renderer/components/orders/OrderList.jsx
+   - Não altera nomes de classes
+   - Visual limpo, hierarquia clara, leitura rápida
+   - Compatível com OrderRow já existente
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   CONTAINER GERAL
+--------------------------------------------------------------------------- */
+
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+
+  padding: 6px 2px 14px;
+}
+
+/* --------------------------------------------------------------------------
+   EMPTY STATE
+--------------------------------------------------------------------------- */
+
+.order-list-empty {
+  margin-top: 60px;
+  padding: 48px 24px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+
+  text-align: center;
+
+  background:
+    radial-gradient(600px 240px at 50% 0%, rgba(249, 115, 22, 0.08), transparent 60%),
+    rgba(248, 250, 252, 0.92);
+
+  border: 1px dashed rgba(2, 6, 23, 0.18);
+  border-radius: 18px;
+}
+
+.order-list-empty-icon {
+  font-size: 40px;
+  opacity: 0.9;
+}
+
+.order-list-empty-title {
+  font-size: 15px;
+  font-weight: 900;
+  color: rgba(2, 6, 23, 0.92);
+}
+
+.order-list-empty-subtitle {
+  font-size: 13px;
+  color: rgba(71, 85, 105, 0.88);
+  max-width: 420px;
+  line-height: 1.35;
+}
+
+/* --------------------------------------------------------------------------
+   GROUP (STATUS)
+--------------------------------------------------------------------------- */
+
+.order-list-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* --------------------------------------------------------------------------
+   GROUP HEADER
+--------------------------------------------------------------------------- */
+
+.order-list-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 12px 14px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(248, 250, 252, 0.92)
+    );
+
+  border: 1px solid rgba(2, 6, 23, 0.12);
+  border-radius: 16px;
+
+  box-shadow:
+    0 10px 24px rgba(2, 6, 23, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Título do grupo (Em aberto, Em preparo, etc.) */
+.order-list-group-title {
+  font-size: 14px;
+  font-weight: 950;
+  letter-spacing: 0.2px;
+  color: rgba(2, 6, 23, 0.92);
+}
+
+/* Contador */
+.order-list-group-count {
+  font-size: 11.5px;
+  font-weight: 900;
+
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  background: rgba(2, 6, 23, 0.06);
+  border: 1px solid rgba(2, 6, 23, 0.10);
+
+  color: rgba(2, 6, 23, 0.70);
+}
+
+/* --------------------------------------------------------------------------
+   GROUP BODY (LISTA DE PEDIDOS)
+--------------------------------------------------------------------------- */
+
+.order-list-group-body {
+  display: grid;
+  gap: 12px;
+
+  /* melhora leitura quando há muitos pedidos */
+  padding-left: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   STATUS VISUAL DIFERENCIADO (HEADER)
+   Apenas visual — OrderRow já trata o card
+--------------------------------------------------------------------------- */
+
+.order-list-group:has(.order-row--status-open)
+  .order-list-group-header {
+  border-color: rgba(59, 130, 246, 0.28);
+}
+
+.order-list-group:has(.order-row--status-preparing)
+  .order-list-group-header {
+  border-color: rgba(245, 158, 11, 0.32);
+}
+
+.order-list-group:has(.order-row--status-out_for_delivery)
+  .order-list-group-header {
+  border-color: rgba(139, 92, 246, 0.32);
+}
+
+.order-list-group:has(.order-row--status-done)
+  .order-list-group-header {
+  border-color: rgba(34, 197, 94, 0.32);
+}
+
+.order-list-group:has(.order-row--status-cancelled)
+  .order-list-group-header {
+  border-color: rgba(239, 68, 68, 0.32);
+}
+
+/* --------------------------------------------------------------------------
+   MICRO INTERAÇÕES
+--------------------------------------------------------------------------- */
+
+.order-list-group-header {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.order-list-group-header:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(2, 6, 23, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVO
+--------------------------------------------------------------------------- */
+
+@media (max-width: 980px) {
+  .order-list {
+    gap: 18px;
+  }
+
+  .order-list-group-header {
+    padding: 10px 12px;
+  }
+
+  .order-list-group-title {
+    font-size: 13.5px;
+  }
+}
+
+@media (max-width: 520px) {
+  .order-list {
+    padding: 4px 0 10px;
+  }
+
+  .order-list-group-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .order-list-group-count {
+    align-self: flex-start;
+  }
+}

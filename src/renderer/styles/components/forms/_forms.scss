@@ -1,0 +1,170 @@
+/* ---------------------------------------------------------------------
+   FORMS — refinado
+   Mantém nomes das classes; melhora ritmo visual, foco e responsividade
+------------------------------------------------------------------------ */
+
+/* Field wrapper */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+
+  /* quando houver label + input, o conjunto respira melhor */
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* útil em grids */
+.form-field--wide {
+  grid-column: 1 / -1;
+}
+
+/* Section card */
+.form-section {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(31, 41, 55, 0.9);
+
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+
+  /* feedback de interação sem precisar de JS */
+  &:focus-within {
+    border-color: rgba(249, 115, 22, 0.55);
+    box-shadow:
+      0 12px 28px rgba(0, 0, 0, 0.26),
+      0 0 0 1px rgba(249, 115, 22, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+}
+
+/* variante compacta */
+.form-section--compact {
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+/* header da seção */
+.form-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+
+  border-bottom: 1px dashed rgba(55, 65, 81, 0.65);
+}
+
+.form-section__title {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  color: #e5e7eb;
+  line-height: 1.2;
+}
+
+.form-section__hint {
+  font-size: 11px;
+  color: #9ca3af;
+  line-height: 1.2;
+  text-align: right;
+
+  /* evita quebrar o layout em textos longos */
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* responsivo: em telas menores, deixa hint quebrar */
+@media (max-width: 520px) {
+  .form-section {
+    padding: 12px;
+  }
+
+  .form-section__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-section__hint {
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   TEXTAREA — ingredientes / observações
+------------------------------------------------------------------------ */
+
+.textarea {
+  width: 100%;
+  min-height: 92px;
+
+  padding: 10px 10px;
+  border-radius: 10px;
+
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  background: rgba(15, 23, 42, 0.95);
+
+  color: #e5e7eb;
+  font-size: 13px;
+  line-height: 1.45;
+
+  resize: vertical;
+
+  /* “feel” mais suave */
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease,
+    background 140ms ease;
+
+  &:hover {
+    border-color: rgba(107, 114, 128, 0.85);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(249, 115, 22, 0.9);
+    box-shadow:
+      0 0 0 1px rgba(249, 115, 22, 0.42),
+      0 10px 22px rgba(0, 0, 0, 0.22);
+    background: rgba(15, 23, 42, 0.98);
+  }
+
+  &::placeholder {
+    color: rgba(156, 163, 175, 0.55);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: rgba(17, 24, 39, 0.6);
+  }
+}
+
+/* opcional: se você usar atributo aria-invalid */
+.textarea[aria-invalid="true"] {
+  border-color: rgba(239, 68, 68, 0.9);
+
+  &:focus {
+    box-shadow:
+      0 0 0 1px rgba(239, 68, 68, 0.35),
+      0 10px 22px rgba(0, 0, 0, 0.22);
+  }
+}
