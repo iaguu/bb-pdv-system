@@ -73,22 +73,6 @@
    BACKDROP + WINDOW
 --------------------------------------------------------------------------- */
 
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  padding: 18px;
-  display: grid;
-  place-items: center;
-  z-index: 40;
-
-  background:
-    radial-gradient(1200px 700px at 18% 8%, rgba(249, 115, 22, 0.18), transparent 62%),
-    radial-gradient(900px 620px at 86% 12%, rgba(37, 99, 235, 0.16), transparent 60%),
-    rgba(2, 6, 23, 0.46);
-
-  backdrop-filter: blur(12px);
-}
-
 .modal-window.neworder-modal {
   width: min(1280px, 100%);
   height: min(92vh, 960px);
@@ -127,7 +111,7 @@
    HEADER
 --------------------------------------------------------------------------- */
 
-.modal-header {
+.modal-window.neworder-modal .modal-header {
   padding: 18px 22px;
   display: flex;
   align-items: flex-start;
@@ -142,7 +126,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.10);
 }
 
-.modal-title {
+.modal-window.neworder-modal .modal-title {
   font-size: 18px;
   font-weight: 950;
   letter-spacing: 0.2px;
@@ -150,7 +134,7 @@
   line-height: 1.15;
 }
 
-.modal-subtitle {
+.modal-window.neworder-modal .modal-subtitle {
   margin-top: 4px;
   font-size: 12.5px;
   color: rgba(226, 232, 240, 0.78);
@@ -158,13 +142,13 @@
   line-height: 1.35;
 }
 
-.modal-helper-text {
+.modal-window.neworder-modal .modal-helper-text {
   margin-top: 10px;
   font-size: 12px;
   color: rgba(203, 213, 225, 0.90);
 }
 
-.modal-error-text {
+.modal-window.neworder-modal .modal-error-text {
   margin-top: 10px;
   font-size: 12px;
   color: rgba(254, 202, 202, 0.95);
@@ -176,7 +160,7 @@
   max-width: 100%;
 }
 
-.modal-close {
+.modal-window.neworder-modal .modal-close {
   width: 42px;
   height: 42px;
   border-radius: 14px;
@@ -198,14 +182,14 @@
     box-shadow var(--fast) var(--ease);
 }
 
-.modal-close:hover {
+.modal-window.neworder-modal .modal-close:hover {
   background: rgba(255, 255, 255, 0.10);
   border-color: rgba(255, 255, 255, 0.24);
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
   transform: translateY(-1px);
 }
 
-.modal-close:active {
+.modal-window.neworder-modal .modal-close:active {
   transform: translateY(0);
 }
 
@@ -213,7 +197,7 @@
    BODY + FOOTER (fix sobreposição)
 --------------------------------------------------------------------------- */
 
-.modal-body {
+.modal-window.neworder-modal .modal-body {
   flex: 1 1 auto;
   min-height: 0;
 
@@ -228,8 +212,7 @@
     linear-gradient(180deg, #f8fafc, #ffffff);
 }
 
-/* Footer absoluto (não “empurra” layout) */
-.modal-footer {
+.modal-window.neworder-modal .modal-footer {
   position: absolute;
   left: 0;
   right: 0;
@@ -328,7 +311,7 @@
    SECTION BASE (cards premium)
 --------------------------------------------------------------------------- */
 
-.modal-section {
+.neworder-modal .modal-section {
   background:
     radial-gradient(800px 200px at 18% 0%, rgba(249, 115, 22, 0.05), transparent 55%),
     radial-gradient(800px 200px at 86% 0%, rgba(37, 99, 235, 0.05), transparent 55%),
@@ -350,14 +333,14 @@
     border-color var(--med) var(--ease);
 }
 
-.modal-section:hover {
+.neworder-modal .modal-section:hover {
   border-color: rgba(2, 6, 23, 0.14);
   box-shadow:
     0 26px 62px rgba(2, 6, 23, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
-.modal-section-title {
+.neworder-modal .modal-section-title {
   font-size: 13.5px;
   font-weight: 950;
   color: rgba(2, 6, 23, 0.92);
@@ -365,7 +348,7 @@
   margin-bottom: 12px;
 }
 
-.modal-section-header-row {
+.neworder-modal .modal-section-header-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -377,7 +360,7 @@
   border-bottom: 1px dashed rgba(2, 6, 23, 0.14);
 }
 
-.modal-section-subtitle {
+.neworder-modal .modal-section-subtitle {
   font-size: 12px;
   color: rgba(71, 85, 105, 0.88);
   max-width: 62%;
@@ -988,7 +971,7 @@ select.field-input {
    PIZZA EDITOR (GRID + SCROLL)
 --------------------------------------------------------------------------- */
 
-.modal-grid-2 {
+.neworder-modal .modal-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
@@ -1465,7 +1448,7 @@ select.field-input {
 }
 
 @media (max-width: 980px) {
-  .modal-body {
+  .modal-window.neworder-modal .modal-body {
     padding: 14px 14px 0;
   }
 
@@ -1483,7 +1466,7 @@ select.field-input {
     padding-left: 0;
   }
 
-  .modal-section-subtitle {
+  .neworder-modal .modal-section-subtitle {
     max-width: 100%;
     text-align: left;
   }
@@ -1495,24 +1478,20 @@ select.field-input {
 }
 
 @media (max-width: 520px) {
-  .modal-backdrop {
-    padding: 10px;
-  }
-
   .modal-window.neworder-modal {
     height: 94vh;
     border-radius: 18px;
   }
 
-  .modal-header {
+  .modal-window.neworder-modal .modal-header {
     padding: 14px 14px;
   }
 
-  .modal-title {
+  .modal-window.neworder-modal .modal-title {
     font-size: 16px;
   }
 
-  .modal-footer {
+  .modal-window.neworder-modal .modal-footer {
     padding: 12px 12px;
     gap: 10px;
     flex-wrap: wrap;
@@ -1523,7 +1502,7 @@ select.field-input {
     padding-bottom: calc(92px + 18px);
   }
 
-  .modal-grid-2 {
+  .neworder-modal .modal-grid-2 {
     grid-template-columns: 1fr;
   }
 
