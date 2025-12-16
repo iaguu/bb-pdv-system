@@ -27,6 +27,99 @@ const PAYMENT_TAG_COLORS = {
   ifood: "tag--ifood",
 };
 
+const PAYMENT_LABELS = {
+  money: "Dinheiro",
+  pix: "Pix",
+  credit: "Cartão crédito",
+  debit: "Cartão débito",
+  ifood: "iFood",
+};
+
+function normalizeCustomer(order) {
+  const snap = order?.customerSnapshot || order?.customer || {};
+  return {
+    name: snap.name || order?.customerName || "Cliente",
+    phone: snap.phone || order?.customerPhone || order?.phone || "",
+    address:
+      order?.delivery?.address ||
+      snap.address || {
+        street: order?.street,
+        number: order?.number,
+        neighborhood: order?.neighborhood,
+        city: order?.city,
+        state: order?.state,
+        cep: order?.cep,
+        reference: order?.reference,
+        complement: order?.complement,
+      },
+  };
+}
+
+function formatAddress(addr = {}) {
+  const parts = [];
+  if (addr.street) {
+    parts.push(addr.number ? `${addr.street}, ${addr.number}` : addr.street);
+  }
+  if (addr.neighborhood) parts.push(addr.neighborhood);
+  if (addr.city) parts.push(addr.city);
+  if (addr.state) parts.push(addr.state);
+  if (addr.cep) parts.push(`CEP ${addr.cep}`);
+  return parts.filter(Boolean).join(" - ") || "Sem endereço";
+}
+
+function normalizeItems(rawItems = []) {
+  return rawItems.map((it, idx) => {
+    const quantity = Number(it.quantity ?? it.qty ?? 1) || 1;
+    const unit =
+      it.unitPrice ??
+      it.price ??
+      (it.total || it.lineTotal
+        ? Number(it.total || it.lineTotal) / quantity
+        : 0);
+    const total =
+      Number(it.total ?? it.lineTotal ?? it.line_total ?? 0) ||
+      Number(unit || 0) * quantity;
+
+    const flavor1 =
+      it.name || it.title || it.flavor1Name || it.productName || "Item";
+    const flavor2 = it.halfDescription || it.flavor2Name || "";
+    const flavor3 = it.flavor3Name || "";
+
+    const title =
+      flavor2 || flavor3
+        ? [flavor1, flavor2, flavor3].filter(Boolean).join(" / ")
+        : flavor1;
+
+    const sizeLabel = it.sizeLabel || it.size || it.sizeName || "";
+
+    const extras = Array.isArray(it.extras) ? it.extras : [];
+
+    const notes = it.kitchenNotes || it.obs || it.observacao || "";
+
+    const details = [
+      sizeLabel ? `Tamanho: ${sizeLabel}` : "",
+      it.details || "",
+      it.description || "",
+      notes ? `Obs: ${notes}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    return {
+      id: it.id || it.lineId || idx,
+      title,
+      details,
+      extras,
+      quantity,
+      unitPrice: Number(unit || 0),
+      total,
+      sizeLabel,
+      multiFlavor: Boolean(flavor2 || flavor3),
+      kind: it.kind || (it.productName ? "drink" : "pizza"),
+    };
+  });
+}
+
 const OrderDetailsModal = ({
   isOpen,
   onClose,
@@ -40,25 +133,43 @@ const OrderDetailsModal = ({
   onDelete,
   onDuplicate,
 }) => {
-  const totalItems = useMemo(
-    () =>
-      (order?.items || []).reduce(
-        (sum, item) => sum + Number(item.total || item.price || 0),
-        0
-      ),
-    [order]
-  );
-
-  const grandTotal = useMemo(
-    () => totalItems + Number(order?.deliveryFee || 0),
-    [totalItems, order]
-  );
-
   if (!order) {
     return null;
   }
 
+  const customer = normalizeCustomer(order);
   const orderId = order.id || order._id;
+  const paymentMethod = (order?.payment?.method || order?.paymentMethod || "").toLowerCase();
+  const paymentLabel =
+    PAYMENT_LABELS[paymentMethod] ||
+    order.paymentLabel ||
+    order.payment?.label ||
+    "Não definido";
+
+  const paymentNotes = order.payment?.notes || order.paymentNotes || "";
+  const changeFor =
+    order.payment?.changeFor ??
+    order.changeFor ??
+    order.payment?.troco ??
+    null;
+
+  const items = normalizeItems(order.items || []);
+
+  const subtotal = useMemo(
+    () => items.reduce((sum, item) => sum + Number(item.total || 0), 0),
+    [items]
+  );
+
+  const deliveryFee = Number(
+    order.delivery?.fee ??
+      order.deliveryFee ??
+      order.totals?.deliveryFee ??
+      0
+  );
+
+  const discount = Number(order.totals?.discount ?? order.discount ?? 0);
+
+  const grandTotal = subtotal + deliveryFee - discount;
 
   const handleStatusClick = (key) => {
     if (onChangeStatus) onChangeStatus(orderId, key);
@@ -70,7 +181,7 @@ const OrderDetailsModal = ({
   };
 
   const paymentTagClass =
-    PAYMENT_TAG_COLORS[order.paymentMethod] || "tag--default";
+    PAYMENT_TAG_COLORS[paymentMethod] || "tag--default";
 
   return (
     <Modal
@@ -93,11 +204,13 @@ const OrderDetailsModal = ({
             <div className="order-kv">
               <div>
                 <span className="order-kv__label">Nome</span>
-                <span className="order-kv__value">{order.customerName}</span>
+                <span className="order-kv__value">{customer.name}</span>
               </div>
               <div>
                 <span className="order-kv__label">Telefone</span>
-                <span className="order-kv__value">{order.phone}</span>
+                <span className="order-kv__value">
+                  {customer.phone || "Não informado"}
+                </span>
               </div>
             </div>
 
@@ -105,15 +218,14 @@ const OrderDetailsModal = ({
               <div>
                 <span className="order-kv__label">Endereço</span>
                 <span className="order-kv__value">
-                  {order.street}, {order.number}
-                  {order.neighborhood ? ` - ${order.neighborhood}` : ""}
+                  {formatAddress(customer.address)}
                 </span>
               </div>
-              {(order.reference || order.complement) && (
+              {(customer.address?.reference || customer.address?.complement) && (
                 <div>
                   <span className="order-kv__label">Ref. / Compl.</span>
                   <span className="order-kv__value">
-                    {[order.reference, order.complement]
+                    {[customer.address?.reference, customer.address?.complement]
                       .filter(Boolean)
                       .join(" • ")}
                   </span>
@@ -128,15 +240,13 @@ const OrderDetailsModal = ({
               <div>
                 <span className="order-kv__label">Forma</span>
                 <span className={`tag ${paymentTagClass}`}>
-                  {order.paymentLabel ||
-                    order.paymentMethod ||
-                    "Não definido"}
+                  {paymentLabel}
                 </span>
               </div>
               <div className="order-kv__inline">
                 <label className="order-kv__label">Alterar forma</label>
                 <select
-                  value={order.paymentMethod || ""}
+                  value={paymentMethod || ""}
                   onChange={handlePaymentChange}
                 >
                   <option value="">Selecione</option>
@@ -153,15 +263,13 @@ const OrderDetailsModal = ({
               <div>
                 <span className="order-kv__label">Troco para</span>
                 <span className="order-kv__value">
-                  {order.changeFor
-                    ? formatCurrency(order.changeFor)
-                    : "Não informado"}
+                  {changeFor ? formatCurrency(changeFor) : "Não informado"}
                 </span>
               </div>
               <div>
                 <span className="order-kv__label">Observações</span>
                 <span className="order-kv__value">
-                  {order.paymentNotes || "Nenhuma observação"}
+                  {paymentNotes || "Nenhuma observação"}
                 </span>
               </div>
             </div>
@@ -181,12 +289,21 @@ const OrderDetailsModal = ({
               </button>
             </div>
             <div className="order-items-list">
-              {(order.items || []).map((item, idx) => (
-                <div key={idx} className="order-item-row">
+              {items.map((item) => (
+                <div key={item.id} className="order-item-row">
                   <div className="order-item-row__main">
-                    <div className="order-item-row__title">
-                      {item.name || item.title}
+                    <div className="order-item-row__header">
+                      <div className="order-item-row__title">{item.title}</div>
+                      <div className="order-item-row__tags">
+                        {item.sizeLabel && (
+                          <span className="chip">{item.sizeLabel}</span>
+                        )}
+                        <span className="chip chip--outline">
+                          Unitário {formatCurrency(item.unitPrice)}
+                        </span>
+                      </div>
                     </div>
+
                     {item.details && (
                       <div className="order-item-row__details">
                         {item.details}
@@ -204,11 +321,9 @@ const OrderDetailsModal = ({
                     )}
                   </div>
                   <div className="order-item-row__right">
-                    <span className="order-item-row__qty">
-                      x{item.quantity || 1}
-                    </span>
+                    <span className="order-item-row__qty">x{item.quantity}</span>
                     <span className="order-item-row__price">
-                      {formatCurrency(item.total || item.price || 0)}
+                      {formatCurrency(item.total)}
                     </span>
                   </div>
                 </div>
@@ -242,15 +357,15 @@ const OrderDetailsModal = ({
             <div className="order-summary">
               <div className="order-summary__row">
                 <span>Subtotal itens</span>
-                <span>{formatCurrency(totalItems)}</span>
+                <span>{formatCurrency(subtotal)}</span>
               </div>
               <div className="order-summary__row">
                 <span>Taxa de entrega</span>
-                <span>
-                  {order.deliveryFee != null
-                    ? formatCurrency(order.deliveryFee)
-                    : "—"}
-                </span>
+                <span>{formatCurrency(deliveryFee)}</span>
+              </div>
+              <div className="order-summary__row">
+                <span>Desconto</span>
+                <span>-{formatCurrency(discount)}</span>
               </div>
               <div className="order-summary__row order-summary__row--total">
                 <span>Total geral</span>

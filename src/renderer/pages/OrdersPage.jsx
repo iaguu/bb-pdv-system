@@ -646,6 +646,13 @@ const OrdersPage = () => {
     }
   };
 
+  const handleEditOrder = (orderToEdit) => {
+    if (!orderToEdit) return;
+    setSelectedOrder(orderToEdit);
+    setFormInitialOrder(orderToEdit);
+    setActiveModal("create");
+  };
+
   // ========= MODAIS / AÇÕES =========
 
   const handleNewOrderClick = () => {
@@ -731,6 +738,7 @@ const OrdersPage = () => {
           onPrint={handlePrintOrder}
           onDelete={handleDeleteOrder}
           onDuplicate={handleDuplicateOrder}
+          onEditOrder={handleEditOrder}
         />
       )}
 

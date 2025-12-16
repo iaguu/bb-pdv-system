@@ -1125,14 +1125,15 @@ export default function NewOrderModal({
   // -----------------------------
   return (
     <div className="modal-backdrop">
-      <div className="modal-window neworder-modal">
+      <div className="modal-window orderform-modal">
         {/* HEADER */}
         <div className="modal-header">
           <div>
+            <div className="modal-eyebrow">Pedido em andamento</div>
             <div className="modal-title">Novo pedido</div>
             <div className="modal-subtitle">
-              Defina o cliente, adicione produtos do catálogo e finalize o
-              pedido.
+              Selecione o cliente, monte os itens e já veja totais e entrega em
+              tempo real.
             </div>
             {isLoading && (
               <div className="modal-helper-text">
@@ -1146,13 +1147,53 @@ export default function NewOrderModal({
           </button>
         </div>
 
+        <div className="orderform-summary-row">
+          <div className="summary-card">
+            <div className="summary-label">Total do pedido</div>
+            <div className="summary-value highlight">
+              {formatCurrency(total)}
+            </div>
+            <div className="summary-meta">
+              Subtotal {formatCurrency(subtotal)} · Desconto{" "}
+              {formatCurrency(discountAmount)}
+            </div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Itens</div>
+            <div className="summary-value">{totalItems}</div>
+            <div className="summary-meta">
+              {orderItems.length} linha(s) · {selectedExtras.length} adicionais
+            </div>
+          </div>
+          <div className="summary-card compact">
+            <div className="summary-label">Entrega</div>
+            <div className="summary-value">
+              {orderType === "delivery"
+                ? formatCurrency(deliveryFeeNumber)
+                : "Sem taxa"}
+            </div>
+            <div className="summary-meta">
+              {orderType === "delivery"
+                ? deliveryNeighborhood || "Faixa não definida"
+                : "Balcão / retirada"}
+            </div>
+          </div>
+          <div className="summary-card compact">
+            <div className="summary-label">Pagamento</div>
+            <div className="summary-value">
+              {paymentMethod ? paymentMethod.replace("_", " ") : "A definir"}
+            </div>
+            <div className="summary-meta">Status: Em aberto</div>
+          </div>
+        </div>
+
         <form
           className="modal-body"
           onSubmit={(e) => handleSubmit(e, { action: "save" })}
         >
-          <div className="neworder-grid">
+          <div className="orderform-grid">
             {/* ===================== COLUNA ESQUERDA ===================== */}
-            <div className="neworder-column">
+            <div className="orderform-column">
               {/* CLIENTE */}
               <div className="modal-section">
                 <div className="modal-section-title">Cliente</div>
@@ -1258,7 +1299,7 @@ export default function NewOrderModal({
                         placeholder="Nome, telefone, CPF..."
                       />
 
-                      <div className="neworder-customer-list">
+                      <div className="orderform-customer-list">
                         {filteredCustomers.length === 0 && (
                           <div className="empty small">
                             Nenhum cliente encontrado.
@@ -1550,7 +1591,7 @@ export default function NewOrderModal({
             </div>
 
             {/* ===================== COLUNA DIREITA ===================== */}
-            <div className="neworder-column">
+            <div className="orderform-column">
               {/* EDITOR DE PIZZA ATUAL */}
               <div className="modal-section">
                 <div className="modal-section-title">Adicionar pizza</div>
@@ -1950,7 +1991,7 @@ export default function NewOrderModal({
                   </span>
                 </div>
 
-                <div className="neworder-addline-footer">
+                <div className="orderform-addline-footer">
                   <button
                     type="button"
                     className="btn btn-primary btn-lg neworder-addpizza-btn"
@@ -2020,7 +2061,7 @@ export default function NewOrderModal({
                       </div>
                     </div>
 
-                    <div className="neworder-addline-footer">
+                    <div className="orderform-addline-footer">
                       <button
                         type="button"
                         className="btn btn-outline neworder-adddrink-btn"
@@ -2036,7 +2077,19 @@ export default function NewOrderModal({
 
               {/* LISTA DE ITENS DO PEDIDO */}
               <div className="modal-section">
-                <div className="modal-section-title">Itens do pedido</div>
+                <div className="modal-section-header-row">
+                  <div className="modal-section-title">Itens do pedido</div>
+                  {orderItems.length > 0 && (
+                    <div className="order-items-head">
+                      <span className="chip">
+                        {orderItems.length} linha(s)
+                      </span>
+                      <span className="chip chip-outline">
+                        Subtotal: {formatCurrency(subtotal)}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {orderItems.length === 0 && (
                   <div className="empty">
@@ -2051,49 +2104,63 @@ export default function NewOrderModal({
                     {orderItems.map((item) => (
                       <div key={item.lineId} className="order-item-row">
                         <div className="order-item-main">
-                          <div className="order-item-title">
-                            {item.kind === "pizza" && (
-                              <>
-                                {item.quantity}x {item.sizeLabel}{" "}
-                                {item.flavor1Name}
-                                {item.twoFlavors && item.flavor2Name
-                                  ? ` / ${item.flavor2Name}`
-                                  : ""}
-                                {item.threeFlavors && item.flavor3Name
-                                  ? ` / ${item.flavor3Name}`
-                                  : ""}
-                              </>
-                            )}
-                            {item.kind === "drink" && (
-                              <>
-                                {item.quantity}x {item.productName}
-                              </>
-                            )}
+                          <div className="order-item-header">
+                            <div className="order-item-title">
+                              {item.kind === "pizza" ? (
+                                <>
+                                  {item.quantity}x {item.flavor1Name}
+                                  {item.twoFlavors && item.flavor2Name
+                                    ? ` / ${item.flavor2Name}`
+                                    : ""}
+                                  {item.threeFlavors && item.flavor3Name
+                                    ? ` / ${item.flavor3Name}`
+                                    : ""}
+                                </>
+                              ) : (
+                                <>
+                                  {item.quantity}x {item.productName}
+                                </>
+                              )}
+                            </div>
+                            <div className="order-item-tags">
+                              <span className="chip">
+                                {item.kind === "pizza"
+                                  ? item.sizeLabel
+                                  : "Bebida"}
+                              </span>
+                              <span className="chip chip-outline">
+                                Unitário {formatCurrency(item.unitPrice)}
+                              </span>
+                            </div>
                           </div>
+
                           {item.kind === "pizza" &&
                             item.extras &&
                             item.extras.length > 0 && (
                               <div className="order-item-extras">
                                 Adicionais:{" "}
-                                {item.extras
-                                  .map((ex) => ex.name)
-                                  .join(", ")}
+                                {item.extras.map((ex) => ex.name).join(", ")}
                               </div>
                             )}
+
                           <div className="order-item-meta">
-                            <span>
-                              Unitário:{" "}
-                              {formatCurrency(item.unitPrice)}
+                            <span className="order-item-meta-line">
+                              Total da linha:{" "}
+                              <strong>{formatCurrency(item.total)}</strong>
                             </span>
-                            <span>
-                              Linha: {formatCurrency(item.total)}
-                            </span>
+                            {item.kind === "pizza" &&
+                              (item.twoFlavors || item.threeFlavors) && (
+                                <span className="order-item-meta-line">
+                                  Sabores múltiplos
+                                </span>
+                              )}
                           </div>
                         </div>
                         <button
                           type="button"
                           className="order-item-remove"
                           onClick={() => handleRemoveItem(item.lineId)}
+                          aria-label="Remover item"
                         >
                           ✕
                         </button>
@@ -2139,7 +2206,7 @@ export default function NewOrderModal({
                   <div>
                     <div className="field-label">Observações gerais</div>
                     <textarea
-                      className="field-input neworder-textarea"
+                      className="field-input orderform-textarea"
                       rows={3}
                       value={orderNotes}
                       onChange={(e) => setOrderNotes(e.target.value)}
@@ -2151,7 +2218,7 @@ export default function NewOrderModal({
                       Observações para cozinha
                     </div>
                     <textarea
-                      className="field-input neworder-textarea"
+                      className="field-input orderform-textarea"
                       rows={3}
                       value={kitchenNotes}
                       onChange={(e) =>
