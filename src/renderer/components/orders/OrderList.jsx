@@ -1,14 +1,14 @@
 // src/renderer/components/orders/OrderList.jsx
 import React, { useMemo } from "react";
-import OrderRow from "./OrderRow";
+import OrderRow, { OrderGroupHeader } from "./OrderRow";
 import { normalizeStatus } from "../../utils/orderUtils";
 
 const STATUS_GROUPS = [
-  { key: "open", label: "Em aberto" },
-  { key: "preparing", label: "Em preparo" },
-  { key: "out_for_delivery", label: "Em entrega" },
-  { key: "done", label: "Finalizados" },
-  { key: "cancelled", label: "Cancelados" },
+  { key: "open", label: "Em aberto", tone: "open" },
+  { key: "preparing", label: "Em preparo", tone: "preparing" },
+  { key: "out_for_delivery", label: "Em entrega", tone: "delivering" },
+  { key: "done", label: "Finalizados", tone: "done" },
+  { key: "cancelled", label: "Cancelados", tone: "cancelled" },
 ];
 
 const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
@@ -29,9 +29,7 @@ const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
       const ns = normalizeStatus(o.status);
       const src = (o.source || "all").toString().toLowerCase();
 
-      // Filtro por status geral
       if (status === "open") {
-        // pipeline principal
         if (!["open", "preparing", "out_for_delivery"].includes(ns)) {
           return false;
         }
@@ -42,19 +40,18 @@ const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
       } else if (status === "delivery") {
         if (ns !== "out_for_delivery") return false;
       } else if (status === "all") {
-        // passa tudo
+        // keep all
       } else {
-        // fallback: filtra por status específico
         if (ns !== status) return false;
       }
 
-      // Filtro por canal/origem
       if (source !== "all") {
         if (source === "website") {
           if (src !== "website" && src !== "web") return false;
         } else if (source === "local") {
           if (
             src !== "local" &&
+            src !== "balcao" &&
             src !== "balcão" &&
             src !== "counter" &&
             src !== "desktop"
@@ -66,7 +63,6 @@ const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
         }
       }
 
-      // Busca por ID / nome de cliente (quando existir)
       if (lowerSearch) {
         const idStr = (o.id || o._id || "").toString();
         const customerName =
@@ -112,7 +108,6 @@ const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
       groups[targetKey].push({ order: o, isNew });
     });
 
-    // Ordena cada grupo por createdAt desc (mais recente primeiro)
     Object.keys(groups).forEach((k) => {
       groups[k].sort((a, b) => {
         const da = a.order.createdAt ? new Date(a.order.createdAt) : null;
@@ -134,7 +129,7 @@ const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
   if (totalCount === 0) {
     return (
       <div className="order-list-empty">
-        <div className="order-list-empty-icon">🍕</div>
+        <div className="order-list-empty-icon">📭</div>
         <div className="order-list-empty-title">
           Nenhum pedido encontrado
         </div>
@@ -153,15 +148,11 @@ const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
 
         return (
           <section key={group.key} className="order-list-group">
-            <header className="order-list-group-header">
-              <div className="order-list-group-title">
-                {group.label}
-              </div>
-              <div className="order-list-group-count">
-                {bucket.length} pedido
-                {bucket.length > 1 ? "s" : ""}
-              </div>
-            </header>
+            <OrderGroupHeader
+              title={group.label}
+              count={bucket.length}
+              tone={group.tone || group.key}
+            />
 
             <div className="order-list-group-body">
               {bucket.map(({ order, isNew }) => (

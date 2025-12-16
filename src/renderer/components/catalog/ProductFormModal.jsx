@@ -2,14 +2,6 @@ import React, { useEffect, useState } from "react";
 import Modal from "../common/Modal";
 import Button from "../common/Button";
 
-const normalizeProductsData = (data) => {
-  if (!data) return [];
-  if (Array.isArray(data.items)) return data.items;
-  if (Array.isArray(data.products)) return data.products;
-  if (Array.isArray(data)) return data;
-  return [];
-};
-
 const inferTypeFromTab = (tab) => {
   if (tab === "pizzas") return "pizza";
   if (tab === "drinks") return "drink";
@@ -48,28 +40,23 @@ const ProductFormModal = ({
     priceBroto: product?.priceBroto || null,
     priceGrande: product?.priceGrande || null,
     active: product?.active ?? true,
-    ingredients: Array.isArray(product?.ingredients)
-      ? product.ingredients
-      : [],
+    ingredients: Array.isArray(product?.ingredients) ? product.ingredients : [],
   }));
 
   const [newIngredient, setNewIngredient] = useState("");
 
   useEffect(() => {
-    if (!product) return;
     setForm((prev) => ({
       ...prev,
-      id: product.id || null,
-      name: product.name || "",
-      description: product.description || "",
-      type: product.type || inferTypeFromTab(activeTab),
-      price: product.price || null,
-      priceBroto: product.priceBroto || null,
-      priceGrande: product.priceGrande || null,
-      active: product.active ?? true,
-      ingredients: Array.isArray(product.ingredients)
-        ? product.ingredients
-        : [],
+      id: product?.id || null,
+      name: product?.name || "",
+      description: product?.description || "",
+      type: product?.type || inferTypeFromTab(activeTab),
+      price: product?.price || null,
+      priceBroto: product?.priceBroto || null,
+      priceGrande: product?.priceGrande || null,
+      active: product?.active ?? true,
+      ingredients: Array.isArray(product?.ingredients) ? product.ingredients : [],
     }));
   }, [product, activeTab]);
 
@@ -118,7 +105,7 @@ const ProductFormModal = ({
       ...form,
       type: form.type || inferTypeFromTab(activeTab),
     };
-    onSave && onSave(payload);
+    if (typeof onSave === "function") onSave(payload);
   };
 
   const canSave = form.name.trim().length > 2;
@@ -134,8 +121,9 @@ const ProductFormModal = ({
         <section className="form-section">
           <div className="form-grid">
             <div className="form-field form-field--wide">
-              <label>Nome</label>
+              <label className="field-label">Nome</label>
               <input
+                className="field-input"
                 type="text"
                 value={form.name}
                 onChange={(e) => handleChange("name", e.target.value)}
@@ -143,8 +131,9 @@ const ProductFormModal = ({
               />
             </div>
             <div className="form-field">
-              <label>Tipo</label>
+              <label className="field-label">Tipo</label>
               <select
+                className="field-input"
                 value={form.type}
                 onChange={(e) => handleChange("type", e.target.value)}
               >
@@ -156,22 +145,24 @@ const ProductFormModal = ({
           </div>
 
           <div className="form-field">
-            <label>Descrição</label>
+            <label className="field-label">Descricao</label>
             <textarea
+              className="field-input neworder-textarea"
               rows={2}
               value={form.description}
               onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="Descrição curta para ajudar o cliente na escolha"
+              placeholder="Descricao curta para ajudar o cliente na escolha"
             />
           </div>
         </section>
 
         <section className="form-section">
-          <h3 className="form-section__title">Preços</h3>
+          <h3 className="form-section__title">Precos</h3>
           <div className="form-grid">
             <div className="form-field">
-              <label>Preço único</label>
+              <label className="field-label">Preco unico</label>
               <input
+                className="field-input"
                 type="text"
                 value={formatMoneyInput(form.price)}
                 onChange={(e) => handlePriceChange("price", e.target.value)}
@@ -179,8 +170,9 @@ const ProductFormModal = ({
               />
             </div>
             <div className="form-field">
-              <label>Preço broto</label>
+              <label className="field-label">Preco broto</label>
               <input
+                className="field-input"
                 type="text"
                 value={formatMoneyInput(form.priceBroto)}
                 onChange={(e) => handlePriceChange("priceBroto", e.target.value)}
@@ -188,13 +180,12 @@ const ProductFormModal = ({
               />
             </div>
             <div className="form-field">
-              <label>Preço grande</label>
+              <label className="field-label">Preco grande</label>
               <input
+                className="field-input"
                 type="text"
                 value={formatMoneyInput(form.priceGrande)}
-                onChange={(e) =>
-                  handlePriceChange("priceGrande", e.target.value)
-                }
+                onChange={(e) => handlePriceChange("priceGrande", e.target.value)}
                 placeholder="0,00"
               />
             </div>
@@ -205,33 +196,28 @@ const ProductFormModal = ({
           <div className="form-section__header">
             <h3 className="form-section__title">Ingredientes</h3>
             <span className="form-section__hint">
-              Digite e pressione <strong>Enter</strong> ou <strong>vírgula</strong>{" "}
-              para adicionar.
+              Digite e pressione <strong>Enter</strong> ou <strong>virgula</strong> para
+              adicionar.
             </span>
           </div>
 
           <div className="ingredients-input">
             <input
+              className="field-input"
               type="text"
               value={newIngredient}
               onChange={(e) => setNewIngredient(e.target.value)}
               onKeyDown={handleIngredientKeyDown}
-              placeholder="Ex: muçarela, calabresa, cebola..."
+              placeholder="Ex: mussarela, calabresa, cebola..."
             />
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={addIngredientFromInput}
-            >
+            <button type="button" className="btn btn-ghost" onClick={addIngredientFromInput}>
               Adicionar
             </button>
           </div>
 
           <div className="ingredients-badges">
             {(form.ingredients || []).length === 0 && (
-              <span className="ingredients-badges__empty">
-                Nenhum ingrediente cadastrado.
-              </span>
+              <span className="ingredients-badges__empty">Nenhum ingrediente cadastrado.</span>
             )}
             {(form.ingredients || []).map((ing, index) => (
               <span key={index} className="badge badge--ingredient">
@@ -240,9 +226,9 @@ const ProductFormModal = ({
                   type="button"
                   className="badge__remove"
                   onClick={() => handleRemoveIngredient(index)}
-                  aria-label={`Remover ${ ing }`}
+                  aria-label={`Remover ${ing}`}
                 >
-                  ×
+                  x
                 </button>
               </span>
             ))}
@@ -259,9 +245,7 @@ const ProductFormModal = ({
             <span className="switch__track">
               <span className="switch__thumb" />
             </span>
-            <span className="switch__label">
-              Produto ativo no catálogo
-            </span>
+            <span className="switch__label">Produto ativo no catalogo</span>
           </label>
         </section>
       </div>
@@ -270,11 +254,7 @@ const ProductFormModal = ({
         <Button variant="ghost" onClick={onClose}>
           Cancelar
         </Button>
-        <Button
-          variant="primary"
-          onClick={handleSubmit}
-          disabled={!canSave}
-        >
+        <Button variant="primary" onClick={handleSubmit} disabled={!canSave}>
           Salvar produto
         </Button>
       </div>

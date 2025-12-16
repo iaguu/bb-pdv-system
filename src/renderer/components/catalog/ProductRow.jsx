@@ -14,24 +14,15 @@ const formatCurrency = (value) => {
 const ProductRow = ({ product, onEdit }) => {
   if (!product) return null;
 
-  // Normalização básica de campos (compatível com vários formatos)
+  // Normalizacao basica de campos (compatibilidade com varios formatos)
   const name = product.name || product.nome || "Sem nome";
   const category = product.category || product.categoria || "";
   const type = (product.type || "").toLowerCase();
 
-  const priceBroto =
-    product.priceBroto ??
-    product.preco_broto ??
-    null;
+  const priceBroto = product.priceBroto ?? product.preco_broto ?? null;
+  const priceGrande = product.priceGrande ?? product.preco_grande ?? null;
 
-  const priceGrande =
-    product.priceGrande ??
-    product.preco_grande ??
-    null;
-
-  const isActive =
-    product.active !== false &&
-    product.isAvailable !== false;
+  const isActive = product.active !== false && product.isAvailable !== false;
 
   const badges = Array.isArray(product.badges) ? product.badges : [];
   const ingredientes = Array.isArray(product.ingredientes)
@@ -44,7 +35,13 @@ const ProductRow = ({ product, onEdit }) => {
     }
   };
 
-  // Label amigável para o tipo
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
   const typeLabelMap = {
     pizza: "Pizza",
     drink: "Bebida",
@@ -56,7 +53,7 @@ const ProductRow = ({ product, onEdit }) => {
 
   const badgeLabelMap = {
     best: "Mais pedido",
-    promo: "Promoção",
+    promo: "Promocao",
     premium: "Premium",
     popular: "Popular",
     new: "Novo",
@@ -73,15 +70,17 @@ const ProductRow = ({ product, onEdit }) => {
   };
 
   const description =
-    product.description ||
-    (ingredientes.length ? ingredientes.join(", ") : "");
+    product.description || (ingredientes.length ? ingredientes.join(", ") : "");
 
   return (
     <div
-      className={
-        "product-row" + (isActive ? "" : " product-row--inactive")
-      }
+      className={"product-row" + (isActive ? "" : " product-row--inactive")}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-pressed="false"
+      aria-label={`Editar ${name}`}
     >
       <div className="product-row-main">
         <div className="product-row-title">
@@ -94,26 +93,21 @@ const ProductRow = ({ product, onEdit }) => {
           )}
         </div>
 
-        {description && (
-          <p className="product-description">{description}</p>
-        )}
+        {description && <p className="product-description">{description}</p>}
 
         <div className="product-row-meta">
           {typeLabel && <Tag tone="info">{typeLabel}</Tag>}
 
-          {!isActive && (
-            <Tag tone="danger">Pausado</Tag>
-          )}
+          {!isActive && <Tag tone="danger">Pausado</Tag>}
 
-          {/* badges (best, promo, new, etc.) */}
           {badges.length > 0 && (
             <div className="product-row-badges">
-              {badges.map((badge) => {
+              {badges.map((badge, idx) => {
                 const key = String(badge).toLowerCase();
                 const label = badgeLabelMap[key] || badge;
                 const tone = badgeToneMap[key] || "muted";
                 return (
-                  <Tag key={key} tone={tone}>
+                  <Tag key={`${key}-${idx}`} tone={tone}>
                     {label}
                   </Tag>
                 );

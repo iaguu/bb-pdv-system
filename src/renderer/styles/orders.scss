@@ -93,7 +93,7 @@ $orders-accent: #e63946;
 }
 
 /* ============================================================================
-   TOOLBAR SUPERIOR (FILTROS + BOTÃO ATUALIZAR)
+   TOOLBAR SUPERIOR (FILTROS + BOT?O ATUALIZAR)
    ============================================================================ */
 
 .page-toolbar {
@@ -101,31 +101,23 @@ $orders-accent: #e63946;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin: 14px 0 12px;
+  padding: 16px;
+  min-height: 64px;
+  border: 1px solid rgba(227, 227, 234, 0.75);
+  border-radius: $orders-radius;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
+  box-shadow: 0 10px 30px rgba(17, 24, 39, 0.05);
 
   @media (max-width: 900px) {
     flex-direction: column;
     align-items: stretch;
+    padding: 12px;
 
     > * {
       width: 100%;
     }
   }
-}
-/* ============================================================================
-   PATCH — Toolbar spacing + form controls (select/input) + primary action
-   - Não altera nomes de classes existentes
-   - Aumenta consistência visual e corrige espaçamento/alinhamento
-   Target: OrdersPage / toolbar com filtros + botão "+ Novo pedido"
-   ============================================================================ */
-
-/* Toolbar: cria ritmo e evita “elementos soltos” */
-.page-toolbar {
-  padding: 12px 12px;
-  border: 1px solid rgba(227, 227, 234, 0.75);
-  border-radius: $orders-radius;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
-  box-shadow: 0 10px 30px rgba(17, 24, 39, 0.05);
 }
 
 /* Layout interno (se houver grupos/linhas) */
@@ -134,9 +126,10 @@ $orders-accent: #e63946;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  min-height: 40px;
 }
 
-/* Botão principal (cobre: button, a, .btn, etc. sem exigir refactor de JSX) */
+/* Bot?o principal (cobre: button, a, .btn, etc. sem exigir refactor de JSX) */
 .page-toolbar :where(button, a, .btn, .button) {
   border-radius: $orders-pill-radius;
 }
@@ -153,7 +146,7 @@ $orders-accent: #e63946;
   border: 0;
   cursor: pointer;
 
-  /* destaque premium sem “gritar” */
+  /* destaque premium sem ?gritar? */
   background: linear-gradient(180deg, #ff8a2a 0%, #ff6a00 100%);
   color: #ffffff;
   box-shadow: 0 10px 22px rgba(255, 106, 0, 0.25);
@@ -178,7 +171,7 @@ $orders-accent: #e63946;
   }
 }
 
-/* Controles (select/input): altura, borda, focus ring e aparência “clean” */
+/* Controles (select/input): altura, borda, focus ring e apar?ncia ?clean? */
 .page-toolbar :where(select, input[type="text"], input[type="search"], input:not([type])) {
   height: 38px;
   padding: 0 12px;
@@ -234,7 +227,7 @@ $orders-accent: #e63946;
   margin-right: 6px;
 }
 
-/* Campos “colados” (ex.: label + select/input em linha) ficam alinhados */
+/* Campos ?colados? (ex.: label + select/input em linha) ficam alinhados */
 .page-toolbar :where(.field, .filter, .control, .toolbar-field) {
   display: inline-flex;
   align-items: center;
@@ -243,32 +236,19 @@ $orders-accent: #e63946;
 
 /* Responsivo: evita quebra feia nos selects/inputs */
 @media (max-width: 900px) {
-  .page-toolbar {
-    padding: 12px;
-  }
-
   .page-toolbar :where(select, input[type="text"], input[type="search"], input:not([type])) {
     width: 100%;
     min-width: 220px;
   }
 }
-/* ======================================================================
-   PATCH — Espaçamento e destaque do botão "Atualizar"
-   Target: OrdersPage toolbar
-   ====================================================================== */
 
-.page-toolbar {
-  /* garante respiro vertical melhor */
-  padding: 16px;
-}
-
-/* Área da direita (onde fica o botão Atualizar) */
+/* ?rea da direita (onde fica o bot?o Atualizar) */
 .page-toolbar :where(.toolbar-right, .toolbar-actions) {
   margin-left: auto; /* empurra para a direita */
   padding-left: 12px;
 }
 
-/* Botão Atualizar (ação secundária) */
+/* Bot?o Atualizar (a??o secund?ria) */
 .page-toolbar
   :where(button, .btn, .button):not([class*="new"]):not([class*="novo"]) {
   height: 40px;
@@ -297,26 +277,82 @@ $orders-accent: #e63946;
   }
 }
 
-/* Mobile: botão separado dos filtros */
+/* Mobile: bot?o separado dos filtros */
 @media (max-width: 900px) {
   .page-toolbar :where(.toolbar-right, .toolbar-actions) {
     margin-left: 0;
     margin-top: 10px;
   }
 }
-/* ======================================================================
-   PATCH — Espaçamento entre o botão do Page (actions) e a page-toolbar
-   Target: OrdersPage (Page actions + toolbar)
-   ====================================================================== */
 
-/* Cria o “respiro” que está faltando entre header (onde fica o + Novo pedido)
-   e a primeira seção do conteúdo (toolbar) */
-.page-toolbar {
-  margin-top: 14px; /* <- principal correção do print */
-}
-
-/* Opcional: garante que o botão (actions) tenha um pouco de folga embaixo
-   sem afetar botões em outras partes */
+/* Opcional: garante que o bot?o (actions) tenha um pouco de folga embaixo
+   sem afetar bot?es em outras partes */
 .page:has(.page-toolbar) .btn.btn-primary {
   margin-bottom: 6px;
+}
+
+/* ============================================================================
+   FILTROS DE PEDIDOS
+   ============================================================================ */
+
+.orders-toolbar {
+  gap: 16px;
+}
+
+.orders-toolbar .toolbar-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.orders-toolbar .toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.order-filters {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.order-filters-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.order-filters-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: rgba(17, 24, 39, 0.9);
+}
+
+.order-filters-select,
+.order-filters-input {
+  width: 100%;
+}
+
+.order-filters-field--search .order-filters-input {
+  min-width: 260px;
+}
+
+@media (max-width: 1100px) {
+  .order-filters {
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .order-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .order-filters-field--search .order-filters-input {
+    min-width: 0;
+  }
 }

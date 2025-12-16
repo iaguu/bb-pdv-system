@@ -10,10 +10,7 @@ function formatCurrency(value) {
   });
 }
 
-/**
- * ⚙️ STATUS – alinhado com site + desktop
- *   status: "open" | "preparing" | "out_for_delivery" | "done" | "cancelled"
- */
+// Status alinhados com site + desktop
 const STATUS_OPTIONS = [
   { key: "open", label: "Em aberto", tone: "open" },
   { key: "preparing", label: "Em preparo", tone: "preparing" },
@@ -39,6 +36,9 @@ const OrderDetailsModal = ({
   onEditOrder, // novo fluxo de edição
   onPrintKitchen,
   onPrintCounter,
+  onPrint,
+  onDelete,
+  onDuplicate,
 }) => {
   const totalItems = useMemo(
     () =>
@@ -58,13 +58,15 @@ const OrderDetailsModal = ({
     return null;
   }
 
+  const orderId = order.id || order._id;
+
   const handleStatusClick = (key) => {
-    if (onChangeStatus) onChangeStatus(order.id, key);
+    if (onChangeStatus) onChangeStatus(orderId, key);
   };
 
   const handlePaymentChange = (evt) => {
     const value = evt.target.value;
-    if (onChangePayment) onChangePayment(order.id, value);
+    if (onChangePayment) onChangePayment(orderId, value);
   };
 
   const paymentTagClass =
@@ -74,7 +76,7 @@ const OrderDetailsModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Pedido #${order.shortId || order.id}`}
+      title={`Pedido #${order.shortId || order.id || order._id || "–"}`}
       className="order-details-modal"
     >
       <div className="order-details__body">
@@ -126,7 +128,9 @@ const OrderDetailsModal = ({
               <div>
                 <span className="order-kv__label">Forma</span>
                 <span className={`tag ${paymentTagClass}`}>
-                  {order.paymentLabel || order.paymentMethod || "Não definido"}
+                  {order.paymentLabel ||
+                    order.paymentMethod ||
+                    "Não definido"}
                 </span>
               </div>
               <div className="order-kv__inline">
@@ -157,7 +161,7 @@ const OrderDetailsModal = ({
               <div>
                 <span className="order-kv__label">Observações</span>
                 <span className="order-kv__value">
-                  {order.paymentNotes || "—"}
+                  {order.paymentNotes || "Nenhuma observação"}
                 </span>
               </div>
             </div>
@@ -257,19 +261,41 @@ const OrderDetailsModal = ({
 
           <section className="order-section order-section--compact">
             <div className="order-actions">
-              <Button variant="outline" onClick={onPrintKitchen}>
-                Imprimir cozinha
-              </Button>
-              <Button variant="outline" onClick={onPrintCounter}>
-                Imprimir balcão
-              </Button>
+              {typeof onDuplicate === "function" && (
+                <Button
+                  variant="secondary"
+                  onClick={() => onDuplicate(order)}
+                >
+                  Duplicar
+                </Button>
+              )}
+              {typeof onPrint === "function" && (
+                <Button variant="outline" onClick={() => onPrint(order)}>
+                  Imprimir pedido
+                </Button>
+              )}
+              {typeof onPrintKitchen === "function" && (
+                <Button variant="outline" onClick={onPrintKitchen}>
+                  Imprimir cozinha
+                </Button>
+              )}
+              {typeof onPrintCounter === "function" && (
+                <Button variant="outline" onClick={onPrintCounter}>
+                  Imprimir balcão
+                </Button>
+              )}
+              {typeof onDelete === "function" && (
+                <Button variant="outline" onClick={() => onDelete(order)}>
+                  Excluir
+                </Button>
+              )}
             </div>
           </section>
         </div>
       </div>
 
       <div className="order-details__footer">
-        <Button variant="ghost" onClick={onClose}>
+        <Button variant="outline" onClick={onClose}>
           Fechar
         </Button>
       </div>

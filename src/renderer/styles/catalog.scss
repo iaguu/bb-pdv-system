@@ -166,19 +166,19 @@ $catalog-accent: #e63946;
 /* FIELD / INPUT (reutilizável)                                              */
 /* ========================================================================== */
 
-.field {
+.catalog-toolbar .field {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.field-label {
+.catalog-toolbar .field-label {
   font-size: 12px;
   font-weight: 500;
   color: $catalog-text-muted;
 }
 
-.input {
+.catalog-toolbar .input {
   border-radius: 8px;
   border: 1px solid $catalog-border;
   padding: 7px 10px;
@@ -204,7 +204,7 @@ $catalog-accent: #e63946;
 /* CHIPS (FILTROS)                                                           */
 /* ========================================================================== */
 
-.chip {
+.catalog-filter-chips .chip {
   border-radius: $catalog-pill-radius;
   border: 1px solid #e5e7eb;
   background: #f3f4f6;
@@ -222,7 +222,7 @@ $catalog-accent: #e63946;
   }
 }
 
-.chip-active {
+.catalog-filter-chips .chip-active {
   background: #111827;
   border-color: #111827;
   color: #f9fafb;
@@ -398,15 +398,16 @@ $catalog-accent: #e63946;
 }
 
 /* Chips: melhor área clicável, foco visível e microinteração */
-.chip {
+.page:has(.catalog-summary-grid) .chip {
   padding: 7px 12px;
   font-weight: 800;
   font-size: 12px;
   letter-spacing: 0.15px;
   border-radius: 999px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
 
   &:active {
-    transform: translateY(0px);
+    transform: translateY(0);
   }
 
   &:focus-visible {
@@ -415,9 +416,11 @@ $catalog-accent: #e63946;
   }
 }
 
-.chip-active {
+/* Chip ativo */
+.page:has(.catalog-summary-grid) .chip-active {
   box-shadow: 0 10px 22px rgba(17, 24, 39, 0.18);
 }
+
 
 /* --- 4) Responsivo: evita “quebra feia” e mantém legibilidade --- */
 @media (max-width: 900px) {

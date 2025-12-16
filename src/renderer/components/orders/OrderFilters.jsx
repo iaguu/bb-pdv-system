@@ -68,8 +68,8 @@ const OrderFilters = ({ value = {}, onChange }) => {
         </label>
         <input
           className="order-filters-input"
-          type="text"
-          placeholder="Ex: 123 ou João"
+          type="search"
+          placeholder="Ex: 123 ou Joao"
           value={currentSearch}
           onChange={(e) => handleChange("search", e.target.value)}
         />

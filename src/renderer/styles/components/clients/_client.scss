@@ -185,25 +185,25 @@
    FIELDS
 --------------------------------------------------------------------------- */
 
-.field {
+.customer-form-card .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.field-label {
+.customer-form-card .field-label {
   font-size: 11.5px;
   font-weight: 900;
   color: rgba(2, 6, 23, 0.65);
 }
 
-.field-hint {
+.customer-form-card .field-hint {
   font-size: 11px;
   color: rgba(71, 85, 105, 0.75);
   margin-top: 2px;
 }
 
-.input {
+.customer-form-card .input {
   height: 40px;
   padding: 0 12px;
 
@@ -218,17 +218,17 @@
   transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
-.input:hover {
+.customer-form-card .input:hover {
   border-color: rgba(2, 6, 23, 0.22);
 }
 
-.input:focus {
+.customer-form-card .input:focus {
   outline: none;
   border-color: rgba(249, 115, 22, 0.55);
   box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.14);
 }
 
-.input-multiline {
+.customer-form-card .input-multiline {
   min-height: 96px;
   padding: 10px 12px;
   resize: vertical;

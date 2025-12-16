@@ -309,7 +309,7 @@
    TAGS (pagamento)
 --------------------------------------------------------------------------- */
 
-.tag {
+.order-details-modal .tag {
   display: inline-flex;
   align-items: center;
 
@@ -325,34 +325,34 @@
 }
 
 /* money */
-.tag--money {
+.order-details-modal .tag--money {
   border-color: rgba(245, 158, 11, 0.34);
   background: rgba(245, 158, 11, 0.12);
   color: rgba(146, 64, 14, 0.95);
 }
 
 /* pix */
-.tag--pix {
+.order-details-modal .tag--pix {
   border-color: rgba(34, 197, 94, 0.34);
   background: rgba(34, 197, 94, 0.12);
   color: rgba(20, 83, 45, 0.95);
 }
 
 /* card */
-.tag--card {
+.order-details-modal .tag--card {
   border-color: rgba(59, 130, 246, 0.34);
   background: rgba(59, 130, 246, 0.12);
   color: rgba(30, 64, 175, 0.95);
 }
 
 /* ifood */
-.tag--ifood {
+.order-details-modal .tag--ifood {
   border-color: rgba(239, 68, 68, 0.34);
   background: rgba(239, 68, 68, 0.12);
   color: rgba(127, 29, 29, 0.95);
 }
 
-.tag--default {
+.order-details-modal .tag--default {
   border-color: rgba(2, 6, 23, 0.14);
   background: rgba(241, 245, 249, 0.86);
   color: rgba(2, 6, 23, 0.82);
@@ -452,7 +452,7 @@
 }
 
 /* chips extras */
-.chip {
+.order-details-modal .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -468,7 +468,7 @@
   color: rgba(2, 6, 23, 0.78);
 }
 
-.chip--extra {
+.order-details-modal .chip--extra {
   border-color: rgba(249, 115, 22, 0.22);
   background: rgba(249, 115, 22, 0.10);
   color: rgba(124, 45, 18, 0.92);

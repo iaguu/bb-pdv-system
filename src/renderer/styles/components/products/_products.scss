@@ -7,12 +7,15 @@
 /* Layout helpers ---------------------------------------------------------- */
 .product-form-modal {
   max-width: 720px;
+  width: 100%;
 }
 
 .product-form__body {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 14px;
+
+  padding: 4px 2px 2px;
 
   @media (max-width: 900px) {
     grid-template-columns: minmax(0, 1fr);
@@ -21,10 +24,12 @@
 
 .product-form__footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 10px;
   margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(17, 24, 39, 0.08);
 }
 
 .product-modal {
@@ -182,6 +187,7 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .ingredients-badges {
@@ -230,3 +236,336 @@
 }
 
 /* Form fields reuse global form styles for inputs/switches/buttons */
+/* ==========================================================================
+   PRODUCT FORM MODAL — WHITE THEME (refeito)
+   Target: ProductFormModal.jsx
+   - Não muda nomes de classes
+   - Layout limpo, cards claros, inputs consistentes, alinhamento correto
+   ========================================================================== */
+
+.product-form-modal {
+  max-width: 760px; /* um pouco mais confortável que 720 */
+
+  /* se o Modal aceitar conteúdo com padding, este bloco ajuda sem quebrar */
+  .product-form__body {
+    padding: 2px 2px 0;
+  }
+}
+
+/* --- Grid principal (2 colunas) ---------------------------------------- */
+.product-form__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 14px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Seções como “cards” claros ---------------------------------------- */
+.form-section {
+  background: #ffffff;
+  border: 1px solid rgba(227, 227, 234, 0.95);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 14px 34px rgba(17, 24, 39, 0.06);
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  /* seção compacta (switch) */
+  &.form-section--compact {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+}
+
+/* Título das seções (ex.: “Precos”) */
+.form-section__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  color: rgba(2, 6, 23, 0.88);
+}
+
+/* Header da seção Ingredientes */
+.form-section__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.form-section__hint {
+  font-size: 12px;
+  color: rgba(71, 85, 105, 0.80);
+
+  strong {
+    font-weight: 900;
+    color: rgba(2, 6, 23, 0.80);
+  }
+}
+
+/* --- Grids internos ----------------------------------------------------- */
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+/* bloco “Nome + Tipo” no topo: 2 colunas com wide */
+.form-grid:has(.form-field--wide) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 220px);
+
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.form-field--wide {
+  grid-column: 1 / -1;
+}
+
+/* --- Labels ------------------------------------------------------------- */
+.field-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(2, 6, 23, 0.68);
+  letter-spacing: 0.12px;
+}
+
+/* --- Inputs / Select / Textarea ---------------------------------------- */
+.field-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+
+  border-radius: 12px;
+  border: 1px solid rgba(227, 227, 234, 1);
+  background: #ffffff;
+
+  font-size: 14px;
+  color: rgba(2, 6, 23, 0.90);
+
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+
+  &::placeholder {
+    color: rgba(148, 163, 184, 0.95);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 106, 0, 0.55);
+    box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.14);
+  }
+}
+
+/* Select com seta discreta */
+select.field-input {
+  appearance: none;
+  padding-right: 34px;
+
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(2, 6, 23, 0.50) 50%),
+    linear-gradient(135deg, rgba(2, 6, 23, 0.50) 50%, transparent 50%),
+    linear-gradient(to right, rgba(227, 227, 234, 0.95), rgba(227, 227, 234, 0.95));
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 13px) 50%,
+    calc(100% - 34px) 50%;
+  background-size:
+    5px 5px,
+    5px 5px,
+    1px 18px;
+  background-repeat: no-repeat;
+}
+
+/* Textarea */
+textarea.field-input,
+.field-input.neworder-textarea {
+  height: auto;
+  min-height: 88px;
+  padding: 10px 12px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+/* --- Ingredientes ------------------------------------------------------- */
+.ingredients-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+
+  @media (max-width: 520px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* botão ghost ao lado do input (usa classes já existentes) */
+.ingredients-input .btn.btn-ghost {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 13px;
+
+  background: rgba(2, 6, 23, 0.04);
+  border: 1px solid rgba(2, 6, 23, 0.10);
+  color: rgba(2, 6, 23, 0.82);
+
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+
+  &:hover {
+    background: rgba(2, 6, 23, 0.06);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(2, 6, 23, 0.08);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.ingredients-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 34px;
+  padding-top: 2px;
+}
+
+.ingredients-badges__empty {
+  font-size: 12px;
+  color: rgba(71, 85, 105, 0.65);
+}
+
+/* badges de ingrediente (tema white, verde “safe”) */
+.badge.badge--ingredient {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  background: rgba(34, 197, 94, 0.10);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  color: rgba(21, 128, 61, 0.95);
+
+  font-weight: 900;
+}
+
+.badge__label {
+  font-size: 12px;
+}
+
+.badge__remove {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  padding: 0 4px;
+  opacity: 0.85;
+  transition: opacity 120ms ease, transform 120ms ease;
+
+  &:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+}
+
+/* --- Switch (Produto ativo no catalogo) --------------------------------- */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch__track {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.12);
+  border: 1px solid rgba(2, 6, 23, 0.10);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.switch__thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 10px 18px rgba(2, 6, 23, 0.10);
+  transform: translateX(0);
+  transition: transform 160ms ease;
+}
+
+.switch__label {
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(2, 6, 23, 0.72);
+}
+
+/* checked */
+.switch input:checked + .switch__track {
+  background: rgba(255, 106, 0, 0.22);
+  border-color: rgba(255, 106, 0, 0.28);
+}
+
+.switch input:checked + .switch__track .switch__thumb {
+  transform: translateX(20px);
+}
+
+/* focus */
+.switch input:focus-visible + .switch__track {
+  box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.16);
+}
+
+/* --- Footer ------------------------------------------------------------- */
+.product-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(227, 227, 234, 0.85);
+}
+
+/* se quiser “Cancelar” à esquerda e “Salvar” à direita */
+.product-form__footer {
+  justify-content: space-between;
+}
+
+/* Botões do footer (sem depender do Button interno) */
+.product-form__footer :where(button, a, .btn, .button) {
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 13px;
+}

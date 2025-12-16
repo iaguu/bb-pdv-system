@@ -8,15 +8,12 @@ function formatCurrency(value) {
   });
 }
 
-/* ============================== */
-/* MAPS                           */
-/* ============================== */
-
 const STATUS_MAP = {
   open: { label: "Em aberto", tone: "open" },
   preparing: { label: "Em preparo", tone: "preparing" },
   ready: { label: "Pronto", tone: "ready" },
   delivering: { label: "Em entrega", tone: "delivering" },
+  out_for_delivery: { label: "Em entrega", tone: "delivering" },
   done: { label: "Finalizado", tone: "done" },
   cancelled: { label: "Cancelado", tone: "cancelled" },
 };
@@ -24,10 +21,11 @@ const STATUS_MAP = {
 const SOURCE_MAP = {
   website: "Site",
   web: "Site",
-  local: "Balcão / Local",
-  balcão: "Balcão / Local",
-  counter: "Balcão / Local",
-  desktop: "Balcão / Local",
+  local: "Balcao / Local",
+  balcao: "Balcao / Local",
+  "balcão": "Balcao / Local",
+  counter: "Balcao / Local",
+  desktop: "Balcao / Local",
   delivery: "Delivery",
   ifood: "iFood",
   whatsapp: "WhatsApp",
@@ -41,10 +39,6 @@ const MOTOBOY_STATUS_MAP = {
   done: "Entrega finalizada",
 };
 
-/* ======================================================= */
-/* COMPONENTE: CABEÇALHO DO GRUPO DE PEDIDOS (NOVO)        */
-/* ======================================================= */
-
 export const OrderGroupHeader = ({ title, count, tone = "default" }) => {
   return (
     <div className={`order-group-header order-group-header--${tone}`}>
@@ -56,13 +50,10 @@ export const OrderGroupHeader = ({ title, count, tone = "default" }) => {
   );
 };
 
-/* ======================================================= */
-/* COMPONENTE: LINHA DO PEDIDO                             */
-/* ======================================================= */
-
 const OrderRow = ({ order, onClick, isNew }) => {
   const {
     id,
+    _id,
     customerSnapshot,
     status,
     source,
@@ -74,9 +65,12 @@ const OrderRow = ({ order, onClick, isNew }) => {
     delivery,
   } = order || {};
 
-  const customerName = customerSnapshot?.name || "Cliente";
+  const orderId = id || _id || "";
+  const orderCode = orderId ? `#${String(orderId).slice(-6)}` : "#—";
 
-  /* Status – normaliza out_for_delivery -> delivering */
+  const customerName =
+    customerSnapshot?.name || order?.customer?.name || "Cliente";
+
   const rawStatusKey = (status || "open").toString().toLowerCase().trim();
   const normalizedStatusKey =
     rawStatusKey === "out_for_delivery" || rawStatusKey === "in_delivery"
@@ -89,16 +83,13 @@ const OrderRow = ({ order, onClick, isNew }) => {
       tone: "default",
     };
 
-  /* Origem */
   const sourceKey = (source || "local").toLowerCase().trim();
   const sourceLabel =
-    SOURCE_MAP[sourceKey] || SOURCE_MAP.local || "Balcão / Local";
+    SOURCE_MAP[sourceKey] || SOURCE_MAP.local || "Balcao / Local";
 
-  /* Total */
   const total =
     totals?.finalTotal ?? totals?.total ?? order?.total ?? 0;
 
-  /* Itens */
   const detailedItems =
     Array.isArray(items) && items.length > 0
       ? items.map((item) => {
@@ -106,14 +97,14 @@ const OrderRow = ({ order, onClick, isNew }) => {
           const name = item.name || item.title || "Produto";
           const size = item.sizeLabel || item.size || "";
           const extra =
-            size && !String(name).toLowerCase().includes(size)
+            size && !String(name).toLowerCase().includes(size.toLowerCase())
               ? ` (${size})`
               : "";
           return `${qty}x ${name}${extra}`;
         })
       : [];
 
-  let summaryText = "Sem itens cadastrados";
+  let summaryText = "Nenhum item cadastrado";
   if (detailedItems.length === 1) {
     summaryText = detailedItems[0];
   } else if (detailedItems.length === 2) {
@@ -123,7 +114,6 @@ const OrderRow = ({ order, onClick, isNew }) => {
     summaryText = `${detailedItems[0]} • ${detailedItems[1]} • +${extras} itens`;
   }
 
-  /* Data */
   const timeLabel =
     createdAt &&
     new Date(createdAt).toLocaleString("pt-BR", {
@@ -133,7 +123,6 @@ const OrderRow = ({ order, onClick, isNew }) => {
       month: "2-digit",
     });
 
-  /* Motoboy */
   const motoboyName =
     motoboyNameRoot ||
     delivery?.motoboyName ||
@@ -164,12 +153,9 @@ const OrderRow = ({ order, onClick, isNew }) => {
 
   return (
     <div className={classes} onClick={onClick}>
-      {/* ESQUERDA */}
       <div className="order-row-left">
         <div className="order-row-top">
-          <span className="order-row-id">
-            #{String(id || "").slice(-6) || "—"}
-          </span>
+          <span className="order-row-id">{orderCode}</span>
           <span className="order-row-separator">•</span>
           <span className="order-row-customer">{customerName}</span>
         </div>
@@ -177,7 +163,6 @@ const OrderRow = ({ order, onClick, isNew }) => {
         <div className="order-row-summary">{summaryText}</div>
 
         <div className="order-row-meta">
-          {/* Status */}
           <span
             className={
               "order-row-chip order-row-chip--status " +
@@ -187,29 +172,25 @@ const OrderRow = ({ order, onClick, isNew }) => {
             {statusInfo.label}
           </span>
 
-          {/* Origem */}
           <span className="order-row-chip">
             <span className="order-row-chip-label">Origem:</span>
             <span className="order-row-source">{sourceLabel}</span>
           </span>
 
-          {/* Motoboy (se houver) */}
           {motoboyName && (
             <span className="order-row-chip order-row-chip--motoboy">
-              <span className="order-row-chip-label">🛵 Motoboy:</span>
+              <span className="order-row-chip-label">Motoboy:</span>
               <span className="order-row-motoboy-name">
                 {motoboyName}
               </span>
               {motoboyStatusLabel && (
                 <span className="order-row-motoboy-status">
-                  {" "}
-                  • {motoboyStatusLabel}
+                  {` • ${motoboyStatusLabel}`}
                 </span>
               )}
             </span>
           )}
 
-          {/* Novo */}
           {isNew && (
             <span className="order-row-chip order-row-chip--new">
               Novo pedido
@@ -218,7 +199,6 @@ const OrderRow = ({ order, onClick, isNew }) => {
         </div>
       </div>
 
-      {/* DIREITA */}
       <div className="order-row-right">
         {timeLabel && (
           <div className="order-row-time">{timeLabel}</div>

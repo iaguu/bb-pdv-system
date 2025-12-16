@@ -145,7 +145,7 @@
   border-color: rgba(245, 158, 11, 0.32);
 }
 
-.order-list-group:has(.order-row--status-out_for_delivery)
+.order-list-group:has(.order-row--status-delivering)
   .order-list-group-header {
   border-color: rgba(139, 92, 246, 0.32);
 }

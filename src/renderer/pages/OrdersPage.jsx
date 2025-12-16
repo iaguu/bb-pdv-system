@@ -689,7 +689,7 @@ const OrdersPage = () => {
   return (
     <Page
       title="Pedidos"
-      subtitle="Acompanhe pedidos abertos, finalizados, vindos do site, WhatsApp e balcão."
+      subtitle="Acompanhe pedidos abertos, finalizados e de todos os canais."
       actions={
         <button className="btn btn-primary" onClick={handleNewOrderClick}>
           + Novo pedido
@@ -699,15 +699,19 @@ const OrdersPage = () => {
 
 
       {/* Toolbar: filtros + botão atualizar */}
-      <div className="page-toolbar">
-        <OrderFilters value={filters} onChange={setFilters} />
-        <button
-          className="btn btn-outline"
-          onClick={loadOrders}
-          disabled={isLoading}
-        >
-          {isLoading ? "Atualizando..." : "Atualizar"}
-        </button>
+      <div className="page-toolbar orders-toolbar">
+        <div className="toolbar-left">
+          <OrderFilters value={filters} onChange={setFilters} />
+        </div>
+        <div className="toolbar-actions">
+          <button
+            className="btn btn-outline"
+            onClick={loadOrders}
+            disabled={isLoading}
+          >
+            {isLoading ? "Atualizando..." : "Atualizar"}
+          </button>
+        </div>
       </div>
 
       <OrderList

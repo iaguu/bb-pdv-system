@@ -5,7 +5,7 @@ import Button from "../components/common/Button";
 import ProductList from "../components/catalog/ProductList";
 import ProductFormModal from "../components/catalog/ProductFormModal";
 
-// Normaliza qualquer formato da coleção de produtos
+// Normaliza qualquer formato da colecao de produtos
 // - { items: [...] }  (DataEngine)
 // - { products: [...] } (products.json da API)
 // - [ ... ]           (array puro)
@@ -15,6 +15,38 @@ const normalizeProductsData = (data) => {
   if (Array.isArray(data.products)) return data.products;
   if (Array.isArray(data)) return data;
   return [];
+};
+
+const TYPE_FILTERS = [
+  { value: "all", label: "Todos" },
+  { value: "pizza", label: "Pizzas" },
+  { value: "drink", label: "Bebidas" },
+  { value: "extra", label: "Adicionais" },
+];
+
+const STATUS_FILTERS = [
+  { value: "all", label: "Todos" },
+  { value: "active", label: "Ativos" },
+  { value: "inactive", label: "Pausados" },
+];
+
+const FilterChips = ({ options, value, onChange }) => {
+  if (!Array.isArray(options)) return null;
+
+  return (
+    <div className="catalog-filter-chips">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          className={"chip" + (value === opt.value ? " chip-active" : "")}
+          onClick={() => onChange && onChange(opt.value)}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
 };
 
 const CatalogPage = () => {
@@ -35,7 +67,7 @@ const CatalogPage = () => {
     try {
       setLoading(true);
       if (!window.dataEngine || typeof window.dataEngine.get !== "function") {
-        console.warn("[CatalogPage] window.dataEngine.get não disponível");
+        console.warn("[CatalogPage] window.dataEngine.get nao disponivel");
         setProducts([]);
         return;
       }
@@ -55,7 +87,7 @@ const CatalogPage = () => {
     loadProducts();
   }, []);
 
-  // ---- Resumo de catálogo (cards no topo) ----
+  // ---- Resumo de catalogo (cards no topo) ----
   const catalogSummary = useMemo(() => {
     if (!products || !products.length) {
       return {
@@ -114,10 +146,8 @@ const CatalogPage = () => {
       result = result.filter((p) => {
         const type = (p.type || "").toLowerCase();
         if (typeFilter === "pizza") return type === "pizza";
-        if (typeFilter === "drink")
-          return type === "drink" || type === "bebida";
-        if (typeFilter === "extra")
-          return type === "extra" || type === "adicional";
+        if (typeFilter === "drink") return type === "drink" || type === "bebida";
+        if (typeFilter === "extra") return type === "extra" || type === "adicional";
         return true;
       });
     }
@@ -134,13 +164,8 @@ const CatalogPage = () => {
     return result;
   }, [products, search, typeFilter, statusFilter]);
 
-  const handleNewProduct = () => {
-    setActiveProduct(null);
-    setShowForm(true);
-  };
-
-  const handleEditProduct = (product) => {
-    setActiveProduct(product);
+  const openForm = (productToEdit = null) => {
+    setActiveProduct(productToEdit);
     setShowForm(true);
   };
 
@@ -161,7 +186,7 @@ const CatalogPage = () => {
       setImportStatus(null);
 
       if (!window.dataEngine || typeof window.dataEngine.get !== "function") {
-        console.warn("[CatalogPage] window.dataEngine.get não disponível");
+        console.warn("[CatalogPage] window.dataEngine.get nao disponivel");
       }
 
       const data = await window.dataEngine.get("products");
@@ -176,22 +201,13 @@ const CatalogPage = () => {
           // API / site trabalham com "nome" e "categoria"
           nome: p.nome || p.name || "",
           categoria: p.categoria || p.category || "",
-          ingredientes: Array.isArray(p.ingredientes)
-            ? p.ingredientes
-            : [],
-          preco_broto:
-            p.preco_broto ??
-            p.priceBroto ??
-            null,
-          preco_grande:
-            p.preco_grande ??
-            p.priceGrande ??
-            null,
+          ingredientes: Array.isArray(p.ingredientes) ? p.ingredientes : [],
+          preco_broto: p.preco_broto ?? p.priceBroto ?? null,
+          preco_grande: p.preco_grande ?? p.priceGrande ?? null,
           badges: Array.isArray(p.badges) ? p.badges : [],
           extras: Array.isArray(p.extras) ? p.extras : [],
           sugestoes:
-            Array.isArray(p.sugestoes) ||
-            Array.isArray(p.suggestions)
+            Array.isArray(p.sugestoes) || Array.isArray(p.suggestions)
               ? p.sugestoes || p.suggestions
               : [],
         })),
@@ -203,9 +219,7 @@ const CatalogPage = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `catalogo-products-${new Date()
-        .toISOString()
-        .slice(0, 10)}.json`;
+      a.download = `catalogo-products-${new Date().toISOString().slice(0, 10)}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -213,7 +227,7 @@ const CatalogPage = () => {
 
       setImportStatus({
         type: "ok",
-        message: "Catálogo exportado com sucesso.",
+        message: "Catalogo exportado com sucesso.",
       });
     } catch (err) {
       console.error("Erro ao exportar JSON:", err);
@@ -242,7 +256,7 @@ const CatalogPage = () => {
       const json = JSON.parse(text);
 
       if (!json || !Array.isArray(json.products)) {
-        throw new Error("JSON sem campo 'products' válido.");
+        throw new Error("JSON sem campo 'products' valido.");
       }
 
       const items = json.products
@@ -254,9 +268,7 @@ const CatalogPage = () => {
           name: p.name || p.nome || "",
           description:
             p.description ||
-            (Array.isArray(p.ingredientes)
-              ? p.ingredientes.join(", ")
-              : ""),
+            (Array.isArray(p.ingredientes) ? p.ingredientes.join(", ") : ""),
           category: p.category || p.categoria || "",
           priceBroto:
             typeof p.priceBroto === "number"
@@ -273,26 +285,23 @@ const CatalogPage = () => {
           price: typeof p.price === "number" ? p.price : null,
           active: p.active !== false,
           // Guardamos info extra pra outros usos (site, CardapioPage, etc.)
-          ingredientes: Array.isArray(p.ingredientes)
-            ? p.ingredientes
-            : [],
+          ingredientes: Array.isArray(p.ingredientes) ? p.ingredientes : [],
           badges: Array.isArray(p.badges) ? p.badges : [],
           extras: Array.isArray(p.extras) ? p.extras : [],
           sugestoes:
-            Array.isArray(p.sugestoes) ||
-            Array.isArray(p.suggestions)
+            Array.isArray(p.sugestoes) || Array.isArray(p.suggestions)
               ? p.sugestoes || p.suggestions
               : [],
         }));
 
       if (!window.dataEngine || typeof window.dataEngine.set !== "function") {
         console.warn(
-          "[CatalogPage] window.dataEngine.set não disponível; aplicando apenas em memória"
+          "[CatalogPage] window.dataEngine.set nao disponivel; aplicando apenas em memoria"
         );
         setProducts(items);
         setImportStatus({
           type: "ok",
-          message: `Catálogo importado em memória (${items.length} produto(s)).`,
+          message: `Catalogo importado em memoria (${items.length} produto(s)).`,
         });
         return;
       }
@@ -302,22 +311,21 @@ const CatalogPage = () => {
 
       setImportStatus({
         type: "ok",
-        message: `Catálogo importado (${items.length} produto(s)).`,
+        message: `Catalogo importado (${items.length} produto(s)).`,
       });
     } catch (err) {
       console.error("Erro ao importar JSON:", err);
       setImportStatus({
         type: "error",
-        message:
-          "Não foi possível importar o arquivo. Verifique o formato do JSON.",
+        message: "Nao foi possivel importar o arquivo. Verifique o formato do JSON.",
       });
     }
   };
 
   return (
     <Page
-      title="Catálogo"
-      subtitle="Pizzas, bebidas e adicionais disponíveis para pedidos."
+      title="Catalogo"
+      subtitle="Pizzas, bebidas e adicionais disponiveis para pedidos."
       actions={
         <div className="catalog-header-actions">
           <Button variant="secondary" onClick={handleClickImport}>
@@ -326,13 +334,13 @@ const CatalogPage = () => {
           <Button variant="ghost" onClick={handleExportJson}>
             Exportar JSON
           </Button>
-          <Button variant="primary" onClick={handleNewProduct}>
+          <Button variant="primary" onClick={() => openForm()}>
             Novo produto
           </Button>
         </div>
       }
     >
-      {/* input invisível para selecionar o arquivo JSON */}
+      {/* input invisivel para selecionar o arquivo JSON */}
       <input
         type="file"
         ref={fileInputRef}
@@ -354,43 +362,31 @@ const CatalogPage = () => {
         </p>
       )}
 
-      {/* Resumo do catálogo (cards simples) */}
+      {/* Resumo do catalogo (cards simples) */}
       <div className="catalog-summary-grid">
         <div className="catalog-summary-card">
           <div className="catalog-summary-label">Produtos totais</div>
-          <div className="catalog-summary-value">
-            {catalogSummary.total}
-          </div>
+          <div className="catalog-summary-value">{catalogSummary.total}</div>
         </div>
         <div className="catalog-summary-card">
           <div className="catalog-summary-label">Ativos</div>
-          <div className="catalog-summary-value">
-            {catalogSummary.active}
-          </div>
+          <div className="catalog-summary-value">{catalogSummary.active}</div>
         </div>
         <div className="catalog-summary-card">
           <div className="catalog-summary-label">Pausados</div>
-          <div className="catalog-summary-value">
-            {catalogSummary.inactive}
-          </div>
+          <div className="catalog-summary-value">{catalogSummary.inactive}</div>
         </div>
         <div className="catalog-summary-card">
           <div className="catalog-summary-label">Pizzas</div>
-          <div className="catalog-summary-value">
-            {catalogSummary.pizzas}
-          </div>
+          <div className="catalog-summary-value">{catalogSummary.pizzas}</div>
         </div>
         <div className="catalog-summary-card">
           <div className="catalog-summary-label">Bebidas</div>
-          <div className="catalog-summary-value">
-            {catalogSummary.drinks}
-          </div>
+          <div className="catalog-summary-value">{catalogSummary.drinks}</div>
         </div>
         <div className="catalog-summary-card">
           <div className="catalog-summary-label">Adicionais</div>
-          <div className="catalog-summary-value">
-            {catalogSummary.extras}
-          </div>
+          <div className="catalog-summary-value">{catalogSummary.extras}</div>
         </div>
       </div>
 
@@ -398,91 +394,31 @@ const CatalogPage = () => {
       <div className="catalog-toolbar">
         <div className="catalog-toolbar-left">
           <label className="field">
-            <span className="field-label">Buscar no catálogo</span>
+            <span className="field-label">Buscar no catalogo</span>
             <input
               className="input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nome, categoria, tipo ou descrição..."
+              placeholder="Nome, categoria, tipo ou descricao..."
             />
           </label>
         </div>
 
         <div className="catalog-toolbar-right">
           <div className="catalog-filter-group">
-            <div className="catalog-filter-chips">
-              <button
-                type="button"
-                className={
-                  "chip" + (typeFilter === "all" ? " chip-active" : "")
-                }
-                onClick={() => setTypeFilter("all")}
-              >
-                Todos
-              </button>
-              <button
-                type="button"
-                className={
-                  "chip" + (typeFilter === "pizza" ? " chip-active" : "")
-                }
-                onClick={() => setTypeFilter("pizza")}
-              >
-                Pizzas
-              </button>
-              <button
-                type="button"
-                className={
-                  "chip" + (typeFilter === "drink" ? " chip-active" : "")
-                }
-                onClick={() => setTypeFilter("drink")}
-              >
-                Bebidas
-              </button>
-              <button
-                type="button"
-                className={
-                  "chip" + (typeFilter === "extra" ? " chip-active" : "")
-                }
-                onClick={() => setTypeFilter("extra")}
-              >
-                Adicionais
-              </button>
-            </div>
+            <FilterChips
+              options={TYPE_FILTERS}
+              value={typeFilter}
+              onChange={setTypeFilter}
+            />
           </div>
 
           <div className="catalog-filter-group">
-            <div className="catalog-filter-chips">
-              <button
-                type="button"
-                className={
-                  "chip" +
-                  (statusFilter === "all" ? " chip-active" : "")
-                }
-                onClick={() => setStatusFilter("all")}
-              >
-                Todos
-              </button>
-              <button
-                type="button"
-                className={
-                  "chip" +
-                  (statusFilter === "active" ? " chip-active" : "")
-                }
-                onClick={() => setStatusFilter("active")}
-              >
-                Ativos
-              </button>
-              <button
-                type="button"
-                className={
-                  "chip" +
-                  (statusFilter === "inactive" ? " chip-active" : "")
-                }
-                onClick={() => setStatusFilter("inactive")}
-              >
-                Pausados
-              </button>
-            </div>
+            <FilterChips
+              options={STATUS_FILTERS}
+              value={statusFilter}
+              onChange={setStatusFilter}
+            />
           </div>
         </div>
       </div>
@@ -493,21 +429,18 @@ const CatalogPage = () => {
         <div className="empty-state">
           <h3 className="empty-title">Nenhum produto encontrado.</h3>
           <p className="empty-description">
-            Ajuste a busca ou filtros, ou importe um JSON de catálogo.
+            Ajuste a busca ou filtros, ou importe um JSON de catalogo.
           </p>
         </div>
       ) : (
-        <ProductList
-          products={filteredProducts}
-          onEdit={handleEditProduct}
-        />
+        <ProductList products={filteredProducts} onEdit={openForm} />
       )}
 
       {showForm && (
         <ProductFormModal
           product={activeProduct}
           onClose={handleFormClose}
-          onSaved={handleFormSaved}
+          onSave={handleFormSaved}
         />
       )}
     </Page>
