@@ -1,4 +1,4 @@
-// src/renderer/pages/SettingsPage.jsx
+﻿// src/renderer/pages/SettingsPage.jsx
 import React, { useEffect, useState } from "react";
 import Page from "../components/layout/Page";
 import Button from "../components/common/Button";
@@ -76,7 +76,7 @@ const buildDefaultDeliveryConfig = () => ({
 
 const buildDefaultSettings = () => ({
   id: "default",
-  pizzaria: "Anne & Tom",
+  pizzaria: "AXION PDV",
   versao: "0.1.0",
   tema: "light",
   api: {
@@ -125,7 +125,7 @@ function buildThermalTestTicket({
 
   const header = "ANNE & TOM PIZZARIA";
   const separator = "--------------------------------";
-  const footer = "Obrigado por usar o sistema Anne & Tom";
+  const footer = "Obrigado por usar o sistema AXION PDV";
 
   const lines = [
     header,
@@ -161,6 +161,9 @@ const SettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [printMessage, setPrintMessage] = useState("");
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
+  const [syncStatus, setSyncStatus] = useState(null);
 
   // Lista de impressoras do sistema
   const [printers, setPrinters] = useState([]);
@@ -191,7 +194,7 @@ const SettingsPage = () => {
           item.versao = "0.1.0";
         }
         if (!item.pizzaria) {
-          item.pizzaria = "Anne & Tom";
+          item.pizzaria = "AXION PDV";
         }
         if (!item.id) {
           item.id = "default";
@@ -284,6 +287,27 @@ const SettingsPage = () => {
   // carrega impressoras na entrada da tela
   useEffect(() => {
     loadPrinters();
+  }, []);
+
+  useEffect(() => {
+    let timer;
+
+    const loadSyncStatus = async () => {
+      if (!window.electronAPI || !window.electronAPI.getSyncStatus) return;
+      try {
+        const status = await window.electronAPI.getSyncStatus();
+        setSyncStatus(status || null);
+      } catch (err) {
+        console.error("[Settings] Erro ao buscar sync status:", err);
+      }
+    };
+
+    loadSyncStatus();
+    timer = setInterval(loadSyncStatus, 5000);
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, []);
 
   const handleChange = (field, value) => {
@@ -439,7 +463,7 @@ const SettingsPage = () => {
     const kitchenText = isKitchen
       ? buildThermalTestTicket({
           profile: "kitchen",
-          pizzaria: settings.pizzaria || "Anne & Tom",
+          pizzaria: settings.pizzaria || "AXION PDV",
           configuredPrinterName: kitchenName,
         })
       : "";
@@ -447,7 +471,7 @@ const SettingsPage = () => {
     const counterText = !isKitchen
       ? buildThermalTestTicket({
           profile: "counter",
-          pizzaria: settings.pizzaria || "Anne & Tom",
+          pizzaria: settings.pizzaria || "AXION PDV",
           configuredPrinterName: counterName,
         })
       : "";
@@ -489,6 +513,39 @@ const SettingsPage = () => {
     }
   };
 
+  const handleManualSync = async () => {
+    if (!window.electronAPI || !window.electronAPI.syncNow) {
+      setSyncMessage("Sincronizacao nao disponivel neste app.");
+      return;
+    }
+
+    try {
+      setSyncLoading(true);
+      setSyncMessage("");
+      const result = await window.electronAPI.syncNow();
+      if (result?.success) {
+        setSyncMessage("Sincronizacao concluida com sucesso.");
+      } else {
+        setSyncMessage(
+          result?.error
+            ? `Falha ao sincronizar: ${result.error}`
+            : "Falha ao sincronizar."
+        );
+      }
+    } catch (err) {
+      console.error("[Settings] Erro ao sincronizar:", err);
+      setSyncMessage("Erro ao sincronizar. Veja o console do app.");
+    } finally {
+      setSyncLoading(false);
+      setTimeout(() => setSyncMessage(""), 5000);
+    }
+  };
+  const formatSyncTime = (value) => {
+    if (!value) return "n/a";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "n/a";
+    return date.toLocaleString("pt-BR");
+  };
   // Enquanto está carregando pela primeira vez
   if (loading && !settings) {
     return (
@@ -635,6 +692,40 @@ const SettingsPage = () => {
                 </span>
               </label>
             </div>
+
+            <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "center" }}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleManualSync}
+                disabled={syncLoading}
+              >
+                {syncLoading ? "Sincronizando..." : "Sincronizar agora"}
+              </Button>
+              {syncMessage && (
+                <span style={{ fontSize: 12, color: "#6b7280" }}>
+                  {syncMessage}
+                </span>
+              )}
+            </div>
+            {syncStatus && (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: syncStatus.online ? "#065f46" : "#b91c1c",
+                }}
+              >
+                Status: {syncStatus.online ? "Online" : "Offline"} | Ultimo pull: {formatSyncTime(syncStatus.lastPullAt)} | Ultimo push: {formatSyncTime(syncStatus.lastPushAt)} | Fila: {syncStatus.queueRemaining ?? 0}
+                {syncStatus.lastPullError
+                  ? ` | Erro pull: ${syncStatus.lastPullError}`
+                  : ""}
+                {syncStatus.lastPushError
+                  ? ` | Erro push: ${syncStatus.lastPushError}`
+                  : ""}
+              </div>
+            )}
           </div>
 
           {/* ENTREGA / TABELA POR KM */}
@@ -1012,3 +1103,12 @@ const SettingsPage = () => {
 };
 
 export default SettingsPage;
+
+
+
+
+
+
+
+
+

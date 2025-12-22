@@ -1,23 +1,140 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
+﻿import React, { useEffect, useRef, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/orders", label: "Pedidos" },
-  { to: "/catalog", label: "Catálogo" },
+  { to: "/catalog", label: "Catalogo" },
   { to: "/people", label: "Pessoas" },
   { to: "/estoque", label: "Estoque" },
   { to: "/finance", label: "Caixa & Financeiro" },
-  { to: "/settings", label: "Configurações" },
+  { to: "/settings", label: "Configuracoes" },
 ];
 
 const AppLayout = ({ children }) => {
+  const location = useLocation();
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const lastSeenRef = useRef(
+    typeof window !== "undefined"
+      ? window.localStorage?.getItem("bb-pdv:lastSeenOrdersAt")
+      : null
+  );
+  const lastProcessedRef = useRef(null);
+  const toastTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (location.pathname === "/orders") {
+      const now = new Date().toISOString();
+      lastSeenRef.current = now;
+      window.localStorage?.setItem("bb-pdv:lastSeenOrdersAt", now);
+      setNewOrdersCount(0);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadNotificationsSetting = async () => {
+      if (!window.electronAPI || !window.electronAPI.getNotificationsEnabled) {
+        return;
+      }
+      try {
+        const result = await window.electronAPI.getNotificationsEnabled();
+        if (mounted && typeof result?.enabled === "boolean") {
+          setNotificationsEnabled(result.enabled);
+          if (!result.enabled) {
+            setNewOrdersCount(0);
+            setToastVisible(false);
+          }
+        }
+      } catch (err) {
+        console.error("[AppLayout] Erro ao buscar notificacoes:", err);
+      }
+    };
+
+    loadNotificationsSetting();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let timer;
+
+    const pollSyncStatus = async () => {
+      if (!window.electronAPI || !window.electronAPI.getSyncStatus) return;
+      try {
+        const status = await window.electronAPI.getSyncStatus();
+        if (!status?.lastNewOrdersAt) return;
+        if (status.lastNewOrdersAt === lastProcessedRef.current) return;
+        lastProcessedRef.current = status.lastNewOrdersAt;
+
+        const incomingTs = Date.parse(status.lastNewOrdersAt);
+        const lastSeenTs = Date.parse(lastSeenRef.current || "");
+        if (Number.isNaN(incomingTs)) return;
+        if (!Number.isNaN(lastSeenTs) && incomingTs <= lastSeenTs) return;
+
+        const increment = Number(status.lastNewOrdersCount || 0);
+        if (increment > 0 && notificationsEnabled) {
+          setNewOrdersCount((prev) => prev + increment);
+          setToastMessage(
+            increment === 1
+              ? "Novo pedido do site."
+              : `Novos pedidos do site: ${increment}.`
+          );
+          setToastVisible(true);
+          if (toastTimerRef.current) {
+            clearTimeout(toastTimerRef.current);
+          }
+          toastTimerRef.current = setTimeout(() => {
+            setToastVisible(false);
+          }, 8000);
+        }
+      } catch (err) {
+        console.error("[AppLayout] Erro ao buscar sync status:", err);
+      }
+    };
+
+    pollSyncStatus();
+    timer = setInterval(pollSyncStatus, 5000);
+
+    return () => {
+      if (timer) clearInterval(timer);
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, [notificationsEnabled]);
+
+  const handleDisableNotifications = async () => {
+    setNotificationsEnabled(false);
+    setNewOrdersCount(0);
+    setToastVisible(false);
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    if (window.electronAPI && window.electronAPI.setNotificationsEnabled) {
+      try {
+        await window.electronAPI.setNotificationsEnabled(false);
+      } catch (err) {
+        console.error("[AppLayout] Erro ao desativar notificacoes:", err);
+      }
+    }
+  };
+
+  const handleCloseToast = () => {
+    setToastVisible(false);
+  };
+
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
         <div className="app-sidebar-brand">
-          <span className="app-logo">🍕</span>
-          <span className="app-brand-text">BB - PDV</span>
+          <img className="app-logo" src="./AXIONPDV.png" alt="AXION PDV" />
+          <span className="app-brand-text">AXION PDV</span>
         </div>
 
         <nav className="app-nav">
@@ -30,14 +147,37 @@ const AppLayout = ({ children }) => {
                 "app-nav-link" + (isActive ? " app-nav-link-active" : "")
               }
             >
-              {item.label}
+              <span className="app-nav-link__label">{item.label}</span>
+              {item.to === "/orders" && newOrdersCount > 0 && (
+                <span className="app-nav-link__badge">{newOrdersCount}</span>
+              )}
             </NavLink>
           ))}
         </nav>
       </aside>
 
       <div className="app-main">
-
+        {toastVisible && (
+          <div className="app-toast" role="status" aria-live="polite">
+            <div className="app-toast__text">{toastMessage}</div>
+            <div className="app-toast__actions">
+              <button
+                type="button"
+                className="app-toast__btn"
+                onClick={handleCloseToast}
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                className="app-toast__btn app-toast__btn--danger"
+                onClick={handleDisableNotifications}
+              >
+                Parar alertas
+              </button>
+            </div>
+          </div>
+        )}
 
         <main className="app-content">{children}</main>
       </div>
@@ -46,3 +186,4 @@ const AppLayout = ({ children }) => {
 };
 
 export default AppLayout;
+

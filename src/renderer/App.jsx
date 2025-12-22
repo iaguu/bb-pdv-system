@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
 import DashboardPage from "./pages/DashboardPage";
 import OrdersPage from "./pages/OrdersPage";
@@ -10,8 +10,10 @@ import SettingsPage from "./pages/SettingsPage";
 import StockPage from "./pages/StockPage";
 
 const App = () => {
+  const Router = window.location.protocol === "file:" ? HashRouter : BrowserRouter;
+
   return (
-    <BrowserRouter>
+    <Router>
       <AppLayout>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -24,7 +26,7 @@ const App = () => {
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </AppLayout>
-    </BrowserRouter>
+    </Router>
   );
 };
 

@@ -1,6 +1,6 @@
-/* ============================================================================
+﻿/* ============================================================================
    APP LAYOUT — SIDEBAR + MAIN CONTENT
-   Design consistente com o PDV Anne & Tom / BB-PDV
+   Design consistente com o PDV AXION PDV / AXION PDV
    ============================================================================ */
 
 /* Tokens rápidos */
@@ -43,7 +43,9 @@ $radius: 8px;
     margin-bottom: 34px;
 
     .app-logo {
-      font-size: 32px;
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
       margin-right: 10px;
     }
 
@@ -75,6 +77,10 @@ $radius: 8px;
     background: transparent;
     transition: 0.25s ease;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 
     &:hover {
       background: $sidebar-hover;
@@ -87,6 +93,23 @@ $radius: 8px;
       font-weight: 600;
       box-shadow: 0 0 0 2px rgba($sidebar-active, 0.35);
     }
+
+    .app-nav-link__label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-nav-link__badge {
+      min-width: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #ffb703;
+      color: #111;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+    }
   }
 }
 
@@ -98,6 +121,7 @@ $radius: 8px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 
   .app-content {
     flex: 1;
@@ -110,3 +134,63 @@ $radius: 8px;
     }
   }
 }
+
+/* ============================================================================
+   TOAST - NOTIFICACAO DE PEDIDOS
+   ============================================================================ */
+.app-toast {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  z-index: 20;
+  background: #111;
+  color: #f1f1f1;
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
+  min-width: 260px;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-toast__text {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.app-toast__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.app-toast__btn {
+  background: #2a2a2a;
+  color: #f1f1f1;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.app-toast__btn--danger {
+  background: #e63946;
+  color: #fff;
+}
+
+/* Legacy sidebar logo (se usado) */
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-logo__img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+

@@ -1,61 +1,27 @@
-
+﻿
 // electron/apiServer.js
 // Servidor HTTP/REST para expor o DataEngine via HTTP (site, app, integrações)
 
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const fs = require('fs/promises');
-const path = require('path');
+require('dotenv').config();
 
-// ============================================================================
-// 1. CAMINHO FIXO DO BANCO DE DADOS
-// ============================================================================
-//
-// Toda a API lerá SEMPRE os JSONs daqui, independente de quem chama.
-// Isso garante que o site (via ngrok) e o app Electron usem o mesmo data dir.
-//
-// Exemplo (ajuste se necessário):
-// C:\\Users\\Iago_\\AppData\\Roaming\\pizzaria-pedidos\\data
-//
-const FIXED_DATA_DIR = path.join(
-  'C:',
-  'Users',
-  'Iago_',
-  'AppData',
-  'Roaming',
-  'pizzaria-pedidos',
-  'data'
-);
-
-// Se ninguém setou DATA_DIR externamente, usamos o caminho fixo:
-if (!process.env.DATA_DIR || !process.env.DATA_DIR.trim()) {
-  process.env.DATA_DIR = FIXED_DATA_DIR;
-}
-
-console.log('📂 [apiServer] FIXED_DATA_DIR:', FIXED_DATA_DIR);
-console.log('📂 [apiServer] process.env.DATA_DIR:', process.env.DATA_DIR);
-
-// Agora que DATA_DIR está definido, podemos carregar o db.js
+// Agora que DATA_DIR est  definido (se existir), podemos carregar o db.js
 const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3030;
+const PUBLIC_API_TOKEN = process.env.PUBLIC_API_TOKEN || '';
+const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
+const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX || 120);
+const rateStore = new Map();
 
 // URL base para tracking do pedido do motoboy (via QR / link)
 // Pode ser sobrescrita com ANNETOM_TRACKING_BASE_URL em produção.
 const DEFAULT_TRACKING_BASE_URL =
   process.env.ANNETOM_TRACKING_BASE_URL ||
   "http://localhost:3030/motoboy/pedido/";
-
-function fixedCollectionFile(name) {
-  return path.join(FIXED_DATA_DIR, `${name}.json`);
-}
-
-async function loadJson(file) {
-  const raw = await fs.readFile(file, 'utf-8');
-  return JSON.parse(raw);
-}
 
 // Normaliza qualquer formato possível do products.json
 function normalizeProducts(raw) {
@@ -87,25 +53,139 @@ function normalizeProducts(raw) {
   };
 }
 
+function normalizeCollectionWrapper(data) {
+  if (Array.isArray(data)) {
+    return { items: data, meta: { deleted: [] } };
+  }
+  if (data && Array.isArray(data.items)) {
+    return {
+      items: data.items,
+      meta:
+        data.meta && typeof data.meta === 'object'
+          ? data.meta
+          : { deleted: [] }
+    };
+  }
+  return null;
+}
+
+function applyDeltaToCollection(current, payload) {
+  const wrapper = normalizeCollectionWrapper(current) || {
+    items: [],
+    meta: { deleted: [] }
+  };
+  const incomingItems = Array.isArray(payload.items) ? payload.items : [];
+  const deletedItems = Array.isArray(payload.meta?.deleted)
+    ? payload.meta.deleted
+    : [];
+
+  for (const item of incomingItems) {
+    const index = wrapper.items.findIndex(
+      (it) => String(it.id) === String(item.id)
+    );
+    if (index >= 0) {
+      const incomingTs = Date.parse(item.updatedAt || item.createdAt || '');
+      const currentTs = Date.parse(
+        wrapper.items[index].updatedAt || wrapper.items[index].createdAt || ''
+      );
+      if (Number.isNaN(incomingTs) || Number.isNaN(currentTs) || incomingTs >= currentTs) {
+        wrapper.items[index] = { ...wrapper.items[index], ...item };
+      }
+    } else {
+      wrapper.items.push(item);
+    }
+  }
+
+  for (const entry of deletedItems) {
+    const index = wrapper.items.findIndex(
+      (it) => String(it.id) === String(entry.id)
+    );
+    if (index >= 0) {
+      const current = wrapper.items[index];
+      const currentTs = Date.parse(
+        current.updatedAt || current.createdAt || ''
+      );
+      const deletedTs = Date.parse(entry.deletedAt || '');
+      if (Number.isNaN(deletedTs) || Number.isNaN(currentTs) || deletedTs >= currentTs) {
+        wrapper.items.splice(index, 1);
+      }
+    }
+  }
+
+  if (!Array.isArray(wrapper.meta.deleted)) {
+    wrapper.meta.deleted = [];
+  }
+  for (const entry of deletedItems) {
+    const existing = wrapper.meta.deleted.find(
+      (it) => String(it.id) === String(entry.id)
+    );
+    if (existing) {
+      existing.deletedAt = entry.deletedAt || existing.deletedAt;
+    } else {
+      wrapper.meta.deleted.push(entry);
+    }
+  }
+
+  return wrapper;
+}
+
 // ============================================================================
 // 2. MIDDLEWARES
 // ============================================================================
+app.set('trust proxy', true);
 app.use(morgan('dev'));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(cors());
 app.options('*', cors());
+
+function rateLimiter(req, res, next) {
+  const now = Date.now();
+  const key = req.ip || req.connection?.remoteAddress || 'unknown';
+  const entry = rateStore.get(key);
+  if (!entry || entry.resetAt <= now) {
+    rateStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    res.setHeader('X-RateLimit-Remaining', RATE_LIMIT_MAX - 1);
+    return next();
+  }
+
+  entry.count += 1;
+  res.setHeader('X-RateLimit-Remaining', Math.max(0, RATE_LIMIT_MAX - entry.count));
+  if (entry.count > RATE_LIMIT_MAX) {
+    return res.status(429).json({ error: 'Rate limit exceeded' });
+  }
+  return next();
+}
+
+function requirePublicApiKey(req, res, next) {
+  if (!PUBLIC_API_TOKEN) return next();
+
+  if (
+    req.method === 'GET' &&
+    req.baseUrl === '/motoboy' &&
+    req.path.startsWith('/pedido/')
+  ) {
+    return next();
+  }
+
+  const token = req.headers['x-api-key'] || req.query.api_key;
+  if (token !== PUBLIC_API_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  return next();
+}
+
+app.use(rateLimiter);
+app.use(['/api', '/motoboy'], requirePublicApiKey);
 
 // ============================================================================
 // 3. ENDPOINT OFICIAL DO CARDÁPIO (NOVO)
 // ============================================================================
 //
 // O site SEMPRE vai ler o cardápio daqui: GET /api/menu
-// Este endpoint ignora totalmente o db.js e lê direto do caminho fixo.
-//
+// Este endpoint usa o db.js (DATA_DIR) para manter o mesmo banco da API.\r\n//
 app.get('/api/menu', async (req, res) => {
   try {
-    const file = fixedCollectionFile('products');
-    const raw = await loadJson(file);
+    const raw = await db.getCollection('products');
     const payload = normalizeProducts(raw);
     res.json(payload);
   } catch (err) {
@@ -113,6 +193,103 @@ app.get('/api/menu', async (req, res) => {
     res.status(500).json({
       error: 'Falha ao carregar cardápio oficial.'
     });
+  }
+});
+
+// ============================================================================
+// 2.1. SYNC (PDV <-> API)
+// ============================================================================
+function requireSyncAuth(req, res, next) {
+  if (!process.env.SYNC_TOKEN) return next();
+  if (req.headers['x-sync-token'] !== process.env.SYNC_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  return next();
+}
+
+app.get('/sync/collections', requireSyncAuth, async (req, res) => {
+  try {
+    const collections = db.listCollections();
+    const payload = {};
+    for (const name of collections) {
+      payload[name] = await db.getCollection(name);
+    }
+    res.json({ collections: payload });
+  } catch (err) {
+    console.error('[sync:collections] Error:', err);
+    res.status(500).json({ error: 'Erro ao carregar coleções.' });
+  }
+});
+
+app.get('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
+  try {
+    const { collection } = req.params;
+    if (!db.listCollections().includes(collection)) {
+      return res.status(400).json({ error: 'Colecao invalida.' });
+    }
+
+    const data = await db.getCollection(collection);
+    const since = req.query.since;
+    if (since) {
+      const sinceMs = Date.parse(String(since));
+      const wrapper = normalizeCollectionWrapper(data);
+      if (!Number.isNaN(sinceMs) && wrapper) {
+        const items = wrapper.items.filter((item) => {
+          const ts = item.updatedAt || item.createdAt;
+          if (!ts) return true;
+          return Date.parse(ts) >= sinceMs;
+        });
+        const deleted = Array.isArray(wrapper.meta?.deleted)
+          ? wrapper.meta.deleted.filter((entry) => {
+              if (!entry.deletedAt) return true;
+              return Date.parse(entry.deletedAt) >= sinceMs;
+            })
+          : [];
+
+        return res.json({
+          delta: true,
+          items,
+          meta: { deleted },
+          since: String(since)
+        });
+      }
+    }
+
+    return res.json(data);
+  } catch (err) {
+    console.error('[sync:collection:get] Error:', err);
+    res.status(500).json({ error: 'Erro ao carregar colecao.' });
+  }
+});
+
+app.post('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
+  try {
+    const { collection } = req.params;
+    if (!db.listCollections().includes(collection)) {
+      return res.status(400).json({ error: 'Colecao invalida.' });
+    }
+    const payload = req.body;
+    if (!payload || typeof payload !== 'object') {
+      return res.status(400).json({ error: 'Payload invalido.' });
+    }
+
+    if (payload.mode === 'delta') {
+      const current = await db.getCollection(collection);
+      const merged = applyDeltaToCollection(current, payload);
+      await db.setCollection(collection, merged, { skipSync: true });
+      return res.json({ success: true, mode: 'delta' });
+    }
+
+    if (payload.mode === 'full' && payload.data) {
+      await db.setCollection(collection, payload.data, { skipSync: true });
+      return res.json({ success: true, mode: 'full' });
+    }
+
+    await db.setCollection(collection, payload, { skipSync: true });
+    return res.json({ success: true, mode: 'legacy' });
+  } catch (err) {
+    console.error('[sync:collection:post] Error:', err);
+    res.status(500).json({ error: 'Erro ao salvar colecao.' });
   }
 });
 
@@ -607,7 +784,6 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     dataDir: db.getDataDir(),
-    fixedDataDir: FIXED_DATA_DIR,
     collections: db.listCollections()
   });
 });
@@ -695,8 +871,16 @@ app.post('/api/:collection/reset', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`[apiServer] Listening on port ${PORT}`);
   console.log('[apiServer] DATA_DIR (db.js):', db.getDataDir());
-  console.log('[apiServer] FIXED_DATA_DIR (cardápio):', FIXED_DATA_DIR);
   console.log('[apiServer] Collections:', db.listCollections());
 });
 
 module.exports = app;
+
+
+
+
+
+
+
+
+

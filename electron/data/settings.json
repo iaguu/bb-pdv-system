@@ -1,0 +1,90 @@
+{
+  "items": [
+    {
+      "id": "default",
+      "pizzariaName": "AXION PDV",
+      "api": {
+        "base_url": "",
+        "api_key": ""
+      },
+      "tema": "light",
+      "versao": "0.1.0",
+      "pizzaria": "AXION PDV",
+      "printing": {
+        "kitchenPrinterName": "Driver - Impressora Bematech MP-2800 TH Cosinha",
+        "counterPrinterName": "Driver - Impressora Bematech MP-2800 Balcão",
+        "silentMode": true,
+        "autoPrintWebsiteOrders": true
+      },
+      "delivery": {
+        "mode": "km_table",
+        "baseLocationLabel": "Chora Menino (bairro base)",
+        "ranges": [
+          {
+            "id": "r0_0_8",
+            "label": "até 0,8 km",
+            "minKm": 0,
+            "maxKm": 0.8,
+            "price": 3.5
+          },
+          {
+            "id": "r0_81_1_5",
+            "label": "0,81 a 1,5 km",
+            "minKm": 0.81,
+            "maxKm": 1.5,
+            "price": 5.9
+          },
+          {
+            "id": "r1_6_2",
+            "label": "de 1,6 a 2,0 km",
+            "minKm": 1.6,
+            "maxKm": 2,
+            "price": 7.5
+          },
+          {
+            "id": "r2_1_4",
+            "label": "de 2,1 a 4,0 km",
+            "minKm": 2.1,
+            "maxKm": 4,
+            "price": 8.9
+          },
+          {
+            "id": "r4_1_5_5",
+            "label": "de 4,1 a 5,5 km",
+            "minKm": 4.1,
+            "maxKm": 5.5,
+            "price": 10.9
+          },
+          {
+            "id": "r5_6_9",
+            "label": "de 5,6 a 9,0 km",
+            "minKm": 5.6,
+            "maxKm": 9,
+            "price": 12.9
+          },
+          {
+            "id": "r9_1_11_5",
+            "label": "de 9,1 a 11,5 km",
+            "minKm": 9.1,
+            "maxKm": 11.5,
+            "price": 18
+          },
+          {
+            "id": "r11_6_15",
+            "label": "de 11,6 a 15,0 km",
+            "minKm": 11.6,
+            "maxKm": 15,
+            "price": 22
+          },
+          {
+            "id": "pickup",
+            "label": "Retirar / até 0,1 km",
+            "minKm": 0,
+            "maxKm": 0.1,
+            "price": 0
+          }
+        ]
+      }
+    }
+  ]
+}

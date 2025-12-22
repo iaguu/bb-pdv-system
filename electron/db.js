@@ -1,4 +1,4 @@
-
+﻿
 // electron/db.js
 // DataEngine unificado para o app da pizzaria.
 // Lê e escreve coleções em arquivos JSON no diretório de dados.
@@ -8,6 +8,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const fetchFn = global.fetch
+  ? global.fetch
+  : (...args) =>
+      import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 let electronApp = null;
 try {
@@ -18,6 +22,7 @@ try {
   // Quando rodando em Node "puro" (ex: apiServer)
   electronApp = null;
 }
+const isElectron = Boolean(process.versions && process.versions.electron);
 
 const COLLECTION_FILES = {
   products: 'products.json',
@@ -74,7 +79,7 @@ function getDefaultData(collection) {
         items: [
           {
             id: 'default',
-            pizzariaName: 'Anne & Tom'
+            pizzariaName: 'AXION PDV'
           }
         ]
       };
@@ -95,7 +100,8 @@ function getDefaultData(collection) {
 
 async function readRawFile(filePath, fallback) {
   try {
-    const content = await fs.promises.readFile(filePath, 'utf8');
+    const raw = await fs.promises.readFile(filePath, 'utf8');
+    const content = raw.replace(/^\uFEFF/, '');
     if (!content.trim()) return fallback;
     return JSON.parse(content);
   } catch (err) {
@@ -121,13 +127,163 @@ async function writeRawFile(filePath, data) {
 
 // Garante formato { items: [...] }
 function ensureItemsWrapper(data) {
+  const meta =
+    data && typeof data === 'object' && data.meta && typeof data.meta === 'object'
+      ? data.meta
+      : { deleted: [] };
   if (Array.isArray(data)) {
-    return { items: data };
+    return { items: data, meta };
   }
   if (data && Array.isArray(data.items)) {
-    return data;
+    return { ...data, meta };
   }
-  return { items: [] };
+  return { items: [], meta };
+}
+
+function getSyncBaseUrl() {
+  const base = process.env.SYNC_BASE_URL || '';
+  if (!base.trim()) return '';
+  return base.replace(/\/+$/, '');
+}
+
+function shouldSync(options) {
+  if (options && options.skipSync) return false;
+  if (!isElectron) return false;
+  return Boolean(getSyncBaseUrl());
+}
+
+function getNowIso() {
+  return new Date().toISOString();
+}
+
+function buildDeltaPayload(items = [], deleted = []) {
+  return {
+    mode: 'delta',
+    items,
+    meta: { deleted }
+  };
+}
+
+function buildFullPayload(data) {
+  return {
+    mode: 'full',
+    data
+  };
+}
+
+function getSyncQueuePath() {
+  const dataDir = getDataDir();
+  ensureDirExists(dataDir);
+  return path.join(dataDir, 'sync-queue.json');
+}
+
+async function readSyncQueue() {
+  try {
+    const raw = await fs.promises.readFile(getSyncQueuePath(), 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    if (err.code === 'ENOENT') return [];
+    console.error('[sync] Erro lendo fila:', err);
+    return [];
+  }
+}
+
+async function writeSyncQueue(queue) {
+  try {
+    await fs.promises.writeFile(
+      getSyncQueuePath(),
+      JSON.stringify(queue, null, 2),
+      'utf8'
+    );
+  } catch (err) {
+    console.error('[sync] Erro salvando fila:', err);
+  }
+}
+
+async function enqueueSyncPayload(collection, payload) {
+  if (!isElectron) return;
+  const queue = await readSyncQueue();
+  const maxQueue = Number(process.env.SYNC_QUEUE_MAX || 200);
+  queue.push({
+    collection,
+    payload,
+    createdAt: getNowIso()
+  });
+  if (queue.length > maxQueue) {
+    queue.splice(0, queue.length - maxQueue);
+  }
+  await writeSyncQueue(queue);
+}
+
+async function pushCollectionToRemote(collection, payload, options = null) {
+  const baseUrl = getSyncBaseUrl();
+  if (!baseUrl) return false;
+
+  const url = `${baseUrl}/sync/collection/${encodeURIComponent(collection)}`;
+  const headers = { 'Content-Type': 'application/json' };
+  if (process.env.SYNC_TOKEN) {
+    headers['x-sync-token'] = process.env.SYNC_TOKEN;
+  }
+  const shouldEnqueue = !(options && options.skipEnqueue);
+
+  const controller = new AbortController();
+  const timeoutMs = Number(process.env.SYNC_TIMEOUT_MS || 5000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetchFn(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      console.error('[sync] Falha ao enviar colecao:', collection, response.status);
+      if (shouldEnqueue) {
+        await enqueueSyncPayload(collection, payload);
+      }
+      return false;
+    }
+    return true;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.error('[sync] Timeout enviando colecao:', collection);
+    } else {
+      console.error('[sync] Erro enviando colecao:', collection, err);
+    }
+    if (shouldEnqueue) {
+      await enqueueSyncPayload(collection, payload);
+    }
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function flushSyncQueue() {
+  if (!shouldSync()) {
+    return { success: false, flushed: 0, remaining: 0 };
+  }
+
+  const queue = await readSyncQueue();
+  if (queue.length === 0) {
+    return { success: true, flushed: 0, remaining: 0 };
+  }
+
+  let flushed = 0;
+  while (queue.length > 0) {
+    const entry = queue[0];
+    const ok = await pushCollectionToRemote(entry.collection, entry.payload, {
+      skipEnqueue: true,
+    });
+    if (!ok) break;
+    queue.shift();
+    flushed += 1;
+  }
+
+  await writeSyncQueue(queue);
+  return { success: true, flushed, remaining: queue.length };
 }
 
 // --------- API PRINCIPAL DO DATAENGINE ---------
@@ -140,41 +296,64 @@ async function getCollection(collection) {
 }
 
 // 2) Salvar coleção inteira (sobrescreve)
-async function setCollection(collection, data) {
+async function setCollection(collection, data, options = null) {
   const filePath = getCollectionPath(collection);
   await writeRawFile(filePath, data);
+  if (shouldSync(options)) {
+    void pushCollectionToRemote(collection, buildFullPayload(data));
+  }
   return data;
 }
 
 // 3) Adicionar item (mantém convenção { items: [] })
-async function addItem(collection, item) {
+async function addItem(collection, item, options = null) {
   const filePath = getCollectionPath(collection);
   const current = await getCollection(collection);
   const wrapper = ensureItemsWrapper(current);
+  const now = getNowIso();
 
-  // Se não vier id, gera um simples
+  // Se nao vier id, gera um simples
   if (!item.id) {
     item.id = `${collection}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   }
 
+  if (!item.createdAt) {
+    item.createdAt = now;
+  }
+  item.updatedAt = now;
+
+  if (!wrapper.meta || typeof wrapper.meta !== 'object') {
+    wrapper.meta = { deleted: [] };
+  }
+  if (Array.isArray(wrapper.meta.deleted)) {
+    wrapper.meta.deleted = wrapper.meta.deleted.filter(
+      (entry) => String(entry.id) !== String(item.id)
+    );
+  }
+
   wrapper.items.push(item);
-  console.log("[DB] Salvando na coleção:", collection);
+  console.log("[DB] Salvando na colecao:", collection);
   console.log("[DB] Caminho:", filePath);
-  console.log("[DB] Conteúdo antes:", wrapper);
+  console.log("[DB] Conteudo antes:", wrapper);
   console.log("[DB] Item novo:", item);
 
   await writeRawFile(filePath, wrapper);
 
   console.log("[DB] Arquivo salvo com sucesso.");
 
+  if (shouldSync(options)) {
+    void pushCollectionToRemote(collection, buildDeltaPayload([item], []));
+  }
+
   return item;
 }
 
 // 4) Atualizar item por id
-async function updateItem(collection, id, changes) {
+async function updateItem(collection, id, changes, options = null) {
   const filePath = getCollectionPath(collection);
   const current = await getCollection(collection);
   const wrapper = ensureItemsWrapper(current);
+  const now = getNowIso();
 
   const index = wrapper.items.findIndex((it) => String(it.id) === String(id));
   if (index === -1) {
@@ -183,18 +362,26 @@ async function updateItem(collection, id, changes) {
 
   wrapper.items[index] = {
     ...wrapper.items[index],
-    ...changes
+    ...changes,
+    updatedAt: changes.updatedAt || now
   };
 
   await writeRawFile(filePath, wrapper);
+  if (shouldSync(options)) {
+    void pushCollectionToRemote(
+      collection,
+      buildDeltaPayload([wrapper.items[index]], [])
+    );
+  }
   return wrapper.items[index];
 }
 
 // 5) Remover item por id
-async function removeItem(collection, id) {
+async function removeItem(collection, id, options = null) {
   const filePath = getCollectionPath(collection);
   const current = await getCollection(collection);
   const wrapper = ensureItemsWrapper(current);
+  const now = getNowIso();
 
   const index = wrapper.items.findIndex((it) => String(it.id) === String(id));
   if (index === -1) {
@@ -202,15 +389,39 @@ async function removeItem(collection, id) {
   }
 
   const [removed] = wrapper.items.splice(index, 1);
+  if (!wrapper.meta || typeof wrapper.meta !== 'object') {
+    wrapper.meta = { deleted: [] };
+  }
+  if (!Array.isArray(wrapper.meta.deleted)) {
+    wrapper.meta.deleted = [];
+  }
+  const existing = wrapper.meta.deleted.find(
+    (entry) => String(entry.id) === String(id)
+  );
+  const deletedEntry = existing || { id, deletedAt: now };
+  deletedEntry.deletedAt = now;
+  if (!existing) {
+    wrapper.meta.deleted.push(deletedEntry);
+  }
+
   await writeRawFile(filePath, wrapper);
+  if (shouldSync(options)) {
+    void pushCollectionToRemote(
+      collection,
+      buildDeltaPayload([], [deletedEntry])
+    );
+  }
   return removed;
 }
 
 // 6) Resetar coleção para default
-async function resetCollection(collection) {
+async function resetCollection(collection, options = null) {
   const filePath = getCollectionPath(collection);
   const defaultData = getDefaultData(collection);
   await writeRawFile(filePath, defaultData);
+  if (shouldSync(options)) {
+    void pushCollectionToRemote(collection, buildFullPayload(defaultData));
+  }
   return defaultData;
 }
 
@@ -228,5 +439,13 @@ module.exports = {
   updateItem,
   removeItem,
   resetCollection,
-  listCollections
+  listCollections,
+  flushSyncQueue
 };
+
+
+
+
+
+
+

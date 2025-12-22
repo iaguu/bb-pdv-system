@@ -46,7 +46,12 @@ contextBridge.exposeInMainWorld('ticketPrinter', {
 contextBridge.exposeInMainWorld('electronAPI', {
   printTickets: (payload) => ipcRenderer.invoke('print:tickets', payload),
   printOrder: (order, options) =>
-    ipcRenderer.invoke('print:order', { order, options })
+    ipcRenderer.invoke('print:order', { order, options }),
+  syncNow: () => ipcRenderer.invoke('sync:pull'),
+  getSyncStatus: () => ipcRenderer.invoke('sync:status'),
+  getNotificationsEnabled: () => ipcRenderer.invoke('sync:notifications:get'),
+  setNotificationsEnabled: (enabled) =>
+    ipcRenderer.invoke('sync:notifications:set', enabled)
 });
 
 // ---------------------------

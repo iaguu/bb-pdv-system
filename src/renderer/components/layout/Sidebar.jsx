@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 const items = [
   { key: "dashboard", label: "Início", icon: "🏠" },
@@ -15,7 +15,14 @@ export default function Sidebar({ current, onChange }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-inner">
-        <h3 className="sidebar-logo">BB - PDV</h3>
+        <h3 className="sidebar-logo">
+          <img
+            className="sidebar-logo__img"
+            src="./AXIONPDV.png"
+            alt="AXION PDV"
+          />
+          <span className="sidebar-logo__text">AXION PDV</span>
+        </h3>
         <nav className="sidebar-nav">
           {items.map((item) => {
             const isActive = item.key === current;
@@ -40,3 +47,4 @@ export default function Sidebar({ current, onChange }) {
     </aside>
   );
 }
+

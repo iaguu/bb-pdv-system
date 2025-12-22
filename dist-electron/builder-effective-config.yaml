@@ -1,0 +1,24 @@
+directories:
+  output: dist-electron
+  buildResources: build
+appId: com.axion.pdv
+productName: AXION PDV
+icon: AXIONPDV.png
+artifactName: AXION PDV Setup ${version}.${ext}
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+      - package.json
+asar: true
+asarUnpack:
+  - '**/*.node'
+publish: null
+win:
+  target: nsis
+  executableName: AXION PDV
+  icon: AXIONPDV.ico
+extraResources:
+  - from: .env
+    to: .env
+electronVersion: 39.2.6

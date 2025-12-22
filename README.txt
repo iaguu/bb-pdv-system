@@ -1,247 +1,216 @@
-🧾 BB-PDV System — Sistema de Ponto de Venda Desktop (Electron + React)
+﻿# 🧾 AXION PDV - Sistema de Ponto de Venda Desktop (Electron + React)
 
-📌 Sobre o Projeto
+## 🧠 Sobre o Projeto
 
-O BB-PDV System é um sistema completo de frente de caixa / gestão de pedidos, criado com Electron + React, pensado para funcionar 100% offline, com banco de dados local em JSON.
-Ele é utilizado como PDV principal do ecossistema Anne & Tom (website → PDV → app motoboy).
+O **AXION PDV** e um sistema completo de frente de caixa / gestao de pedidos, criado com **Electron + React**, pensado para funcionar 100% offline, com banco de dados local em JSON.
+Ele foi desenvolvido para ser o PDV central, oferecendo robustez e agilidade operacional.
 
 Ideal para:
+- Pizzarias
+- Lanchonetes
+- Restaurantes
+- Deliveries proprios
+- Pequenos e medios comercios
 
-Pizzarias
+---
 
-Lanchonetes
+## 🧩 Principais Modulos
 
-Restaurantes
+### 📦 Pedidos
+- Interface rapida com busca e clique agil
+- Pizzas com ate 3 sabores
+- Adicionais, observacoes e modificacoes por item
+- Cupom de cozinha e balcao (estilizados e revisados)
+- Impressao silenciosa (silentPrint)
+- Mudanca automatica de status
+- Integracao com motoboy via QR Code
 
-Deliveries próprios
+### 👥 Clientes
+- Cadastro completo
+- Busca por telefone (com mascara + normalizacao)
+- Historico completo de pedidos
+- Tags (VIP, primeira compra, etc.)
 
-Pequenos e médios comércios
+### 🍕 Produtos
+- CRUD completo
+- Ingredientes com badges removiveis
+- Precos por tamanho
+- Disponibilidade ativa/pausada
+- Normalizacao automatica
 
-🧩 Principais Módulos
-🛒 Pedidos
+### 🖨️ Impressao
+- Tickets modernos e faceis de ler
+- Cupom especial para cozinha (cores e espacamento)
+- Cupom de balcao com layout profissional
+- Impressoras separadas (cozinha / balcao)
+- Teste de impressora integrado
 
-Interface rápida com busca e clique ágil
+### ⚙️ Configuracoes
+- Selecao de impressoras detectadas via Electron
+- Persistencia automatica (settings.json)
+- Taxas de entrega por bairro / distancia
+- Informacoes do estabelecimento
+- Tema e preferencias visuais
 
-Pizzas com até 3 sabores
+---
 
-Adicionais, observações e modificações por item
+## 🏗️ Arquitetura do Sistema
 
-Cupom de cozinha e balcão (estilizados e revisados)
+```text
+axion-pdv/
+|
+|-- electron/
+|   |-- main.js          # Processo principal: impressao, QRCode, comunicacao IPC
+|   |-- db.js            # DataEngine com JSON local
+|   |-- printer/         # Modulos especificos de impressao
+|
+|-- src/
+|   |-- components/      # Componentes reutilizaveis
+|   |-- pages/           # Paginas (Orders, Products, Customers...)
+|   |-- hooks/           # Hooks com logicas isoladas
+|   |-- utils/           # Helpers e normalizacoes
+|   |-- styles/          # SCSS / tokens / layout
+|   |-- data/            # Estruturas JSON estaticas
+|   |-- App.jsx
+|
+|-- public/
+|-- package.json
+|-- vite.config.js
+```
 
-Impressão silenciosa (silentPrint)
+---
 
-Mudança automática de status
+## 🚀 Como Rodar
 
-Integração com motoboy via QR Code
+### ✅ Requisitos
+- Node.js (versao LTS)
+- NPM ou Yarn
+- Windows (recomendado), Linux ou macOS
 
-👤 Clientes
+### 🧪 Ambiente de Desenvolvimento
 
-Cadastro completo
+```bash
+# Clone o repositorio
+git clone https://github.com/iaguu/axion-pdv.git
 
-Busca por telefone (com máscara + normalização)
+# Entre na pasta
+cd axion-pdv
 
-Histórico completo de pedidos
-
-Tags (VIP, primeira compra, etc.)
-
-🍕 Produtos
-
-CRUD completo
-
-Ingredientes com badges removíveis
-
-Preços por tamanho
-
-Disponibilidade ativa/pausada
-
-Normalização automática
-
-🖨️ Impressão
-
-Tickets modernos e fáceis de ler
-
-Cupom especial para cozinha (cores e espaçamento)
-
-Cupom de balcão com layout profissional
-
-Impressoras separadas (cozinha / balcão)
-
-Teste de impressora integrado
-
-⚙️ Configurações
-
-Seleção de impressoras detectadas via Electron
-
-Persistência automática (settings.json)
-
-Taxas de entrega por bairro / distância
-
-Informações da pizzaria
-
-Tema e preferências visuais
-
-🏗 Arquitetura do Sistema
-
-bb-pdv-system/
-│
-├── electron/
-│   ├── main.js          # Processo principal: impressão, QRCode, comunicação IPC
-│   ├── db.js            # DataEngine com JSON local
-│   └── printer/         # Módulos específicos de impressão
-│
-├── src/
-│   ├── components/      # Componentes reutilizáveis
-│   ├── pages/           # Páginas (Orders, Products, Customers...)
-│   ├── hooks/           # Hooks com lógicas isoladas
-│   ├── utils/           # Helpers e normalizações
-│   ├── styles/          # SCSS / tokens / layout
-│   ├── data/            # Estruturas JSON estáticas
-│   └── App.jsx
-│
-├── public/
-├── package.json
-└── vite.config.js
-
-Como Rodar
-✔ Requisitos
-
-Node.js — versão LTS
-
-NPM ou Yarn
-
-Windows (recomendado), Linux ou macOS
-
-▶️ Ambiente de Desenvolvimento
-git clone https://github.com/iaguu/bb-pdv-system.git
-cd bb-pdv-system
-
+# Instale as dependencias
 npm install
+
+# Inicie o projeto
 npm run dev
+```
 
+Electron + React iniciam juntos.
 
-Electron + React iniciarão juntos.
+---
 
-🏗 Build Para Produção (App Desktop)
+## 🏗️ Build Para Producao (App Desktop)
+
+```bash
 npm run build
 npm run electron:build
+```
 
+O executavel ficara na pasta `/dist-electron`.
 
-O executável ficará em /dist.
+---
 
-🗃 Banco de Dados Local (DataEngine)
+## 🗂️ Banco de Dados Local (DataEngine)
 
-O banco é simplesmente uma pasta com arquivos .json:
+O banco e estruturado em arquivos .json locais, garantindo total autonomia offline:
 
+```text
 data/
-├── products.json
-├── customers.json
-├── orders.json
-└── settings.json
+|-- products.json
+|-- customers.json
+|-- orders.json
+|-- settings.json
+```
 
+- Criados automaticamente
+- Totalmente offline
+- Facilmente copiaveis para backup
+- Sem necessidade de servidor remoto
 
-Criados automaticamente
+---
 
-Totalmente offline
+## 🔗 Integracoes Internas
 
-Facilmente copiáveis para backup
+### 📍 CEP
+Integracao com ViaCEP (auto-preenchimento de endereco).
 
-Sem necessidade de servidor remoto
+### 🛵 Motoboy com QR Code
+- Ticket imprime um QR Code
+- Motoboy escaneia
+- Pedido muda para "em entrega" automaticamente
 
-🔌 Integrações Internas
-📍 CEP
+### 🖨️ Impressoras
+- Listagem automatica via Electron
+- Impressoras separadas por funcao (cozinha/balcao)
+- Teste de impressao e silent printing
 
-Integração com ViaCEP (auto-preenchimento de endereço).
+---
 
-🚚 Motoboy com QR Code
+## 🧪 Comandos Principais
 
-Ticket imprime um QR Code
+| Comando | Funcao |
+| --- | --- |
+| npm run dev | Inicia React + Electron no modo dev |
+| npm run build | Compila o React |
+| npm run electron:build | Cria o app desktop (instalador) |
+| npm run preview | Testa build web |
 
-Motoboy escaneia
+---
 
-Pedido muda para “em entrega”
+## 🧭 Roadmap Oficial (2025)
 
-🖨 Impressoras
+### 🔥 Em desenvolvimento
+- Revisao total do ticket da cozinha
+- Taxa de entrega por distancia (padrao Chora Menino)
+- Integracao total com motoboy
+- Revisao completa do catalogo e precos
 
-Listagem automática via Electron
+### 🧱 Planejado
+- Dashboard financeiro
+- Modulo de estoque avancado
+- Exportacao de relatorios (PDF/CSV)
+- Modo dark
+- Multiusuario (Admin / Caixa / Gerencia)
 
-Impressoras separadas por função
+### 🚀 Futuro
+- App Cliente
+- App Gerencial
+- Sync com backend remoto
 
-Teste de impressão
+---
 
-Impressão silenciosa
+## ✍️ Padroes de Codigo
+- Componentes pequenos e claros
+- Logicas isoladas em hooks
+- Normalizacoes universais (normalizeStatus, normalizePhone, etc.)
+- SCSS modular por tokens/layout/componentes
+- Comentarios explicativos nas areas criticas (impressoras, db, QRCode)
 
-🔧 Comandos Principais
-Comando	Função
-npm run dev	Inicia React + Electron no modo dev
-npm run build	Compila o React
-npm run electron:build	Cria o app desktop
-npm run preview	Testa build web
-npm run lint	Verifica inconsistências
-📌 Roadmap Oficial (2025)
-🟢 Em desenvolvimento
+---
 
-Revisão total do ticket da cozinha
+## 🤝 Como Contribuir
+- Faca um fork
+- Crie uma branch: `git checkout -b feature/minha-feature`
+- Commit: `git commit -m "feat: descreva sua feature"`
+- Envie o PR
 
-Taxa de entrega por distância (Chora Menino padrão)
+---
 
-Integração total com motoboy
+## 📜 Licenca
+Este projeto nao define licenca e e, por padrao, de uso restrito.
 
-Revisão completa do catálogo e preços
+---
 
-🟡 Planejado
-
-Dashboard financeiro
-
-Módulo de estoque avançado
-
-Exportação de relatórios (PDF/CSV)
-
-Modo dark
-
-Multiusuário (Admin / Caixa / Gerência)
-
-🔴 Futuro
-
-App Cliente
-
-App Gerencial
-
-Sync com backend remoto
-
-🧪 Padrões de Código
-
-Componentes pequenos e claros
-
-Lógicas isoladas em hooks
-
-Normalizações universais (normalizeStatus, normalizePhone, etc.)
-
-SCSS modular por tokens/layout/componentes
-
-Comentários explicativos nas áreas críticas (impressores, db, QRCode)
-
-🤝 Como Contribuir
-
-Faça um fork
-
-Crie uma branch:
-
-git checkout -b feature/minha-feature
-
-
-Commit:
-
-git commit -m "feat: descreva sua feature"
-
-
-Envie o PR
-
-📝 Licença
-
-Este projeto não define licença e é, por padrão, de uso restrito.
-
-👨‍💻 Autor
-
+## 👤 Autor
 Iago Ferreira Barreto
-Criador do ecossistema BB Systems / Anne & Tom
-Desenvolvedor especializado em soluções de PDV, React e Electron.
+Criador do ecossistema Axion
+Desenvolvedor especializado em solucoes de PDV, React e Electron.
+
