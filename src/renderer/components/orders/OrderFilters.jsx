@@ -1,13 +1,5 @@
-// src/renderer/components/orders/OrderFilters.jsx
 import React from "react";
-
-const STATUS_OPTIONS = [
-  { value: "open", label: "Em aberto / preparo / entrega" },
-  { value: "delivery", label: "Somente entrega" },
-  { value: "done", label: "Finalizados" },
-  { value: "cancelled", label: "Cancelados" },
-  { value: "all", label: "Todos" },
-];
+import { ORDER_STATUS_PRESETS } from "../../utils/orderUtils";
 
 const SOURCE_OPTIONS = [
   { value: "all", label: "Todos os canais" },
@@ -17,7 +9,7 @@ const SOURCE_OPTIONS = [
   { value: "local", label: "Balcão / Sistema" },
 ];
 
-const OrderFilters = ({ value = {}, onChange }) => {
+const OrderFilters = ({ value = {}, onChange, searchInputRef }) => {
   const currentStatus = value.status || "open";
   const currentSource = value.source || "all";
   const currentSearch = value.search || "";
@@ -32,47 +24,57 @@ const OrderFilters = ({ value = {}, onChange }) => {
 
   return (
     <div className="order-filters">
-      <div className="order-filters-field">
-        <label className="order-filters-label">Status</label>
-        <select
-          className="order-filters-select"
-          value={currentStatus}
-          onChange={(e) => handleChange("status", e.target.value)}
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+      <div className="order-status-tabs" role="tablist" aria-label="Status dos pedidos">
+        {ORDER_STATUS_PRESETS.map((tab) => {
+          const isActive = currentStatus === tab.value;
+          const classes = [
+            "order-status-tab",
+            `order-status-tab--tone-${tab.tone}`,
+            isActive ? "order-status-tab--active" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          return (
+            <button
+            key={tab.key}
+            type="button"
+            className={classes}
+            onClick={() => handleChange("status", tab.key)}
+          >
+            <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="order-filters-field">
-        <label className="order-filters-label">Origem</label>
-        <select
-          className="order-filters-select"
-          value={currentSource}
-          onChange={(e) => handleChange("source", e.target.value)}
-        >
-          {SOURCE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <div className="order-filters-controls">
+        <div className="order-filters-field">
+          <label className="order-filters-label">Origem</label>
+          <select
+            className="order-filters-select"
+            value={currentSource}
+            onChange={(e) => handleChange("source", e.target.value)}
+          >
+            {SOURCE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <div className="order-filters-field order-filters-field--search">
-        <label className="order-filters-label">
-          Buscar (ID ou cliente)
-        </label>
-        <input
-          className="order-filters-input"
-          type="search"
-          placeholder="Ex: 123 ou Joao"
-          value={currentSearch}
-          onChange={(e) => handleChange("search", e.target.value)}
-        />
+        <div className="order-filters-field order-filters-field--search">
+          <label className="order-filters-label">Buscar (ID ou cliente)</label>
+          <input
+            className="order-filters-input"
+            type="search"
+            placeholder="Ex: 123 ou Joao"
+            value={currentSearch}
+            onChange={(e) => handleChange("search", e.target.value)}
+            ref={searchInputRef}
+          />
+        </div>
       </div>
     </div>
   );

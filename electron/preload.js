@@ -26,7 +26,8 @@ contextBridge.exposeInMainWorld('dataEngine', {
 // Info do app (versão, etc.)
 // ---------------------------
 contextBridge.exposeInMainWorld('appInfo', {
-  getInfo: () => ipcRenderer.invoke('app:getInfo')
+  getInfo: () => ipcRenderer.invoke('app:getInfo'),
+  checkForUpdates: () => ipcRenderer.invoke('app:checkUpdates'),
 });
 
 // ---------------------------
@@ -49,6 +50,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('print:order', { order, options }),
   syncNow: () => ipcRenderer.invoke('sync:pull'),
   getSyncStatus: () => ipcRenderer.invoke('sync:status'),
+  getPublicApiConfig: () => ipcRenderer.invoke('app:getPublicApiConfig'),
   getNotificationsEnabled: () => ipcRenderer.invoke('sync:notifications:get'),
   setNotificationsEnabled: (enabled) =>
     ipcRenderer.invoke('sync:notifications:set', enabled)
@@ -63,6 +65,30 @@ contextBridge.exposeInMainWorld('printerConfig', {
   listPrinters: () => ipcRenderer.invoke('print:list-printers'),
   testPrinter: (role) => ipcRenderer.invoke('print:test', { role })
   // role pode ser "kitchen", "counter", "cashReport", etc.
+});
+
+
+contextBridge.exposeInMainWorld('orderEvents', {
+  onNewOrder: (handler) => {
+    if (typeof handler !== 'function') {
+      return () => {};
+    }
+    const listener = (_event, order) => handler(order);
+    ipcRenderer.on('orders:new', listener);
+    return () => {
+      ipcRenderer.removeListener('orders:new', listener);
+    };
+  },
+  onOrderUpdated: (handler) => {
+    if (typeof handler !== 'function') {
+      return () => {};
+    }
+    const listener = (_event, order) => handler(order);
+    ipcRenderer.on('orders:updated', listener);
+    return () => {
+      ipcRenderer.removeListener('orders:updated', listener);
+    };
+  },
 });
 
 

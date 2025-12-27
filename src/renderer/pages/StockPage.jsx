@@ -736,56 +736,60 @@ const StockPage = () => {
       }
     >
       <div className="stock-page">
-        {error && <div className="stock-error">{error}</div>}
+        <div className="stock-panel">
+          {error && <div className="stock-error">{error}</div>}
 
-        {/* Resumo rápido do estoque */}
-        <div className="stock-summary-grid">
-          <div className="stock-summary-card">
-            <div className="stock-summary-label">Ingredientes mapeados</div>
-            <div className="stock-summary-value">
-              {stockSummary.totalIngredients}
+          {/* Resumo rápido do estoque */}
+          <div className="stock-summary-grid">
+            <div className="stock-summary-card">
+              <div className="stock-summary-label">Ingredientes mapeados</div>
+              <div className="stock-summary-value">
+                {stockSummary.totalIngredients}
+              </div>
+            </div>
+            <div className="stock-summary-card">
+              <div className="stock-summary-label">Ingredientes em falta</div>
+              <div className="stock-summary-value highlight">
+                {stockSummary.missingIngredients}
+              </div>
+            </div>
+            <div className="stock-summary-card">
+              <div className="stock-summary-label">Produtos no catálogo</div>
+              <div className="stock-summary-value">
+                {stockSummary.totalProducts}
+              </div>
+            </div>
+            <div className="stock-summary-card">
+              <div className="stock-summary-label">
+                Pizzas pausadas (ingrediente)
+              </div>
+              <div className="stock-summary-value">
+                {stockSummary.autoPausedProducts}
+              </div>
+            </div>
+            <div className="stock-summary-card">
+              <div className="stock-summary-label">
+                Produtos pausados (manual)
+              </div>
+              <div className="stock-summary-value">
+                {stockSummary.manualPausedProducts}
+              </div>
             </div>
           </div>
-          <div className="stock-summary-card">
-            <div className="stock-summary-label">Ingredientes em falta</div>
-            <div className="stock-summary-value highlight">
-              {stockSummary.missingIngredients}
-            </div>
+
+          <div className="stock-tabs">
+            <Tabs
+              value={tab}
+              onChange={setTab}
+              options={[
+                { value: "ingredients", label: "Ingredientes" },
+                { value: "products", label: "Produtos" },
+              ]}
+            />
           </div>
-          <div className="stock-summary-card">
-            <div className="stock-summary-label">Produtos no catálogo</div>
-            <div className="stock-summary-value">
-              {stockSummary.totalProducts}
-            </div>
-          </div>
-          <div className="stock-summary-card">
-            <div className="stock-summary-label">
-              Pizzas pausadas (ingrediente)
-            </div>
-            <div className="stock-summary-value">
-              {stockSummary.autoPausedProducts}
-            </div>
-          </div>
-          <div className="stock-summary-card">
-            <div className="stock-summary-label">
-              Produtos pausados (manual)
-            </div>
-            <div className="stock-summary-value">
-              {stockSummary.manualPausedProducts}
-            </div>
-          </div>
+
+          {tab === "ingredients" ? renderIngredientsTab() : renderProductsTab()}
         </div>
-
-        <Tabs
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: "ingredients", label: "Ingredientes" },
-            { value: "products", label: "Produtos" },
-          ]}
-        />
-
-        {tab === "ingredients" ? renderIngredientsTab() : renderProductsTab()}
       </div>
     </Page>
   );

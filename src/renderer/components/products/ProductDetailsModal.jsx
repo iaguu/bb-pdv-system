@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Modal from "../common/Modal";
 import { CATEGORY_LABELS } from "../../pages/Products";
+import { emitToast } from "../../utils/toast";
 
 export default function ProductDetailsModal({ product, onClose, onSave }) {
   const [editing, setEditing] = useState(null);
@@ -22,7 +23,10 @@ export default function ProductDetailsModal({ product, onClose, onSave }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!editing.name?.trim()) {
-      alert("Informe o nome do produto.");
+      emitToast({
+        type: "warning",
+        message: "Informe o nome do produto.",
+      });
       return;
     }
     onSave({

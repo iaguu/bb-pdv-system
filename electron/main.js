@@ -7,6 +7,8 @@ const QRCode = require("qrcode"); // QR Code para tickets HTML
 
 // Módulo de acesso ao "banco" em JSON
 const db = require("./db"); // ajuste o path se necessário
+const apiServer = require("./apiServer");
+const { orderEvents, getTrackingBaseUrl } = apiServer;
 const packagedEnvPath = path.join(process.resourcesPath || "", ".env");
 const devEnvPath = path.join(__dirname, "..", ".env");
 if (fs.existsSync(packagedEnvPath)) dotenv.config({ path: packagedEnvPath });
@@ -19,9 +21,16 @@ const fetchFn = global.fetch
   ? global.fetch
   : (...args) =>
       import("node-fetch").then(({ default: fetch }) => fetch(...args));
+const UPDATE_CHECK_URL = process.env.UPDATE_CHECK_URL || "";
+const UPDATE_CHECK_TIMEOUT_MS = Number(process.env.UPDATE_CHECK_TIMEOUT_MS || 6000);
 
 const isDev = !app.isPackaged;
 let mainWindow;
+let mainWindowReady = false;
+const pendingNewOrders = [];
+const pendingNewOrderIds = new Set();
+const pendingUpdatedOrders = [];
+const pendingUpdatedOrderIds = new Set();
 
 // -------------------------------------
 // Criação da janela principal
@@ -49,14 +58,112 @@ function createMainWindow() {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
+  mainWindow.webContents.on("did-finish-load", () => {
+    mainWindowReady = true;
+    flushPendingNewOrders();
+    flushPendingUpdatedOrders();
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
+    mainWindowReady = false;
   });
 
   // Abre links externos no navegador padrão
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
+  });
+}
+
+function getOrderEventId(order) {
+  if (!order) return null;
+  return (
+    order.id ||
+    order._id ||
+    order.orderId ||
+    order.code ||
+    order.numeroPedido ||
+    null
+  );
+}
+
+function flushPendingNewOrders() {
+  if (!mainWindow?.webContents || !mainWindowReady) {
+    return;
+  }
+
+  while (pendingNewOrders.length > 0) {
+    const nextOrder = pendingNewOrders.shift();
+    if (!nextOrder) continue;
+    const nextOrderId = getOrderEventId(nextOrder);
+    if (nextOrderId) pendingNewOrderIds.delete(nextOrderId);
+    mainWindow.webContents.send("orders:new", nextOrder);
+  }
+}
+
+function flushPendingUpdatedOrders() {
+  if (!mainWindow?.webContents || !mainWindowReady) {
+    return;
+  }
+
+  while (pendingUpdatedOrders.length > 0) {
+    const nextOrder = pendingUpdatedOrders.shift();
+    if (!nextOrder) continue;
+    const nextOrderId = getOrderEventId(nextOrder);
+    if (nextOrderId) pendingUpdatedOrderIds.delete(nextOrderId);
+    mainWindow.webContents.send("orders:updated", nextOrder);
+  }
+}
+
+function dispatchOrderToRenderer(order) {
+  if (!order) {
+    return;
+  }
+
+  const orderId = getOrderEventId(order);
+  if (orderId && pendingNewOrderIds.has(orderId)) {
+    return;
+  }
+
+  if (mainWindow && mainWindowReady && mainWindow.webContents) {
+    mainWindow.webContents.send("orders:new", order);
+    return;
+  }
+
+  if (orderId) pendingNewOrderIds.add(orderId);
+  pendingNewOrders.push(order);
+}
+
+function dispatchOrderUpdatedToRenderer(order) {
+  if (!order) {
+    return;
+  }
+
+  const orderId = getOrderEventId(order);
+  if (orderId && pendingUpdatedOrderIds.has(orderId)) {
+    return;
+  }
+
+  if (mainWindow && mainWindowReady && mainWindow.webContents) {
+    mainWindow.webContents.send("orders:updated", order);
+    return;
+  }
+
+  if (orderId) pendingUpdatedOrderIds.add(orderId);
+  pendingUpdatedOrders.push(order);
+}
+
+if (orderEvents && typeof orderEvents.on === "function") {
+  orderEvents.on("created", (order) => {
+    const orderId = getOrderEventId(order) || "desconhecido";
+    console.log(`[apiServer] Novo pedido recebido: ${orderId}`);
+    dispatchOrderToRenderer(order);
+  });
+  orderEvents.on("updated", (order) => {
+    const orderId = getOrderEventId(order) || "desconhecido";
+    console.log(`[apiServer] Pedido atualizado: ${orderId}`);
+    dispatchOrderUpdatedToRenderer(order);
   });
 }
 
@@ -79,16 +186,9 @@ function formatCurrencyBR(value) {
   });
 }
 
-/**
- * 🌐 BASE para tracking / QR do motoboy
- * - Ajuste para a URL real da sua aplicação pública (site / painel motoboy)
- * - Ex.: https://seusistema.com/motoboy/pedido/{id}
- */
-const DEFAULT_TRACKING_BASE_URL =
-  process.env.ANNETOM_TRACKING_BASE_URL ||
-  "http://localhost:3030/motoboy/pedido/";
-
-const SYNC_BASE_URL = (process.env.SYNC_BASE_URL || "").replace(/\/+$/, "");
+const SYNC_BASE_URL = (
+  process.env.SYNC_BASE_URL || "https://api.annetom.com"
+).replace(/\/+$/, "");
 const SYNC_PULL_INTERVAL_MS = Number(process.env.SYNC_PULL_INTERVAL_MS || 30000);
 const SYNC_STATE_FILENAME = "sync-state.json";
 const SYNC_SETTINGS_FILENAME = "sync-settings.json";
@@ -115,12 +215,16 @@ let syncStatus = {
   online: false,
   lastPullAt: null,
   lastPullError: null,
+  lastPullErrorCode: null,
+  lastPullErrorType: null,
   lastPushAt: null,
   lastPushError: null,
   queueRemaining: 0,
   lastNewOrdersAt: null,
   lastNewOrdersCount: 0,
 };
+let syncRetryTimer = null;
+let syncRetryAttempt = 0;
 let notificationsEnabled = true;
 let lastNotifyAt = 0;
 const NEW_ORDER_NOTIFY_COOLDOWN_MS = Number(
@@ -219,6 +323,45 @@ function updateSyncOnline() {
     Date.now() - last <= threshold && !syncStatus.lastPullError;
 }
 
+function getSyncErrorCode(err) {
+  if (!err) return null;
+  if (err.code) return String(err.code);
+  if (err.cause && err.cause.code) return String(err.cause.code);
+  return null;
+}
+
+function getSyncErrorType(err) {
+  const code = getSyncErrorCode(err);
+  if (code === "ENOTFOUND") return "dns";
+  if (code === "ECONNREFUSED") return "refused";
+  if (code === "ETIMEDOUT") return "timeout";
+  if (code === "ECONNRESET") return "reset";
+  return null;
+}
+
+function resetSyncRetry() {
+  syncRetryAttempt = 0;
+  if (syncRetryTimer) {
+    clearTimeout(syncRetryTimer);
+    syncRetryTimer = null;
+  }
+}
+
+function scheduleSyncRetry() {
+  if (syncRetryTimer) return;
+  const baseDelay = Number(process.env.SYNC_RETRY_BASE_MS || 5000);
+  const maxDelay = Number(process.env.SYNC_RETRY_MAX_MS || 60000);
+  const delay = Math.min(
+    baseDelay * Math.pow(2, syncRetryAttempt),
+    maxDelay
+  );
+  syncRetryAttempt += 1;
+  syncRetryTimer = setTimeout(() => {
+    syncRetryTimer = null;
+    void runSyncCycle();
+  }, delay);
+}
+
 function notifyNewWebsiteOrders(count) {
   if (!notificationsEnabled) return;
   if (!count || count < 1) return;
@@ -227,14 +370,10 @@ function notifyNewWebsiteOrders(count) {
   lastNotifyAt = now;
 
   try {
-    app.beep();
-    if (Notification && Notification.isSupported()) {
-      const label = count === 1 ? "pedido" : "pedidos";
-      new Notification({
-        title: "Novo pedido do site",
-        body: `Chegaram ${count} ${label} do site.`,
-      }).show();
+    if (typeof app.beep === "function") {
+      app.beep();
     }
+    console.log(`[sync] Chegaram ${count} novos pedidos do site.`);
   } catch (err) {
     console.error("[sync] Erro ao notificar:", err);
   }
@@ -393,17 +532,25 @@ async function pullCollectionsFromRemote() {
       });
 
       if (payload && payload.delta === true && isItemCollection) {
+        const newOrdersFromSync = [];
         if (name === "orders") {
           const local = await db.getCollection(name);
-          const wrapper = normalizeWrapper(local) || { items: [], meta: { deleted: [] } };
+          const wrapper =
+            normalizeWrapper(local) || { items: [], meta: { deleted: [] } };
           const localIds = new Set(wrapper.items.map((item) => String(item.id)));
           for (const item of payload.items || []) {
-            if (!localIds.has(String(item.id)) && item.source === "website") {
-              newWebsiteOrders += 1;
+            if (!localIds.has(String(item.id))) {
+              if (item.source === "website") {
+                newWebsiteOrders += 1;
+              }
+              newOrdersFromSync.push(item);
             }
           }
         }
         await applyDeltaToLocal(name, payload);
+        if (name === "orders" && newOrdersFromSync.length > 0) {
+          newOrdersFromSync.forEach((order) => dispatchOrderToRenderer(order));
+        }
       } else if (isItemCollection && !since) {
         const local = await db.getCollection(name);
         const remoteHasData = collectionHasItems(payload);
@@ -423,6 +570,9 @@ async function pullCollectionsFromRemote() {
 
     syncStatus.lastPullAt = nowIso;
     syncStatus.lastPullError = null;
+    syncStatus.lastPullErrorCode = null;
+    syncStatus.lastPullErrorType = null;
+    resetSyncRetry();
     if (newWebsiteOrders > 0) {
       syncStatus.lastNewOrdersAt = nowIso;
       syncStatus.lastNewOrdersCount = newWebsiteOrders;
@@ -431,7 +581,12 @@ async function pullCollectionsFromRemote() {
     await saveSyncState();
   } catch (err) {
     syncStatus.lastPullError = String(err.message || err);
+    syncStatus.lastPullErrorCode = getSyncErrorCode(err);
+    syncStatus.lastPullErrorType = getSyncErrorType(err);
     console.error("[sync] Erro ao puxar colecoes:", err);
+    if (syncStatus.lastPullErrorType === "dns") {
+      scheduleSyncRetry();
+    }
   } finally {
     syncInProgress = false;
     updateSyncOnline();
@@ -473,7 +628,7 @@ function startSyncPull() {
 /**
  * Normaliza um trackingUrl para o pedido:
  * - Se já existir (order.trackingUrl / delivery.trackingUrl), usa direto.
- * - Senão, monta a partir de DEFAULT_TRACKING_BASE_URL + id ou código do pedido.
+ * - Senão, monta a partir da base retornada por getTrackingBaseUrl() + id ou código do pedido.
  */
 function getTrackingUrlFromOrder(order) {
   if (!order) return "";
@@ -495,7 +650,7 @@ function getTrackingUrlFromOrder(order) {
 
   if (!code) return "";
 
-  return `${DEFAULT_TRACKING_BASE_URL}${encodeURIComponent(String(code))}`;
+  return `${getTrackingBaseUrl()}${encodeURIComponent(String(code))}`;
 }
 
 // Gera um dataURL de QR Code para usar nos tickets HTML (balcão)
@@ -564,8 +719,18 @@ async function getDistanceKmFromGoogle(origin, destination) {
 
   const meters = element.distance.value;
   const km = meters / 1000;
-  console.log("[distance] Distância calculada (km):", km);
-  return km;
+  const durationSeconds = element.duration?.value;
+  const durationMinutes =
+    typeof durationSeconds === "number"
+      ? Math.round(durationSeconds / 60)
+      : null;
+  const durationText = element.duration?.text || null;
+  console.log("[distance] Dist?ncia calculada (km):", km);
+  return {
+    distanceKm: km,
+    durationMinutes,
+    durationText,
+  };
 }
 
 // -------------------------------------
@@ -587,8 +752,8 @@ ipcMain.handle("delivery:calculateDistanceKm", async (_event, { origin, destinat
       throw new Error("Origin ou destination vazios.");
     }
 
-    const distanceKm = await getDistanceKmFromGoogle(origin, destination);
-    return distanceKm; // número em km
+    const distancePayload = await getDistanceKmFromGoogle(origin, destination);
+    return distancePayload;
   } catch (err) {
     console.error("[main] delivery:calculateDistanceKm error:", err);
     return null;
@@ -639,6 +804,75 @@ ipcMain.handle("app:getInfo", async () => {
     env: isDev ? "development" : "production",
     dataDir: db.getDataDir(),
   };
+});
+
+ipcMain.handle("app:getPublicApiConfig", async () => {
+  return {
+    apiBaseUrl: process.env.SYNC_BASE_URL || "",
+    publicApiToken: process.env.PUBLIC_API_TOKEN || "",
+  };
+});
+
+async function queryUpdateInfo() {
+  if (!UPDATE_CHECK_URL) {
+    return {
+      success: false,
+      error: "UPDATE_CHECK_URL não está configurado.",
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), UPDATE_CHECK_TIMEOUT_MS);
+
+  try {
+    const response = await fetchFn(UPDATE_CHECK_URL, {
+      headers: {
+        Accept: "application/json",
+        "x-app-version": app.getVersion(),
+      },
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      return {
+        success: false,
+        error: payload?.error || `Resposta HTTP ${response.status}`,
+        status: response.status,
+      };
+    }
+    return {
+      success: true,
+      currentVersion: app.getVersion(),
+      latestVersion:
+        payload?.version ||
+        payload?.latestVersion ||
+        payload?.tag_name ||
+        "",
+      releaseNotes:
+        payload?.notes ||
+        payload?.releaseNotes ||
+        payload?.changelog ||
+        payload?.body ||
+        "",
+      downloadUrl:
+        payload?.downloadUrl || payload?.url || payload?.html_url || "",
+      raw: payload,
+    };
+  } catch (err) {
+    const isTimeout = err?.name === "AbortError";
+    return {
+      success: false,
+      error: isTimeout
+        ? "Verificação de atualizações expirou."
+        : err?.message || "Erro ao verificar atualizações.",
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+ipcMain.handle("app:checkUpdates", async () => {
+  return queryUpdateInfo();
 });
 
 // -------------------------------------
@@ -905,6 +1139,26 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
 
           .ticket {
             width: 100%;
+          }
+
+          .ticket.kitchen {
+            color: #0f172a;
+            background: #ffffff;
+          }
+          .ticket.kitchen .ticket-header,
+          .ticket.kitchen .ticket-body,
+          .ticket.kitchen .ticket-meta,
+          .ticket.kitchen .ticket-section-title {
+            color: #0f172a;
+            font-weight: 600;
+          }
+          .ticket.kitchen .ticket-body {
+            line-height: 1.5;
+          }
+          .ticket.kitchen .ticket-alert {
+            border-color: #d97706;
+            background: #fff7ed;
+            color: #7c2d12;
           }
 
           .ticket-header {

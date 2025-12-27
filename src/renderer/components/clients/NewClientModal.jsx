@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Modal from "../common/Modal";
 import { digitsOnly, lookupCep } from "./utils";
+import { emitToast } from "../../utils/toast";
 
 export default function NewClientModal({ isOpen, onClose, onConfirm }) {
   const [form, setForm] = useState({
@@ -67,7 +68,13 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
   const submit = (e) => {
     e.preventDefault();
     const nm = form.name.trim();
-    if (!nm) return alert("Informe o nome do cliente.");
+    if (!nm) {
+      emitToast({
+        type: "warning",
+        message: "Informe o nome do cliente.",
+      });
+      return;
+    }
 
     onConfirm({
       name: nm,

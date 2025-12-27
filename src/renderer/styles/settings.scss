@@ -65,6 +65,178 @@ $settings-text-soft: #9ca3af;
   }
 }
 
+.settings-update {
+  border: 1px dashed $settings-border;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-update-message {
+  font-size: 12px;
+  margin: 0;
+  color: $settings-text-muted;
+}
+
+.settings-update-message.available {
+  color: #047857;
+}
+
+.settings-update-message.error {
+  color: #b91c1c;
+}
+
+.settings-update-notes {
+  margin: 0;
+  font-size: 12px;
+  color: $settings-text-muted;
+  max-height: 120px;
+  overflow: auto;
+  line-height: 1.4;
+}
+
+/* ========================================================================== */
+/* VERSAO DO SISTEMA                                                          */
+/* ========================================================================== */
+
+.system-version-card {
+  border-radius: 14px;
+  border: 1px solid $settings-border;
+  background: linear-gradient(135deg, #ffffff, #f4f7fb);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.system-version-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.system-version-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: $settings-text-muted;
+}
+
+.system-version-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: $settings-text-main;
+}
+
+.system-version-env {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #111827;
+  color: #f8fafc;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.system-version-meta {
+  display: grid;
+  gap: 6px;
+}
+
+.system-version-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: $settings-text-muted;
+}
+
+.system-version-meta-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $settings-text-soft;
+}
+
+.system-version-meta-value {
+  font-weight: 600;
+  color: $settings-text-main;
+}
+
+.system-version-path {
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    "Courier New",
+    monospace;
+  font-size: 11px;
+  word-break: break-all;
+  color: $settings-text-muted;
+}
+
+.system-version-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.system-version-status {
+  border-radius: 10px;
+  border: 1px solid $settings-border;
+  padding: 8px 10px;
+  font-size: 12px;
+  display: grid;
+  gap: 4px;
+  background: #f8fafc;
+}
+
+.system-version-status-ok {
+  border-color: #86efac;
+  color: #065f46;
+  background: rgba(5, 150, 105, 0.08);
+}
+
+.system-version-status-available {
+  border-color: #fdba74;
+  color: #9a3412;
+  background: rgba(251, 146, 60, 0.12);
+}
+
+.system-version-status-error {
+  border-color: #fecaca;
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.system-version-notes {
+  font-size: 11px;
+  color: $settings-text-muted;
+  white-space: pre-wrap;
+}
+
+.system-version-link {
+  font-size: 11px;
+  word-break: break-all;
+  color: #1d4ed8;
+}
+
 /* Labels padrão da aplicação (já usados em outras telas) */
 .field {
   display: flex;
@@ -167,7 +339,178 @@ $settings-text-soft: #9ca3af;
   }
 }
 
+.delivery-blocked-area {
+  margin-top: 16px;
+  border-radius: 10px;
+  border: 1px solid $settings-border;
+  background: #ffffff;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+
+.delivery-blocked-title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.delivery-blocked-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.delivery-blocked-input .input {
+  flex: 1 1 240px;
+}
+
+.delivery-blocked-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 36px;
+}
+
+.delivery-blocked-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(230, 57, 70, 0.08);
+  border: 1px solid rgba(230, 57, 70, 0.4);
+  font-size: 13px;
+  color: $settings-text-main;
+}
+
+.delivery-blocked-chip span {
+  font-weight: 600;
+}
+
+.delivery-blocked-chip button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.delivery-blocked-empty {
+  font-size: 12px;
+  color: $settings-text-muted;
+  margin: 0;
+}
+
 /* ========================================================================== */
+/* HORARIO DE FUNCIONAMENTO                                                   */
+/* ========================================================================== */
+
+.business-hours-card {
+  margin-top: 16px;
+  border-radius: 12px;
+  border: 1px solid $settings-border;
+  background: #f9fafb;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.business-hours-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.business-hours-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.business-hours-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.business-hours-header {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 0.9fr 0.9fr;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $settings-text-soft;
+  padding: 0 4px;
+}
+
+.business-hours-row {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 0.9fr 0.9fr;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid $settings-border;
+  background: #ffffff;
+}
+
+.business-hours-row.is-disabled {
+  background: #f3f4f6;
+  color: $settings-text-soft;
+}
+
+.business-hours-row.is-disabled .business-hours-day,
+.business-hours-row.is-disabled .business-hours-toggle {
+  color: $settings-text-soft;
+}
+
+.business-hours-day {
+  font-size: 12px;
+  font-weight: 600;
+  color: $settings-text-main;
+}
+
+.business-hours-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid $settings-border;
+  background: #f8fafc;
+  color: $settings-text-main;
+
+  input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.business-hours-time .input {
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .business-hours-header,
+  .business-hours-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .business-hours-row {
+    gap: 6px 10px;
+  }
+}
+
 /* IMPRESSÃO – GRID DE IMPRESSORAS                                           */
 /* ========================================================================== */
 
@@ -232,6 +575,340 @@ $settings-text-soft: #9ca3af;
   margin-top: 4px;
   font-size: 11px;
   color: $settings-text-muted;
+}
+
+/* ========================================================================== */
+/* CONSOLE DA API                                                             */
+/* ========================================================================== */
+
+.api-console {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.api-console-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.api-console-card {
+  background: #f8fafc;
+  border: 1px solid $settings-border;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+.api-console-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: $settings-text-soft;
+}
+
+.api-console-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: $settings-text-main;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  word-break: break-all;
+}
+
+.api-console-value code {
+  font-size: 11px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.api-console-toggle {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #111827;
+}
+
+.api-console-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.api-quick-chip {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.api-quick-chip:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+  transform: translateY(-1px);
+}
+
+.api-console-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+
+  @media (max-width: 980px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.api-console-map {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.api-map-group {
+  border: 1px solid $settings-border;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 10px 12px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+.api-map-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.api-map-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: $settings-text-main;
+}
+
+.api-map-desc {
+  font-size: 11px;
+  color: $settings-text-muted;
+}
+
+.api-map-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.api-endpoint-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.2fr) auto minmax(0, 1.6fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+
+  @media (max-width: 820px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.api-endpoint-method {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  justify-self: flex-start;
+}
+
+.api-endpoint-method-get {
+  background: #ecfeff;
+  color: #0e7490;
+  border-color: #67e8f9;
+}
+
+.api-endpoint-method-post {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+
+.api-endpoint-method-put {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #7dd3fc;
+}
+
+.api-endpoint-method-delete {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.api-endpoint-path {
+  font-size: 12px;
+  font-weight: 600;
+  color: $settings-text-main;
+  word-break: break-word;
+}
+
+.api-endpoint-auth {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid $settings-border;
+  color: $settings-text-muted;
+}
+
+.api-endpoint-auth-public {
+  background: #f1f5f9;
+  border-color: #cbd5f5;
+  color: #475569;
+}
+
+.api-endpoint-auth-api-key {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.api-endpoint-auth-sync-token {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.api-endpoint-desc {
+  font-size: 11px;
+  color: $settings-text-muted;
+}
+
+.api-endpoint-test {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  justify-self: flex-start;
+}
+
+.api-console-test {
+  display: flex;
+  flex-direction: column;
+}
+
+.api-test-card {
+  border: 1px solid $settings-border;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+.api-test-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: $settings-text-main;
+}
+
+.api-test-row {
+  display: grid;
+  grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
+  gap: 8px;
+
+  @media (max-width: 700px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.api-test-toggle {
+  margin-top: 4px;
+}
+
+.api-test-body {
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    "Courier New",
+    monospace;
+  font-size: 12px;
+  background: #f8fafc;
+}
+
+.api-test-error {
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.api-test-result {
+  border: 1px solid $settings-border;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 8px 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.api-test-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $settings-text-muted;
+}
+
+.api-test-status-ok {
+  color: #065f46;
+}
+
+.api-test-status-error {
+  color: #b91c1c;
+}
+
+.api-test-response {
+  margin: 0;
+  font-size: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  color: #0f172a;
 }
 
 /* ========================================================================== */

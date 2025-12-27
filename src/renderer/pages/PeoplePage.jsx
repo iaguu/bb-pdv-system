@@ -13,7 +13,11 @@ import CustomerRow from "../components/people/CustomerRow";
 import CustomerFormModal from "../components/people/CustomerFormModal";
 import MotoboyRow from "../components/people/MotoboyRow";
 import MotoboyFormModal from "../components/people/MotoboyFormModal";
+import MotoboyQrModal from "../components/people/MotoboyQrModal";
+import MotoboyTipModal from "../components/people/MotoboyTipModal";
 import EmptyState from "../components/common/EmptyState";
+import { formatCurrencyBR } from "../utils/orderUtils";
+import { emitToast } from "../utils/toast";
 
 // -----------------------------
 // HELPERS DE NORMALIZAÇÃO
@@ -121,7 +125,7 @@ function diffInDaysFromToday(dateStr) {
 // helper para status de motoboy
 function getMotoboyStatus(m) {
   const rawStatus = m?.status || "available";
-  const isActive = m?.isActive !== false;
+  const isActive = m?.active !== false && m?.isActive !== false;
 
   if (!isActive) return "offline";
   if (rawStatus === "delivering") return "delivering";
@@ -144,6 +148,8 @@ const PeoplePage = () => {
   const [activeModal, setActiveModal] = useState(null); // 'customer-form' | 'motoboy-form' | null
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedMotoboy, setSelectedMotoboy] = useState(null);
+  const [qrModalMotoboy, setQrModalMotoboy] = useState(null);
+  const [tipModalMotoboy, setTipModalMotoboy] = useState(null);
 
   // input hidden para importação de JSON de clientes
   const importInputRef = useRef(null);
@@ -215,9 +221,11 @@ const PeoplePage = () => {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Erro ao exportar clientes JSON:", err);
-      alert(
-        "Não foi possível exportar os clientes em JSON. Veja o console para detalhes."
-      );
+      emitToast({
+        type: "error",
+        message:
+          "Não foi possível exportar os clientes em JSON. Veja o console para detalhes.",
+      });
     }
   };
 
@@ -262,9 +270,11 @@ const PeoplePage = () => {
           const imported = normalizeImportedCustomers(parsed);
 
           if (!Array.isArray(imported) || imported.length === 0) {
-            alert(
-              "O arquivo JSON não possui um formato válido de lista de clientes."
-            );
+            emitToast({
+              type: "warning",
+              message:
+                "O arquivo JSON não possui um formato válido de lista de clientes.",
+            });
             return;
           }
 
@@ -274,23 +284,28 @@ const PeoplePage = () => {
           });
 
           setCustomers(imported);
-          alert(
-            `Importação concluída com sucesso. ${imported.length} cliente(s) carregado(s).`
-          );
+          emitToast({
+            type: "success",
+            message: `Importação concluída com sucesso. ${imported.length} cliente(s) carregado(s).`,
+          });
         } catch (err) {
           console.error("Erro ao processar arquivo JSON:", err);
-          alert(
-            "Não foi possível ler o arquivo JSON de clientes. Verifique o formato."
-          );
+          emitToast({
+            type: "error",
+            message:
+              "Não foi possível ler o arquivo JSON de clientes. Verifique o formato.",
+          });
         }
       };
 
       reader.readAsText(file, "utf-8");
     } catch (err) {
       console.error("Erro ao importar clientes JSON:", err);
-      alert(
-        "Não foi possível importar o arquivo de clientes. Veja o console para detalhes."
-      );
+      emitToast({
+        type: "error",
+        message:
+          "Não foi possível importar o arquivo de clientes. Veja o console para detalhes.",
+      });
     }
   };
 
@@ -500,7 +515,9 @@ const PeoplePage = () => {
 
   const motoboySummary = useMemo(() => {
     const total = motoboys.length;
-    const active = motoboys.filter((m) => m.isActive !== false).length;
+    const active = motoboys.filter(
+      (m) => m?.active !== false && m?.isActive !== false
+    ).length;
     const delivering = motoboys.filter(
       (m) => getMotoboyStatus(m) === "delivering"
     ).length;
@@ -530,10 +547,176 @@ const PeoplePage = () => {
     setActiveModal("motoboy-form");
   };
 
+  const handleSaveMotoboy = async (draft) => {
+    try {
+      if (!window.dataEngine) {
+        throw new Error("API local (window.dataEngine) não disponível.");
+      }
+
+      const current = await window.dataEngine.get("motoboys");
+      const items = Array.isArray(current?.items)
+        ? current.items
+        : Array.isArray(current)
+        ? current
+        : [];
+
+      const id = draft?.id || `motoboy_${Date.now()}`;
+      const payload = { ...draft, id };
+
+      const updated = items.some((m) => String(m.id) === String(id))
+        ? items.map((m) =>
+            String(m.id) === String(id) ? { ...m, ...payload } : m
+          )
+        : [...items, payload];
+
+      await window.dataEngine.set("motoboys", { items: updated });
+      setMotoboys(updated);
+      emitToast({
+        type: "success",
+        message: "Motoboy salvo com sucesso.",
+      });
+      closeModal();
+    } catch (err) {
+      console.error("Erro ao salvar motoboy:", err);
+      emitToast({
+        type: "error",
+        message: "Não foi possível salvar o motoboy. Veja o console.",
+      });
+    }
+  };
+
+  const handleToggleMotoboyActive = async (motoboyId, nextActive) => {
+    try {
+      if (!window.dataEngine) {
+        throw new Error("API local (window.dataEngine) não disponível.");
+      }
+
+      const updated = motoboys.map((m) =>
+        String(m.id) === String(motoboyId)
+          ? { ...m, active: nextActive }
+          : m
+      );
+
+      await window.dataEngine.set("motoboys", { items: updated });
+      setMotoboys(updated);
+      emitToast({
+        type: "success",
+        message: nextActive
+          ? "Motoboy ativado com sucesso."
+          : "Motoboy desativado.",
+      });
+    } catch (err) {
+      console.error("Erro ao atualizar status do motoboy:", err);
+      emitToast({
+        type: "error",
+        message:
+          "Não foi possível atualizar o status do motoboy. Veja o console.",
+      });
+    }
+  };
+
+  const handleGenerateMotoboyQr = async (motoboy) => {
+    try {
+      if (!window.dataEngine) {
+        throw new Error("API local (window.dataEngine) não disponível.");
+      }
+      if (!motoboy) return;
+
+      const token =
+        motoboy.qrToken ||
+        `qr_${motoboy.id || Date.now()}_${Math.random()
+          .toString(16)
+          .slice(2, 8)}`;
+
+      const updated = motoboys.map((m) =>
+        String(m.id) === String(motoboy.id)
+          ? { ...m, qrToken: token }
+          : m
+      );
+
+      await window.dataEngine.set("motoboys", { items: updated });
+      setMotoboys(updated);
+      emitToast({
+        type: "success",
+        message: "QR do motoboy gerado com sucesso.",
+      });
+      setQrModalMotoboy({ ...motoboy, qrToken: token });
+    } catch (err) {
+      console.error("Erro ao gerar QR do motoboy:", err);
+      emitToast({
+        type: "error",
+        message: "Não foi possível gerar o QR do motoboy.",
+      });
+    }
+  };
+
+  const handleOpenMotoboyQr = (motoboy) => {
+    if (!motoboy) return;
+    if (!motoboy.qrToken) {
+      handleGenerateMotoboyQr(motoboy);
+      return;
+    }
+    setQrModalMotoboy(motoboy);
+  };
+
+  const handleAddMotoboyTip = async (motoboyId, tipDraft) => {
+    try {
+      if (!window.dataEngine) {
+        throw new Error("API local (window.dataEngine) não disponível.");
+      }
+
+      const updated = motoboys.map((m) => {
+        if (String(m.id) !== String(motoboyId)) return m;
+
+        const tips = Array.isArray(m.tips) ? [...m.tips] : [];
+        const tip = {
+          id: tipDraft.id || `tip_${Date.now()}`,
+          amount: tipDraft.amount,
+          note: tipDraft.note || "",
+          at: tipDraft.at || new Date().toISOString(),
+        };
+        tips.unshift(tip);
+
+        const tipsTotal =
+          typeof m.tipsTotal === "number"
+            ? m.tipsTotal + tip.amount
+            : tips.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
+
+        return {
+          ...m,
+          tips,
+          tipsTotal,
+        };
+      });
+
+      await window.dataEngine.set("motoboys", { items: updated });
+      setMotoboys(updated);
+      emitToast({
+        type: "success",
+        message: "Gorjeta registrada com sucesso.",
+      });
+      setTipModalMotoboy(null);
+    } catch (err) {
+      console.error("Erro ao salvar gorjeta:", err);
+      emitToast({
+        type: "error",
+        message: "Não foi possível salvar a gorjeta. Veja o console.",
+      });
+    }
+  };
+
   const closeModal = () => {
     setSelectedCustomer(null);
     setSelectedMotoboy(null);
     setActiveModal(null);
+  };
+
+  const closeQrModal = () => {
+    setQrModalMotoboy(null);
+  };
+
+  const closeTipModal = () => {
+    setTipModalMotoboy(null);
   };
 
   // -----------------------------
@@ -588,127 +771,184 @@ const PeoplePage = () => {
         )
       }
     >
-      <Tabs
-        value={tab}
-        onChange={setTab}
-        options={[
-          { value: "customers", label: "Clientes" },
-          { value: "motoboys", label: "Entregadores" },
-        ]}
-      />
-
-      <div className="people-toolbar">
-        <SearchInput
-          placeholder={
-            isCustomersTab
-              ? "Buscar cliente por nome, telefone, CPF, bairro, tags ou observações..."
-              : "Buscar motoboy por nome, telefone, veículo, placa, bairro base ou QR..."
-          }
-          value={search}
-          onChange={handleSearchChange}
+      <div className="people-tabs">
+        <Tabs
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "customers", label: "Clientes" },
+            { value: "motoboys", label: "Entregadores" },
+          ]}
         />
       </div>
 
-      {/* Filtros rápidos apenas para clientes */}
-      {isCustomersTab && (
-        <div className="people-filters">
-          <Button
-            variant={
-              customerFilter === "all" ? "primary" : "outline"
+      <div className="people-panel">
+        <div className="people-toolbar">
+          <SearchInput
+            placeholder={
+              isCustomersTab
+                ? "Buscar cliente por nome, telefone, CPF, bairro, tags ou observações..."
+                : "Buscar motoboy por nome, telefone, veículo, placa, bairro base ou QR..."
             }
-            onClick={() => setCustomerFilter("all")}
-          >
-            Todos
-          </Button>
-          <Button
-            variant={
-              customerFilter === "vip" ? "primary" : "outline"
-            }
-            onClick={() => setCustomerFilter("vip")}
-          >
-            VIP
-          </Button>
-          <Button
-            variant={
-              customerFilter === "frequent" ? "primary" : "outline"
-            }
-            onClick={() => setCustomerFilter("frequent")}
-          >
-            Frequentes
-          </Button>
-          <Button
-            variant={
-              customerFilter === "new" ? "primary" : "outline"
-            }
-            onClick={() => setCustomerFilter("new")}
-          >
-            Novos
-          </Button>
-          <Button
-            variant={
-              customerFilter === "inactive" ? "primary" : "outline"
-            }
-            onClick={() => setCustomerFilter("inactive")}
-          >
-            Inativos
-          </Button>
+            value={search}
+            onChange={handleSearchChange}
+          />
         </div>
-      )}
 
-      {/* Filtros rápidos para motoboys */}
-      {!isCustomersTab && (
-        <div className="people-filters">
-          <Button
-            variant={
-              motoboyFilter === "all" ? "primary" : "outline"
-            }
-            onClick={() => setMotoboyFilter("all")}
-          >
-            Todos
-          </Button>
-          <Button
-            variant={
-              motoboyFilter === "available" ? "primary" : "outline"
-            }
-            onClick={() => setMotoboyFilter("available")}
-          >
-            Disponíveis
-          </Button>
-          <Button
-            variant={
-              motoboyFilter === "delivering" ? "primary" : "outline"
-            }
-            onClick={() => setMotoboyFilter("delivering")}
-          >
-            Em entrega
-          </Button>
-          <Button
-            variant={
-              motoboyFilter === "offline" ? "primary" : "outline"
-            }
-            onClick={() => setMotoboyFilter("offline")}
-          >
-            Offline / Pausados
-          </Button>
-        </div>
-      )}
-
-      {/* Resumo rápido */}
-      <div className="people-summary">
-        {isCustomersTab ? (
-          <span>
-            {customerSummary.total} clientes ·{" "}
-            {customerSummary.vip} VIP ·{" "}
-            {customerSummary.frequent} frequentes ·{" "}
-            {customerSummary.inactive} inativos
-          </span>
-        ) : (
-          <span>
-            {motoboySummary.total} entregadores ·{" "}
-            {motoboySummary.active} ativos ·{" "}
-            {motoboySummary.delivering} em entrega
-          </span>
+        {/* Filtros rápidos apenas para clientes */}
+        {isCustomersTab && (
+          <div className="people-filters">
+            <Button
+              variant={
+                customerFilter === "all" ? "primary" : "outline"
+              }
+              onClick={() => setCustomerFilter("all")}
+            >
+              Todos
+            </Button>
+            <Button
+              variant={
+                customerFilter === "vip" ? "primary" : "outline"
+              }
+              onClick={() => setCustomerFilter("vip")}
+            >
+              VIP
+            </Button>
+            <Button
+              variant={
+                customerFilter === "frequent" ? "primary" : "outline"
+              }
+              onClick={() => setCustomerFilter("frequent")}
+            >
+              Frequentes
+            </Button>
+            <Button
+              variant={
+                customerFilter === "new" ? "primary" : "outline"
+              }
+              onClick={() => setCustomerFilter("new")}
+            >
+              Novos
+            </Button>
+            <Button
+              variant={
+                customerFilter === "inactive" ? "primary" : "outline"
+              }
+              onClick={() => setCustomerFilter("inactive")}
+            >
+              Inativos
+            </Button>
+          </div>
         )}
+
+        {/* Filtros rápidos para motoboys */}
+        {!isCustomersTab && (
+          <div className="people-filters">
+            <Button
+              variant={
+                motoboyFilter === "all" ? "primary" : "outline"
+              }
+              onClick={() => setMotoboyFilter("all")}
+            >
+              Todos
+            </Button>
+            <Button
+              variant={
+                motoboyFilter === "available" ? "primary" : "outline"
+              }
+              onClick={() => setMotoboyFilter("available")}
+            >
+              Disponíveis
+            </Button>
+            <Button
+              variant={
+                motoboyFilter === "delivering" ? "primary" : "outline"
+              }
+              onClick={() => setMotoboyFilter("delivering")}
+            >
+              Em entrega
+            </Button>
+            <Button
+              variant={
+                motoboyFilter === "offline" ? "primary" : "outline"
+              }
+              onClick={() => setMotoboyFilter("offline")}
+            >
+              Offline / Pausados
+            </Button>
+          </div>
+        )}
+
+        {/* Resumo rápido */}
+        <div className="people-summary">
+          {isCustomersTab ? (
+            <div className="people-summary-grid">
+              <div className="people-summary-card">
+                <span className="people-summary-label">Clientes</span>
+                <strong className="people-summary-value">
+                  {customerSummary.total}
+                </strong>
+              </div>
+              <div className="people-summary-card">
+                <span className="people-summary-label">VIP</span>
+                <strong className="people-summary-value">
+                  {customerSummary.vip}
+                </strong>
+              </div>
+              <div className="people-summary-card">
+                <span className="people-summary-label">Frequentes</span>
+                <strong className="people-summary-value">
+                  {customerSummary.frequent}
+                </strong>
+              </div>
+              <div className="people-summary-card">
+                <span className="people-summary-label">Inativos</span>
+                <strong className="people-summary-value">
+                  {customerSummary.inactive}
+                </strong>
+              </div>
+            </div>
+          ) : (
+            <div className="people-summary-grid">
+              <div className="people-summary-card">
+                <span className="people-summary-label">Entregadores</span>
+                <strong className="people-summary-value">
+                  {motoboySummary.total}
+                </strong>
+              </div>
+              <div className="people-summary-card">
+                <span className="people-summary-label">Ativos</span>
+                <strong className="people-summary-value">
+                  {motoboySummary.active}
+                </strong>
+              </div>
+              <div className="people-summary-card">
+                <span className="people-summary-label">Em entrega</span>
+                <strong className="people-summary-value">
+                  {motoboySummary.delivering}
+                </strong>
+              </div>
+              <div className="people-summary-card">
+                <span className="people-summary-label">Gorjetas (total)</span>
+                <strong className="people-summary-value">
+                  {formatCurrencyBR(
+                    motoboys.reduce((acc, m) => {
+                      const fromTotal =
+                        typeof m.tipsTotal === "number" ? m.tipsTotal : 0;
+                      const fromList = Array.isArray(m.tips)
+                        ? m.tips.reduce(
+                            (sum, t) => sum + (Number(t.amount) || 0),
+                            0
+                          )
+                        : 0;
+                      return acc + (fromTotal || fromList || 0);
+                    }, 0)
+                  )}
+                </strong>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {isLoading && (
@@ -752,7 +992,10 @@ const PeoplePage = () => {
                     <MotoboyRow
                       key={m.id}
                       motoboy={m}
-                      onClick={openEditMotoboy}
+                      onEdit={openEditMotoboy}
+                      onToggleActive={handleToggleMotoboyActive}
+                      onGenerateQr={handleOpenMotoboyQr}
+                      onAddTip={(motoboy) => setTipModalMotoboy(motoboy)}
                     />
                   ))}
                 </div>
@@ -772,9 +1015,25 @@ const PeoplePage = () => {
 
       {activeModal === "motoboy-form" && (
         <MotoboyFormModal
-          initialData={selectedMotoboy}
+          isOpen={true}
+          motoboy={selectedMotoboy}
           onClose={closeModal}
-          onSaved={loadMotoboys}
+          onSave={handleSaveMotoboy}
+        />
+      )}
+
+      {qrModalMotoboy && (
+        <MotoboyQrModal
+          motoboy={qrModalMotoboy}
+          onClose={closeQrModal}
+        />
+      )}
+
+      {tipModalMotoboy && (
+        <MotoboyTipModal
+          motoboy={tipModalMotoboy}
+          onClose={closeTipModal}
+          onSave={handleAddMotoboyTip}
         />
       )}
     </Page>

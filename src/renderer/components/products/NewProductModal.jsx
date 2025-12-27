@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Modal from "../common/Modal";
 import { CATEGORY_LABELS } from "../../pages/Products";
+import { emitToast } from "../../utils/toast";
 
 export default function NewProductModal({ isOpen, onClose, onConfirm }) {
   const [type, setType] = useState("pizza");
@@ -35,7 +36,10 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
     e.preventDefault();
 
     if (!name.trim()) {
-      alert("Informe o nome do produto.");
+      emitToast({
+        type: "warning",
+        message: "Informe o nome do produto.",
+      });
       return;
     }
 

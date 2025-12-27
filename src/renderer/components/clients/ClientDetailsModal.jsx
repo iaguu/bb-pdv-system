@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Modal from "../common/Modal";
 import { digitsOnly, lookupCep, normalizeCustomer } from "./utils";
+import { emitToast } from "../../utils/toast";
 
 export default function ClientDetailsModal({
   customer,
@@ -50,7 +51,13 @@ export default function ClientDetailsModal({
   const submit = (e) => {
     e.preventDefault();
     const nm = editing.name.trim();
-    if (!nm) return alert("Informe o nome do cliente.");
+    if (!nm) {
+      emitToast({
+        type: "warning",
+        message: "Informe o nome do cliente.",
+      });
+      return;
+    }
     onSave({ ...editing, name: nm });
   };
 

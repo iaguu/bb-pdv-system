@@ -12,6 +12,7 @@ import CashSessionRow from "../components/finance/CashSessionRow";
 import EmptyState from "../components/common/EmptyState";
 import OpenCashSessionModal from "../components/finance/OpenCashSessionModal";
 import CloseCashSessionModal from "../components/finance/CloseCashSessionModal";
+import { emitToast } from "../utils/toast";
 
 const COMMISSION_RATE = 0.012; // 1,5%
 
@@ -739,9 +740,11 @@ const FinancePage = () => {
 
   const handleExportSessionsCsv = () => {
     if (!hasSessions) {
-      alert(
-        "Não há sessões no período e filtro selecionados para exportar."
-      );
+      emitToast({
+        type: "warning",
+        message:
+          "Não há sessões no período e filtro selecionados para exportar.",
+      });
       return;
     }
 
@@ -821,9 +824,11 @@ const FinancePage = () => {
   // -----------------------------
   const handleExportSessionsPdf = async () => {
     if (!hasSessions) {
-      alert(
-        "Não há sessões no período e filtro selecionados para gerar o fechamento."
-      );
+      emitToast({
+        type: "warning",
+        message:
+          "Não há sessões no período e filtro selecionados para gerar o fechamento.",
+      });
       return;
     }
 
@@ -845,24 +850,30 @@ const FinancePage = () => {
         console.warn(
           "window.dataEngine.exportCashReportPdf não está definido. Implemente no preload/main."
         );
-        alert(
-          "Função de exportar PDF ainda não está configurada no desktop. Veja o console para detalhes."
-        );
+        emitToast({
+          type: "warning",
+          message:
+            "Função de exportar PDF ainda não está configurada no desktop. Veja o console para detalhes.",
+        });
         return;
       }
 
       await window.dataEngine.exportCashReportPdf(payload);
 
-      alert(
-        "Fechamento de caixa enviado para geração de PDF. Verifique a pasta de relatórios do sistema."
-      );
+      emitToast({
+        type: "success",
+        message:
+          "Fechamento de caixa enviado para geração de PDF. Verifique a pasta de relatórios do sistema.",
+      });
 
       await loadData();
     } catch (err) {
       console.error("Erro ao gerar fechamento em PDF:", err);
-      alert(
-        "Não foi possível gerar o PDF de fechamento. Verifique o console para mais detalhes."
-      );
+      emitToast({
+        type: "error",
+        message:
+          "Não foi possível gerar o PDF de fechamento. Verifique o console para mais detalhes.",
+      });
     }
   };
 
@@ -876,7 +887,10 @@ const FinancePage = () => {
   // -----------------------------
   const openOpenModal = () => {
     if (hasOpenSession) {
-      alert("Já existe uma sessão de caixa aberta.");
+      emitToast({
+        type: "warning",
+        message: "Já existe uma sessão de caixa aberta.",
+      });
       return;
     }
     setOpenForm({
@@ -921,9 +935,11 @@ const FinancePage = () => {
       setOpenModalVisible(false);
     } catch (err) {
       console.error("Erro ao abrir sessão de caixa:", err);
-      alert(
-        "Não foi possível abrir a sessão de caixa. Verifique o console."
-      );
+      emitToast({
+        type: "error",
+        message:
+          "Não foi possível abrir a sessão de caixa. Verifique o console.",
+      });
     }
   };
 
@@ -932,7 +948,10 @@ const FinancePage = () => {
   // -----------------------------
   const openCloseModal = () => {
     if (!currentOpenSession) {
-      alert("Não há sessão de caixa aberta para fechar.");
+      emitToast({
+        type: "warning",
+        message: "Não há sessão de caixa aberta para fechar.",
+      });
       return;
     }
 
@@ -979,9 +998,11 @@ const FinancePage = () => {
       setCloseModalVisible(false);
     } catch (err) {
       console.error("Erro ao fechar sessão de caixa:", err);
-      alert(
-        "Não foi possível fechar a sessão de caixa. Verifique o console."
-      );
+      emitToast({
+        type: "error",
+        message:
+          "Não foi possível fechar a sessão de caixa. Verifique o console.",
+      });
     }
   };
 

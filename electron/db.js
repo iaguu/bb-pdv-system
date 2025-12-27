@@ -8,6 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const fetchFn = global.fetch
   ? global.fetch
   : (...args) =>
@@ -34,19 +35,48 @@ const COLLECTION_FILES = {
   dashboard: 'dashboard.json'
 };
 
-function getDataDir() {
-  // 1) Se definido externamente (ex: apiServer), prioriza isso
+const APPDATA_SCOPE = process.env.APPDATA_SCOPE || 'BB-PEDIDOS';
+const PACKAGED_DATA_DIR = path.join(__dirname, 'data');
+
+function resolveStoredDataDir() {
   if (process.env.DATA_DIR && process.env.DATA_DIR.trim()) {
     return path.resolve(process.env.DATA_DIR.trim());
   }
 
-  // 2) Se estiver no Electron e o app já existir
-  if (electronApp && typeof electronApp.getPath === 'function') {
-    return path.join(electronApp.getPath('userData'), 'data');
+  const appData =
+    (electronApp &&
+      typeof electronApp.getPath === 'function' &&
+      electronApp.getPath('appData')) ||
+    process.env.APPDATA ||
+    (process.platform === 'darwin'
+      ? path.join(os.homedir(), 'Library', 'Application Support')
+      : path.join(os.homedir(), 'AppData', 'Roaming'));
+
+  return path.join(appData, APPDATA_SCOPE, 'data');
+}
+
+function bootstrapDataAssets(dir) {
+  if (!fs.existsSync(PACKAGED_DATA_DIR)) {
+    return;
   }
 
-  // 3) Fallback: diretório "data" na pasta atual do processo (Node puro)
-  return path.join(process.cwd(), 'data');
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  for (const fileName of Object.values(COLLECTION_FILES)) {
+    const sourceFile = path.join(PACKAGED_DATA_DIR, fileName);
+    const targetFile = path.join(dir, fileName);
+    if (!fs.existsSync(sourceFile)) continue;
+    if (fs.existsSync(targetFile)) continue;
+    fs.copyFileSync(sourceFile, targetFile);
+  }
+}
+
+function getDataDir() {
+  const resolved = resolveStoredDataDir();
+  bootstrapDataAssets(resolved);
+  return resolved;
 }
 
 function ensureDirExists(dirPath) {
@@ -141,9 +171,8 @@ function ensureItemsWrapper(data) {
 }
 
 function getSyncBaseUrl() {
-  const base = process.env.SYNC_BASE_URL || '';
-  if (!base.trim()) return '';
-  return base.replace(/\/+$/, '');
+  const base = process.env.SYNC_BASE_URL || "https://api.annetom.com";
+  return base.replace(/\/+$/, "");
 }
 
 function shouldSync(options) {

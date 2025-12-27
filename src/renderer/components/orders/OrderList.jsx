@@ -1,9 +1,13 @@
 // src/renderer/components/orders/OrderList.jsx
 import React, { useMemo } from "react";
 import OrderRow, { OrderGroupHeader } from "./OrderRow";
-import { normalizeStatus } from "../../utils/orderUtils";
+import {
+  normalizeStatus,
+  ORDER_STATUS_PRESETS,
+} from "../../utils/orderUtils";
 
 const STATUS_GROUPS = [
+  { key: "late", label: "Atrasados", tone: "late" },
   { key: "open", label: "Em aberto", tone: "open" },
   { key: "preparing", label: "Em preparo", tone: "preparing" },
   { key: "out_for_delivery", label: "Em entrega", tone: "delivering" },
@@ -25,24 +29,22 @@ const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
       );
     };
 
+    const selectedPreset =
+      ORDER_STATUS_PRESETS.find((preset) => preset.key === status) || null;
+    const allowedStatuses = selectedPreset?.statuses || null;
+    const matchesStatusFilter = (ns) => {
+      if (!status || status === "all") return true;
+      if (allowedStatuses) {
+        return allowedStatuses.includes(ns);
+      }
+      return ns === status;
+    };
     const filtered = (Array.isArray(orders) ? orders : []).filter((o) => {
       const ns = normalizeStatus(o.status);
       const src = (o.source || "all").toString().toLowerCase();
 
-      if (status === "open") {
-        if (!["open", "preparing", "out_for_delivery"].includes(ns)) {
-          return false;
-        }
-      } else if (status === "done") {
-        if (ns !== "done") return false;
-      } else if (status === "cancelled") {
-        if (ns !== "cancelled") return false;
-      } else if (status === "delivery") {
-        if (ns !== "out_for_delivery") return false;
-      } else if (status === "all") {
-        // keep all
-      } else {
-        if (ns !== status) return false;
+      if (!matchesStatusFilter(ns)) {
+        return false;
       }
 
       if (source !== "all") {
@@ -81,6 +83,7 @@ const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
     });
 
     const groups = {
+      late: [],
       open: [],
       preparing: [],
       out_for_delivery: [],
@@ -104,8 +107,18 @@ const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
       const isNewFlag = !!o.isNew || !!o.isNewFromSite;
       const isNew = isFreshTime || isNewFlag;
 
-      const targetKey = groups[ns] ? ns : "open";
-      groups[targetKey].push({ order: o, isNew });
+      const minMinutes =
+        typeof o.deliveryMinMinutes === "number"
+          ? o.deliveryMinMinutes
+          : 0;
+      const lateThreshold = minMinutes > 0 ? minMinutes : 40;
+      const isLate =
+        isOpenLike(o.status) &&
+        minutesSince != null &&
+        minutesSince >= lateThreshold;
+
+      const targetKey = isLate ? "late" : groups[ns] ? ns : "open";
+      groups[targetKey].push({ order: o, isNew, isLate });
     });
 
     Object.keys(groups).forEach((k) => {

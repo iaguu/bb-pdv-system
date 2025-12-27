@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Page from "../components/layout/Page";
 import OrderRow from "../components/orders/OrderRow";
 import { normalizeStatus, getOrderTotal, formatCurrencyBR } from "../utils/orderUtils";
+import { emitToast } from "../utils/toast";
 
 const normalizeOrdersData = (data) => {
   if (!data) return [];
@@ -515,7 +516,11 @@ const DashboardPage = () => {
 
   const handleExportCsv = () => {
     if (!filteredOrders.length) {
-      alert("Não há pedidos no período selecionado para exportar.");
+      emitToast({
+        type: "warning",
+        message:
+          "Não há pedidos no período selecionado para exportar.",
+      });
       return;
     }
 

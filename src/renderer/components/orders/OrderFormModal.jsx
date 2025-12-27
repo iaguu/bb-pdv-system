@@ -1,8 +1,44 @@
 // src/renderer/components/orders/NewOrderModal.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 function digitsOnly(s) {
   return (s || "").replace(/\D/g, "");
+}
+
+function normalizeNeighborhoodKey(value) {
+  if (!value) return "";
+  return value
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function findBlockedNeighborhood(neighborhood, blockedList) {
+  if (!neighborhood || !Array.isArray(blockedList)) return null;
+  const key = normalizeNeighborhoodKey(neighborhood);
+  if (!key) return null;
+  return (
+    blockedList.find(
+      (item) => normalizeNeighborhoodKey(item) === key
+    ) || null
+  );
+}
+
+const ORDER_DRAFT_STORAGE_KEY = "orderDraftV1";
+
+function getMissingAddressFields(address, neighborhoodOverride) {
+  const missing = [];
+  const addr = address || {};
+  if (!addr.street) missing.push("Rua");
+  if (!addr.number) missing.push("Numero");
+  const neighborhood =
+    neighborhoodOverride || addr.neighborhood || addr.bairro || "";
+  if (!neighborhood) missing.push("Bairro");
+  if (!addr.city) missing.push("Cidade");
+  if (!addr.state) missing.push("Estado");
+  return missing;
 }
 
 /**
@@ -17,6 +53,17 @@ const BASE_DELIVERY_ADDRESS =
  */
 const DEFAULT_DELIVERY_CONFIG = {
   baseLocationLabel: "Rua Dona Elfrida, 719 - Santa Teresinha",
+  blockedNeighborhoods: [],
+  minOrderValue: 0,
+  maxDistanceKm: 0,
+  etaMinutesDefault: 45,
+  peakFee: {
+    enabled: false,
+    days: [],
+    startTime: "18:00",
+    endTime: "22:00",
+    amount: 0,
+  },
   ranges: [
     {
       id: "r0_0_8",
@@ -84,6 +131,28 @@ const DEFAULT_DELIVERY_CONFIG = {
   ],
 };
 
+function buildWeeklySchedule(
+  openTime = "11:00",
+  closeTime = "23:00",
+  closedWeekdays = []
+) {
+  const closed = Array.isArray(closedWeekdays) ? closedWeekdays : [];
+  return [0, 1, 2, 3, 4, 5, 6].map((day) => ({
+    day,
+    enabled: !closed.includes(day),
+    openTime,
+    closeTime,
+  }));
+}
+
+const DEFAULT_BUSINESS_HOURS = {
+  enabled: false,
+  openTime: "11:00",
+  closeTime: "23:00",
+  closedWeekdays: [],
+  weeklySchedule: buildWeeklySchedule(),
+};
+
 /**
  * Normaliza deliveryConfig vindo de settings (caso exista)
  */
@@ -108,6 +177,35 @@ function normalizeDeliveryConfigFromSettings(rawSettings) {
     baseLocationLabel:
       delivery.baseLocationLabel ||
       DEFAULT_DELIVERY_CONFIG.baseLocationLabel,
+    minOrderValue:
+      typeof delivery.minOrderValue === "number"
+        ? delivery.minOrderValue
+        : Number(delivery.minOrderValue || 0),
+    maxDistanceKm:
+      typeof delivery.maxDistanceKm === "number"
+        ? delivery.maxDistanceKm
+        : Number(delivery.maxDistanceKm || 0),
+    etaMinutesDefault:
+      typeof delivery.etaMinutesDefault === "number"
+        ? delivery.etaMinutesDefault
+        : Number(delivery.etaMinutesDefault || 45),
+    blockedNeighborhoods: Array.isArray(delivery.blockedNeighborhoods)
+      ? delivery.blockedNeighborhoods
+          .map((b) => (b || "").toString().trim())
+          .filter(Boolean)
+      : [],
+    peakFee: {
+      enabled: !!delivery.peakFee?.enabled,
+      days: Array.isArray(delivery.peakFee?.days)
+        ? delivery.peakFee.days
+        : [],
+      startTime: delivery.peakFee?.startTime || "18:00",
+      endTime: delivery.peakFee?.endTime || "22:00",
+      amount:
+        typeof delivery.peakFee?.amount === "number"
+          ? delivery.peakFee.amount
+          : Number(delivery.peakFee?.amount || 0),
+    },
     ranges: delivery.ranges.map((r, idx) => ({
       id: r.id || `r_${idx}`,
       label:
@@ -130,6 +228,59 @@ function normalizeDeliveryConfigFromSettings(rawSettings) {
   };
 }
 
+function normalizeBusinessHoursFromSettings(rawSettings) {
+  if (!rawSettings) return DEFAULT_BUSINESS_HOURS;
+
+  let settingsObj = null;
+  if (Array.isArray(rawSettings?.items) && rawSettings.items.length > 0) {
+    settingsObj = rawSettings.items[0];
+  } else if (Array.isArray(rawSettings) && rawSettings.length > 0) {
+    settingsObj = rawSettings[0];
+  } else if (typeof rawSettings === "object") {
+    settingsObj = rawSettings;
+  }
+
+  const hours = settingsObj?.businessHours || {};
+  const openTime = hours.openTime || DEFAULT_BUSINESS_HOURS.openTime;
+  const closeTime = hours.closeTime || DEFAULT_BUSINESS_HOURS.closeTime;
+  const closedWeekdays = Array.isArray(hours.closedWeekdays)
+    ? hours.closedWeekdays
+    : [];
+  const baseSchedule = buildWeeklySchedule(
+    openTime,
+    closeTime,
+    closedWeekdays
+  );
+  const rawSchedule = Array.isArray(hours.weeklySchedule)
+    ? hours.weeklySchedule
+    : null;
+  const weeklySchedule = rawSchedule
+    ? baseSchedule.map((entry) => {
+        const match = rawSchedule.find(
+          (item) => Number(item.day) === entry.day
+        );
+        if (!match) return entry;
+        return {
+          ...entry,
+          enabled: match.enabled !== false,
+          openTime: match.openTime || entry.openTime,
+          closeTime: match.closeTime || entry.closeTime,
+        };
+      })
+    : baseSchedule;
+  const normalizedClosed = weeklySchedule
+    .filter((entry) => entry.enabled === false)
+    .map((entry) => entry.day);
+
+  return {
+    enabled: !!hours.enabled,
+    openTime,
+    closeTime,
+    closedWeekdays: normalizedClosed,
+    weeklySchedule,
+  };
+}
+
 /**
  * Converte string "1,5" ou "1.5" para número
  */
@@ -138,6 +289,73 @@ function parseKmValue(value) {
   const normalized = String(value).replace(",", ".");
   const n = Number(normalized);
   return Number.isNaN(n) ? 0 : n;
+}
+
+function parseTimeToMinutes(value) {
+  if (!value || typeof value !== "string") return null;
+  const [h, m] = value.split(":").map((part) => Number(part));
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+function isWithinTimeRange(nowMinutes, startMinutes, endMinutes) {
+  if (startMinutes === null || endMinutes === null) return true;
+  if (startMinutes === endMinutes) return true;
+  if (endMinutes > startMinutes) {
+    return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
+  }
+  return nowMinutes >= startMinutes || nowMinutes <= endMinutes;
+}
+
+function getBusinessHoursStatus(businessHours, date = new Date()) {
+  if (!businessHours?.enabled) return { isOpen: true, reason: "" };
+
+  const weekday = date.getDay();
+  const closed = Array.isArray(businessHours.closedWeekdays)
+    ? businessHours.closedWeekdays
+    : [];
+  const schedule = Array.isArray(businessHours.weeklySchedule)
+    ? businessHours.weeklySchedule
+    : [];
+  const scheduleEntry = schedule.find(
+    (entry) => Number(entry.day) === weekday
+  );
+
+  if (scheduleEntry && scheduleEntry.enabled === false) {
+    return { isOpen: false, reason: "Dia fechado." };
+  }
+  if (!scheduleEntry && closed.includes(weekday)) {
+    return { isOpen: false, reason: "Dia fechado." };
+  }
+
+  const openTime =
+    scheduleEntry?.openTime ||
+    businessHours.openTime ||
+    DEFAULT_BUSINESS_HOURS.openTime;
+  const closeTime =
+    scheduleEntry?.closeTime ||
+    businessHours.closeTime ||
+    DEFAULT_BUSINESS_HOURS.closeTime;
+
+  const nowMinutes = date.getHours() * 60 + date.getMinutes();
+  const openMinutes = parseTimeToMinutes(openTime);
+  const closeMinutes = parseTimeToMinutes(closeTime);
+  const isOpen = isWithinTimeRange(nowMinutes, openMinutes, closeMinutes);
+  return {
+    isOpen,
+    reason: isOpen ? "" : "Fora do horario de funcionamento.",
+  };
+}
+
+function isWithinPeakWindow(peakFee, date = new Date()) {
+  if (!peakFee?.enabled) return false;
+  const days = Array.isArray(peakFee.days) ? peakFee.days : [];
+  const weekday = date.getDay();
+  if (days.length > 0 && !days.includes(weekday)) return false;
+  const nowMinutes = date.getHours() * 60 + date.getMinutes();
+  const startMinutes = parseTimeToMinutes(peakFee.startTime);
+  const endMinutes = parseTimeToMinutes(peakFee.endTime);
+  return isWithinTimeRange(nowMinutes, startMinutes, endMinutes);
 }
 
 /**
@@ -158,6 +376,73 @@ function findDeliveryRangeForKm(distanceKm, deliveryConfig) {
 
   // se não encontrou, usa última faixa como padrão
   return deliveryConfig.ranges[deliveryConfig.ranges.length - 1] || null;
+}
+
+function formatDecimalInput(value) {
+  if (value === null || value === undefined || value === "") return "";
+  const normalized = String(value).trim().replace(",", ".");
+  const num = Number(normalized);
+  if (Number.isNaN(num)) return "";
+  return String(num).replace(".", ",");
+}
+
+function toDecimalString(value, fallback = "0") {
+  const formatted = formatDecimalInput(value);
+  return formatted !== "" ? formatted : fallback;
+}
+
+function readOrderDraftFromStorage() {
+  try {
+    if (!window?.localStorage) return null;
+    const raw = window.localStorage.getItem(ORDER_DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (err) {
+    console.warn("[NewOrderModal] draft read failed:", err);
+    return null;
+  }
+}
+
+function writeOrderDraftToStorage(payload) {
+  try {
+    if (!window?.localStorage) return;
+    window.localStorage.setItem(
+      ORDER_DRAFT_STORAGE_KEY,
+      JSON.stringify(payload)
+    );
+  } catch (err) {
+    console.warn("[NewOrderModal] draft write failed:", err);
+  }
+}
+
+function clearOrderDraftStorage() {
+  try {
+    if (!window?.localStorage) return;
+    window.localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY);
+  } catch (err) {
+    console.warn("[NewOrderModal] draft clear failed:", err);
+  }
+}
+
+function resolveOrderTypePayload(order) {
+  const typeRaw =
+    (order?.orderType ||
+      order?.type ||
+      order?.delivery?.mode ||
+      (order?.source === "pickup" ? "pickup" : "") ||
+      "")
+      .toString()
+      .toLowerCase()
+      .trim();
+
+  if (["pickup", "retirada"].includes(typeRaw)) {
+    return "pickup";
+  }
+  if (["counter", "balcao", "balcão", "local"].includes(typeRaw)) {
+    return "counter";
+  }
+  return "delivery";
 }
 
 /**
@@ -298,6 +583,7 @@ export default function NewOrderModal({
   onConfirm,
   formatCurrency,
   initialCatalog,
+  initialOrder,
 }) {
   // -----------------------------
   // Estado vindo do DB
@@ -307,6 +593,9 @@ export default function NewOrderModal({
   const [drinkCatalog, setDrinkCatalog] = useState([]);
   const [extraCatalog, setExtraCatalog] = useState([]);
   const [deliveryConfig, setDeliveryConfig] = useState(DEFAULT_DELIVERY_CONFIG);
+  const [businessHours, setBusinessHours] = useState(
+    DEFAULT_BUSINESS_HOURS
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
 
@@ -357,6 +646,8 @@ export default function NewOrderModal({
 
   const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(""); // distância em km (auto)
   const [deliveryNeighborhood, setDeliveryNeighborhood] = useState(""); // rótulo da faixa (label exibida)
+  const [deliveryAddressNeighborhood, setDeliveryAddressNeighborhood] =
+    useState("");
   const [deliveryFee, setDeliveryFee] = useState("0"); // valor em R$, calculado pela faixa
   const [selectedDeliveryRangeId, setSelectedDeliveryRangeId] = useState(""); // faixa de entrega escolhida
 
@@ -370,7 +661,222 @@ export default function NewOrderModal({
   // estados auxiliares do cálculo automático
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
   const [distanceError, setDistanceError] = useState("");
+  const initialOrderRef = useRef(null);
+  const hydratePendingRef = useRef(false);
+  const draftRestoredRef = useRef(false);
 
+  const hydrateInitialOrder = useCallback(
+    (order) => {
+      if (!order) return;
+
+      const baseTimestamp = Date.now();
+      const normalizedItems = (Array.isArray(order.items) ? order.items : []).map(
+        (item, idx) => ({
+          ...item,
+          lineId:
+            item.lineId ||
+            item.id ||
+            `line-${baseTimestamp}-${idx}-${Math.floor(Math.random() * 1000)}`,
+        })
+      );
+
+      setOrderItems(normalizedItems);
+
+      const snapshot = order.customerSnapshot || {};
+      const snapshotName =
+        snapshot.name ||
+        order.customerName ||
+        order.customer?.name ||
+        order.customer?.customerName ||
+        "Cliente";
+      const preferCounter =
+        (order.customerMode || "")
+          .toString()
+          .toLowerCase()
+          .trim() === "counter";
+
+      const customerIdCandidate =
+        order.customerId ||
+        snapshot.id ||
+        order.customer?.id ||
+        order.customer?.customerId ||
+        null;
+      let matchingCustomer =
+        customerIdCandidate != null
+          ? customers.find(
+              (c) => String(c.id) === String(customerIdCandidate)
+            )
+          : null;
+
+      if (!matchingCustomer) {
+        const candidatePhone = digitsOnly(
+          snapshot.phone ||
+            order.customerPhone ||
+            order.customer?.phone ||
+            ""
+        );
+        if (candidatePhone) {
+          matchingCustomer =
+            customers.find(
+              (c) =>
+                digitsOnly(c.phone || c.telefone || "") === candidatePhone
+            ) || matchingCustomer;
+        }
+      }
+
+      if (!matchingCustomer) {
+        const candidateCpf = digitsOnly(
+          snapshot.cpf ||
+            order.customerCpf ||
+            order.customer?.cpf ||
+            order.customer?.document ||
+            ""
+        );
+        if (candidateCpf) {
+          matchingCustomer =
+            customers.find(
+              (c) =>
+                digitsOnly(c.cpf || c.document || c.cpf_cnpj || "") ===
+                candidateCpf
+            ) || matchingCustomer;
+        }
+      }
+
+      if (!preferCounter && matchingCustomer) {
+        setCustomerMode("registered");
+        setSelectedCustomerId(matchingCustomer.id);
+        setShowCustomerSearch(!!customers.length);
+        setCounterLabel("Balcão");
+      } else {
+        setCustomerMode("counter");
+        setSelectedCustomerId(null);
+        setShowCustomerSearch(false);
+        const counterLabelValue =
+          (order.counterLabel || snapshotName || "").trim() || "Cliente";
+        setCounterLabel(counterLabelValue);
+      }
+
+      setCustomerSearch("");
+
+      setOrderType(resolveOrderTypePayload(order));
+
+      const paymentMethodRaw = (
+        order.payment?.method || order.paymentMethod || ""
+      ).toString();
+      setPaymentMethod(paymentMethodRaw.toLowerCase());
+
+      setOrderNotes(
+        order.orderNotes ||
+          order.notes ||
+          order.observacao ||
+          order.obs ||
+          ""
+      );
+      setKitchenNotes(
+        order.kitchenNotes || order.kitchen || order.observacoes || ""
+      );
+
+      const deliveryFeeValue =
+        order.delivery?.fee ??
+        order.totals?.deliveryFee ??
+        order.deliveryFee ??
+        0;
+      setDeliveryFee(toDecimalString(deliveryFeeValue));
+
+      setDeliveryNeighborhood(
+        order.delivery?.neighborhood ||
+          order.deliveryNeighborhood ||
+          order.delivery?.bairro ||
+          ""
+      );
+
+      const addressNeighborhood =
+        order.customerAddress?.neighborhood ||
+        order.customerAddress?.bairro ||
+        order.customer?.address?.neighborhood ||
+        order.customer?.address?.bairro ||
+        order.delivery?.neighborhood ||
+        order.delivery?.bairro ||
+        "";
+      setDeliveryAddressNeighborhood(addressNeighborhood);
+
+      const distanceValue =
+        order.deliveryDistanceKm ??
+        order.delivery?.distanceKm ??
+        order.delivery?.distance ??
+        "";
+      setDeliveryDistanceKm(toDecimalString(distanceValue, ""));
+
+      const discountSource = order.discount;
+      const totalsDiscount =
+        typeof order.totals?.discount === "number"
+          ? order.totals.discount
+          : null;
+      const discountValueRaw =
+        typeof discountSource === "object"
+          ? discountSource.value ?? discountSource.amount ?? null
+          : typeof discountSource === "number"
+          ? discountSource
+          : order.discountValue ??
+            order.discountAmount ??
+            totalsDiscount ??
+            null;
+      const numericDiscount =
+        discountValueRaw !== null && discountValueRaw !== undefined
+          ? Number(String(discountValueRaw).replace(",", "."))
+          : 0;
+
+      const formattedDiscountValue = toDecimalString(discountValueRaw);
+      if (numericDiscount > 0) {
+        const discountTypeValue =
+          (typeof discountSource === "object" &&
+            discountSource.type === "percent") ||
+          order.discountType === "percent"
+            ? "percent"
+            : "value";
+        setDiscountType(discountTypeValue);
+        setDiscountValue(formattedDiscountValue);
+      } else {
+        setDiscountType("none");
+        setDiscountValue("0");
+      }
+
+      const cashGivenValue =
+        order.payment?.cashGiven ??
+        order.cash?.cashGiven ??
+        order.cashGiven ??
+        0;
+      setCashGiven(toDecimalString(cashGivenValue));
+    },
+    [customers]
+  );
+
+  useEffect(() => {
+    if (!isOpen || !initialOrder) {
+      initialOrderRef.current = null;
+      hydratePendingRef.current = false;
+      return;
+    }
+
+    if (initialOrderRef.current !== initialOrder) {
+      initialOrderRef.current = initialOrder;
+      hydratePendingRef.current = true;
+    }
+  }, [initialOrder, isOpen]);
+
+  useEffect(() => {
+    if (
+      !isOpen ||
+      !initialOrder ||
+      isLoading ||
+      !hydratePendingRef.current
+    ) {
+      return;
+    }
+
+    hydrateInitialOrder(initialOrder);
+    hydratePendingRef.current = false;
+  }, [initialOrder, isLoading, isOpen, hydrateInitialOrder]);
   // -----------------------------
   // Load do banco
   // -----------------------------
@@ -378,6 +884,7 @@ export default function NewOrderModal({
     if (!isOpen) return;
 
     let cancel = false;
+    const isEditing = Boolean(initialOrder);
 
     async function load() {
       setIsLoading(true);
@@ -409,17 +916,75 @@ export default function NewOrderModal({
             normalizeProductsCollections(products);
 
           const dCfg = normalizeDeliveryConfigFromSettings(settingsDb);
+          const bHours = normalizeBusinessHoursFromSettings(settingsDb);
 
           setCustomers(customersArr);
           setPizzaCatalog(pizzas);
           setDrinkCatalog(drinks);
           setExtraCatalog(extras);
           setDeliveryConfig(dCfg);
+          setBusinessHours(bHours);
 
-          setCustomerMode(customersArr.length ? "registered" : "counter");
+          if (!isEditing) {
+            setCustomerMode(customersArr.length ? "registered" : "counter");
+            setCustomerSearch("");
+            setSelectedCustomerId(null);
+            setShowCustomerSearch(true);
+            setCounterLabel("Balcão");
+
+            setFlavorSearch("");
+            setTwoFlavorsEnabled(false);
+            setThreeFlavorsEnabled(false);
+            setSize("grande");
+            setQuantity(1);
+            setFlavor1(pizzas[0]?.id || "");
+            setFlavor2("");
+            setFlavor3("");
+            setSelectedExtras([]);
+            setExtrasOpen(false);
+            setActiveFlavorSlot("flavor1");
+
+            setOrderItems([]);
+
+            setDrinkSearch("");
+            setSelectedDrinkId(drinks[0]?.id || "");
+            setDrinkQuantity(1);
+
+            setOrderType("delivery");
+            setPaymentMethod("");
+            setDeliveryDistanceKm("");
+            setDeliveryNeighborhood("");
+            setDeliveryAddressNeighborhood("");
+            setDeliveryFee("0");
+            setDiscountType("none");
+            setDiscountValue("0");
+            setOrderNotes("");
+            setKitchenNotes("");
+            setCashGiven("");
+
+            setDistanceError("");
+            setIsCalculatingDistance(false);
+          }
+
+          return;
+        }
+
+        // caminho com initialCatalog (sem DataEngine completo)
+        const { pizzas, drinks, extras } =
+          normalizeProductsCollections(productsDb);
+
+        setCustomers([]);
+        setPizzaCatalog(pizzas);
+        setDrinkCatalog(drinks);
+        setExtraCatalog(extras);
+        setDeliveryConfig(DEFAULT_DELIVERY_CONFIG);
+        setBusinessHours(DEFAULT_BUSINESS_HOURS);
+
+        if (!isEditing) {
+          setCustomerMode("counter");
           setCustomerSearch("");
           setSelectedCustomerId(null);
-          setShowCustomerSearch(true);
+          setShowCustomerSearch(false);
           setCounterLabel("Balcão");
 
           setFlavorSearch("");
@@ -444,6 +1009,7 @@ export default function NewOrderModal({
           setPaymentMethod("");
           setDeliveryDistanceKm("");
           setDeliveryNeighborhood("");
+          setDeliveryAddressNeighborhood("");
           setDeliveryFee("0");
           setDiscountType("none");
           setDiscountValue("0");
@@ -453,57 +1019,7 @@ export default function NewOrderModal({
 
           setDistanceError("");
           setIsCalculatingDistance(false);
-
-          return;
         }
-
-        // caminho com initialCatalog (sem DataEngine completo)
-        const { pizzas, drinks, extras } =
-          normalizeProductsCollections(productsDb);
-
-        setCustomers([]);
-        setPizzaCatalog(pizzas);
-        setDrinkCatalog(drinks);
-        setExtraCatalog(extras);
-        setDeliveryConfig(DEFAULT_DELIVERY_CONFIG);
-
-        setCustomerMode("counter");
-        setCustomerSearch("");
-        setSelectedCustomerId(null);
-        setShowCustomerSearch(false);
-        setCounterLabel("Balcão");
-
-        setFlavorSearch("");
-        setTwoFlavorsEnabled(false);
-        setThreeFlavorsEnabled(false);
-        setSize("grande");
-        setQuantity(1);
-        setFlavor1(pizzas[0]?.id || "");
-        setFlavor2("");
-        setFlavor3("");
-        setSelectedExtras([]);
-        setExtrasOpen(false);
-        setActiveFlavorSlot("flavor1");
-
-        setOrderItems([]);
-
-        setDrinkSearch("");
-        setSelectedDrinkId(drinks[0]?.id || "");
-        setDrinkQuantity(1);
-
-        setOrderType("delivery");
-        setPaymentMethod("");
-        setDeliveryDistanceKm("");
-        setDeliveryNeighborhood("");
-        setDeliveryFee("0");
-        setDiscountType("none");
-        setDiscountValue("0");
-        setOrderNotes("");
-        setKitchenNotes("");
-        setCashGiven("");
-
-        setDistanceError("");
-        setIsCalculatingDistance(false);
       } catch (err) {
         console.error("[NewOrderModal] load error:", err);
         if (!cancel) setLoadError(err.message || "Erro ao carregar dados.");
@@ -516,7 +1032,7 @@ export default function NewOrderModal({
     return () => {
       cancel = true;
     };
-  }, [isOpen, initialCatalog]);
+  }, [isOpen, initialCatalog, initialOrder]);
 
   // -----------------------------
   // Cliente selecionado (memo)
@@ -547,6 +1063,203 @@ export default function NewOrderModal({
     return customers.find((c) => c.id === selectedCustomerId) || null;
   }, [selectedCustomerId, customers]);
 
+  useEffect(() => {
+    if (customerMode !== "registered") return;
+    const addr = selectedCustomer?.address || {};
+    const neighborhood = addr.neighborhood || addr.bairro || "";
+    setDeliveryAddressNeighborhood(neighborhood);
+  }, [selectedCustomerId, customerMode, selectedCustomer]);
+
+  const recentCustomers = useMemo(() => {
+    if (!customers.length) return [];
+    const mapped = customers
+      .map((c) => {
+        const lastOrderAt =
+          c.meta?.lastOrderAt || c.lastOrderAt || c.updatedAt || c.createdAt;
+        const ts = Date.parse(lastOrderAt || "");
+        return { customer: c, ts: Number.isNaN(ts) ? 0 : ts };
+      })
+      .filter((entry) => entry.ts > 0)
+      .sort((a, b) => b.ts - a.ts)
+      .slice(0, 5);
+    return mapped.map((entry) => entry.customer);
+  }, [customers]);
+
+  const deliveryNeighborhoodValue = useMemo(() => {
+    if (deliveryAddressNeighborhood) return deliveryAddressNeighborhood.trim();
+    const addr = selectedCustomer?.address || {};
+    return addr.neighborhood || addr.bairro || "";
+  }, [deliveryAddressNeighborhood, selectedCustomer]);
+
+  const missingAddressFields = useMemo(() => {
+    if (!selectedCustomer || customerMode !== "registered") return [];
+    return getMissingAddressFields(
+      selectedCustomer.address,
+      deliveryNeighborhoodValue
+    );
+  }, [selectedCustomer, customerMode, deliveryNeighborhoodValue]);
+
+  const isDeliveryAddressComplete = missingAddressFields.length === 0;
+
+  const blockedNeighborhoodMatch = useMemo(() => {
+    if (!deliveryNeighborhoodValue) return null;
+    return findBlockedNeighborhood(
+      deliveryNeighborhoodValue,
+      deliveryConfig?.blockedNeighborhoods
+    );
+  }, [deliveryNeighborhoodValue, deliveryConfig?.blockedNeighborhoods]);
+
+  const deliveryTypeBlockedReason = useMemo(() => {
+    if (customerMode !== "registered") {
+      return "Disponivel apenas para clientes cadastrados.";
+    }
+    if (!selectedCustomer) {
+      return "Selecione um cliente cadastrado.";
+    }
+    if (!isDeliveryAddressComplete) {
+      return `Endereco incompleto: ${missingAddressFields.join(", ")}.`;
+    }
+    if (blockedNeighborhoodMatch) {
+      return `Bairro bloqueado: ${blockedNeighborhoodMatch}.`;
+    }
+    return "";
+  }, [
+    customerMode,
+    selectedCustomer,
+    isDeliveryAddressComplete,
+    missingAddressFields,
+    blockedNeighborhoodMatch,
+  ]);
+
+  const businessHoursStatus = useMemo(
+    () => getBusinessHoursStatus(businessHours),
+    [businessHours]
+  );
+
+  const isEditing = Boolean(initialOrder);
+
+  const buildDraftSnapshot = useCallback(
+    () => ({
+      customerMode,
+      selectedCustomerId,
+      counterLabel,
+      orderItems,
+      orderType,
+      paymentMethod,
+      deliveryDistanceKm,
+      deliveryNeighborhood,
+      deliveryAddressNeighborhood,
+      deliveryFee,
+      selectedDeliveryRangeId,
+      discountType,
+      discountValue,
+      orderNotes,
+      kitchenNotes,
+      cashGiven,
+    }),
+    [
+      customerMode,
+      selectedCustomerId,
+      counterLabel,
+      orderItems,
+      orderType,
+      paymentMethod,
+      deliveryDistanceKm,
+      deliveryNeighborhood,
+      deliveryAddressNeighborhood,
+      deliveryFee,
+      selectedDeliveryRangeId,
+      discountType,
+      discountValue,
+      orderNotes,
+      kitchenNotes,
+      cashGiven,
+    ]
+  );
+
+  const applyDraftSnapshot = useCallback(
+    (snapshot) => {
+      if (!snapshot || typeof snapshot !== "object") return;
+
+      const nextCustomerMode =
+        snapshot.customerMode === "counter" ? "counter" : "registered";
+      setCustomerMode(nextCustomerMode);
+      setCounterLabel(snapshot.counterLabel || "Balcao");
+
+      const customerExists = customers.some(
+        (c) => String(c.id) === String(snapshot.selectedCustomerId)
+      );
+      setSelectedCustomerId(customerExists ? snapshot.selectedCustomerId : null);
+      setShowCustomerSearch(!customerExists);
+      setCustomerSearch("");
+
+      setOrderItems(
+        Array.isArray(snapshot.orderItems) ? snapshot.orderItems : []
+      );
+      setOrderType(snapshot.orderType || "delivery");
+      setPaymentMethod(snapshot.paymentMethod || "");
+      setDeliveryDistanceKm(snapshot.deliveryDistanceKm || "");
+      setDeliveryNeighborhood(snapshot.deliveryNeighborhood || "");
+      setDeliveryAddressNeighborhood(
+        snapshot.deliveryAddressNeighborhood || ""
+      );
+      setDeliveryFee(snapshot.deliveryFee || "0");
+      setSelectedDeliveryRangeId(snapshot.selectedDeliveryRangeId || "");
+      setDiscountType(snapshot.discountType || "none");
+      setDiscountValue(snapshot.discountValue || "0");
+      setOrderNotes(snapshot.orderNotes || "");
+      setKitchenNotes(snapshot.kitchenNotes || "");
+      setCashGiven(snapshot.cashGiven || "");
+    },
+    [customers]
+  );
+
+  const handleClose = useCallback(() => {
+    if (!isEditing) {
+      const snapshot = buildDraftSnapshot();
+      const hasData =
+        (snapshot.orderItems && snapshot.orderItems.length > 0) ||
+        snapshot.orderNotes ||
+        snapshot.kitchenNotes ||
+        snapshot.deliveryDistanceKm ||
+        snapshot.discountValue !== "0" ||
+        snapshot.cashGiven ||
+        snapshot.selectedCustomerId;
+
+      if (hasData) {
+        writeOrderDraftToStorage({
+          savedAt: new Date().toISOString(),
+          draft: snapshot,
+        });
+      }
+    }
+
+    if (typeof onClose === "function") {
+      onClose();
+    }
+  }, [isEditing, buildDraftSnapshot, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      draftRestoredRef.current = false;
+      return;
+    }
+    if (isEditing || draftRestoredRef.current) return;
+    if (customerMode === "registered" && customers.length === 0) return;
+
+    const stored = readOrderDraftFromStorage();
+    if (!stored?.draft) return;
+
+    applyDraftSnapshot(stored.draft);
+    draftRestoredRef.current = true;
+  }, [
+    isOpen,
+    isEditing,
+    customerMode,
+    customers.length,
+    applyDraftSnapshot,
+  ]);
+
   // Quando troca para balcão, zera taxa; quando é delivery, recalc pela distância
   useEffect(() => {
     if (orderType === "counter") {
@@ -576,13 +1289,21 @@ export default function NewOrderModal({
     const customer = customerParam || selectedCustomer;
 
     if (orderType !== "delivery" || !customer || !customer.address) {
-      setDistanceError(
-        "Selecione um cliente."
-      );
+      setDistanceError("Selecione um cliente para entrega.");
       return;
     }
 
     const addr = customer.address || {};
+    const missing = getMissingAddressFields(
+      addr,
+      deliveryAddressNeighborhood
+    );
+    if (missing.length > 0) {
+      setDistanceError(
+        `Endereco incompleto. Faltam: ${missing.join(", ")}.`
+      );
+      return;
+    }
     const parts = [];
 
     if (addr.street) {
@@ -591,7 +1312,8 @@ export default function NewOrderModal({
       parts.push(line1);
     }
 
-    const neighborhood = addr.neighborhood || addr.bairro;
+    const neighborhood =
+      deliveryAddressNeighborhood || addr.neighborhood || addr.bairro;
     if (neighborhood) parts.push(neighborhood);
     if (addr.city) parts.push(addr.city);
     if (addr.state) parts.push(addr.state);
@@ -601,7 +1323,7 @@ export default function NewOrderModal({
 
     if (!destination) {
       setDistanceError(
-        "Endereço do cliente incompleto. Preencha rua/bairro/cidade para usar o cálculo automático."
+        "Endereco do cliente incompleto. Preencha rua/bairro/cidade para usar o calculo automatico."
       );
       return;
     }
@@ -640,7 +1362,7 @@ export default function NewOrderModal({
       return;
     }
     handleAutoDistanceFromCustomer(selectedCustomer);
-  }, [orderType, selectedCustomer]);
+  }, [orderType, selectedCustomer, deliveryAddressNeighborhood]);
 
   // -----------------------------
   // Filtro de pizzas e drinks
@@ -931,6 +1653,17 @@ export default function NewOrderModal({
     setOrderItems((prev) => prev.filter((it) => it.lineId !== lineId));
   };
 
+  const handleOrderTypeChange = (value) => {
+    if (value === "delivery" && deliveryTypeBlockedReason) {
+      setDistanceError(deliveryTypeBlockedReason);
+      return;
+    }
+    if (value !== "delivery") {
+      setDistanceError("");
+    }
+    setOrderType(value);
+  };
+
   // -----------------------------
   // Totais
   // -----------------------------
@@ -944,9 +1677,23 @@ export default function NewOrderModal({
     [orderItems]
   );
 
-  const deliveryFeeNumber = useMemo(
+  const baseDeliveryFeeNumber = useMemo(
     () => Number(String(deliveryFee).replace(",", ".")) || 0,
     [deliveryFee]
+  );
+
+  const peakFeeNumber = useMemo(() => {
+    if (orderType !== "delivery") return 0;
+    const peak = deliveryConfig?.peakFee;
+    if (!isWithinPeakWindow(peak)) return 0;
+    const amount =
+      typeof peak?.amount === "number" ? peak.amount : Number(peak?.amount || 0);
+    return Number.isNaN(amount) ? 0 : amount;
+  }, [orderType, deliveryConfig?.peakFee]);
+
+  const deliveryFeeNumber = useMemo(
+    () => baseDeliveryFeeNumber + peakFeeNumber,
+    [baseDeliveryFeeNumber, peakFeeNumber]
   );
 
   const discountRaw = useMemo(
@@ -981,12 +1728,62 @@ export default function NewOrderModal({
     [cashGivenNumber, total]
   );
 
+  const minOrderValueNumber =
+    typeof deliveryConfig?.minOrderValue === "number"
+      ? deliveryConfig.minOrderValue
+      : Number(deliveryConfig?.minOrderValue || 0);
+
+  const maxDistanceKmNumber =
+    typeof deliveryConfig?.maxDistanceKm === "number"
+      ? deliveryConfig.maxDistanceKm
+      : Number(deliveryConfig?.maxDistanceKm || 0);
+
+  const etaMinutesFromCustomer =
+    selectedCustomer &&
+    typeof selectedCustomer.deliveryMinMinutes === "number"
+      ? selectedCustomer.deliveryMinMinutes
+      : null;
+
+  const etaMinutesRaw =
+    typeof etaMinutesFromCustomer === "number" && etaMinutesFromCustomer > 0
+      ? etaMinutesFromCustomer
+      : typeof deliveryConfig?.etaMinutesDefault === "number"
+      ? deliveryConfig.etaMinutesDefault
+      : Number(deliveryConfig?.etaMinutesDefault || 0);
+
+  const etaMinutesValue = Number.isFinite(etaMinutesRaw)
+    ? etaMinutesRaw
+    : 0;
+
+  const deliveryDistanceNumber = parseKmValue(deliveryDistanceKm);
+
+  const maxDistanceExceeded =
+    orderType === "delivery" &&
+    maxDistanceKmNumber > 0 &&
+    deliveryDistanceNumber > 0 &&
+    deliveryDistanceNumber > maxDistanceKmNumber;
+
+  const minOrderNotMet =
+    orderType === "delivery" &&
+    minOrderValueNumber > 0 &&
+    subtotal > 0 &&
+    subtotal < minOrderValueNumber;
+
+  const businessHoursMessage =
+    businessHoursStatus.reason || "Fora do horario de funcionamento.";
+
   // -----------------------------
   // Build draft + submit
   // -----------------------------
   const buildDraft = () => {
     if (!orderItems.length) {
       return { error: "Adicione pelo menos uma pizza ou bebida ao pedido." };
+    }
+
+    if (!isEditing && !businessHoursStatus.isOpen) {
+      return {
+        error: `Horario fechado. ${businessHoursMessage}`,
+      };
     }
 
     let customerName = "";
@@ -1007,12 +1804,19 @@ export default function NewOrderModal({
       customerCpf = selectedCustomer.cpf || "";
       if (selectedCustomer.address) {
         const addr = selectedCustomer.address;
+        const neighborhoodValue =
+          (
+            deliveryAddressNeighborhood ||
+            addr.neighborhood ||
+            addr.bairro ||
+            ""
+          ).trim();
         customerAddress = {
           cep: addr.cep || "",
           street: addr.street || "",
           number: addr.number || "",
           complement: addr.complement || "",
-          neighborhood: addr.neighborhood || addr.bairro || "",
+          neighborhood: neighborhoodValue,
           city: addr.city || "",
           state: addr.state || "",
         };
@@ -1025,6 +1829,50 @@ export default function NewOrderModal({
         };
       }
       customerName = label;
+    }
+
+    if (orderType === "delivery") {
+      if (customerMode !== "registered" || !customerAddress) {
+        return {
+          error: "Selecione um cliente cadastrado para entrega.",
+        };
+      }
+
+      const missing = getMissingAddressFields(
+        customerAddress,
+        customerAddress.neighborhood
+      );
+      if (missing.length > 0) {
+        return {
+          error: `Endereco incompleto no cadastro do cliente: ${missing.join(
+            ", "
+          )}.`,
+        };
+      }
+
+      const blockedMatch = findBlockedNeighborhood(
+        customerAddress.neighborhood,
+        deliveryConfig?.blockedNeighborhoods
+      );
+      if (blockedMatch) {
+        return {
+          error: `Não entregamos no bairro "${blockedMatch}".`,
+        };
+      }
+    }
+
+    if (minOrderNotMet) {
+      return {
+        error: `Pedido minimo para entrega: ${formatCurrency(
+          minOrderValueNumber
+        )}.`,
+      };
+    }
+
+    if (maxDistanceExceeded) {
+      return {
+        error: `Distancia acima do maximo permitido (${maxDistanceKmNumber} km).`,
+      };
     }
 
     const summaryLines = orderItems.map((item) => {
@@ -1071,10 +1919,16 @@ export default function NewOrderModal({
       items: orderItems,
       subtotal,
       deliveryFee: deliveryFeeNumber,
+      deliveryFeeBase: baseDeliveryFeeNumber,
+      deliveryPeakFee: peakFeeNumber,
       deliveryNeighborhood:
         orderType === "delivery" ? deliveryNeighborhood || null : null,
       deliveryDistanceKm:
         orderType === "delivery" ? parseKmValue(deliveryDistanceKm) : 0,
+      deliveryMinMinutes:
+        orderType === "delivery" && etaMinutesValue > 0
+          ? etaMinutesValue
+          : null,
       discount: {
         type: discountType,
         value: discountRaw,
@@ -1107,11 +1961,27 @@ export default function NewOrderModal({
     }
 
     if (typeof onConfirm === "function") {
+      if (!isEditing) {
+        clearOrderDraftStorage();
+      }
       onConfirm(draft, options);
     }
   };
 
   if (!isOpen) return null;
+
+  const editingOrderReference = isEditing
+    ? initialOrder.shortId ||
+      initialOrder.id ||
+      initialOrder._id ||
+      null
+    : null;
+  const modalTitleText = isEditing ? "Editar pedido" : "Novo pedido";
+  const modalSubtitleText = isEditing
+    ? editingOrderReference
+      ? `Atualize o pedido ${editingOrderReference}.`
+      : "Atualize o pedido existente."
+    : "Selecione o cliente, monte os itens e já veja totais e entrega em tempo real.";
 
   const hasCustomers = customers.length > 0;
   const hasPizzas = pizzaCatalog.length > 0;
@@ -1127,22 +1997,37 @@ export default function NewOrderModal({
     <div className="modal-backdrop">
       <div className="modal-window orderform-modal">
         {/* HEADER */}
-        <div className="modal-header">
-          <div>
-            <div className="modal-eyebrow">Pedido em andamento</div>
-            <div className="modal-title">Novo pedido</div>
-            <div className="modal-subtitle">
-              Selecione o cliente, monte os itens e já veja totais e entrega em
-              tempo real.
-            </div>
-            {isLoading && (
-              <div className="modal-helper-text">
-                Carregando clientes e produtos...
+          <div className="modal-header">
+            <div>
+              <div className="modal-eyebrow">
+                {isEditing ? "Pedido em edição" : "Pedido em andamento"}
               </div>
-            )}
+              <div className="modal-title">{modalTitleText}</div>
+              <div className="modal-subtitle">{modalSubtitleText}</div>
+              {isLoading && (
+                <div className="modal-helper-text">
+                  Carregando clientes e produtos...
+                </div>
+              )}
+              {!businessHoursStatus.isOpen && (
+                <div className="field-error-text orderform-banner">
+                  Loja fechada: {businessHoursMessage}
+                </div>
+              )}
+              {orderType === "delivery" && minOrderNotMet && (
+                <div className="field-error-text orderform-banner">
+                  Pedido minimo para entrega:{" "}
+                  {formatCurrency(minOrderValueNumber)}.
+                </div>
+              )}
+              {orderType === "delivery" && blockedNeighborhoodMatch && (
+                <div className="field-error-text orderform-banner">
+                  Bairro bloqueado para entrega: {blockedNeighborhoodMatch}.
+                </div>
+              )}
             {loadError && <div className="modal-error-text">{loadError}</div>}
           </div>
-          <button className="modal-close" onClick={onClose}>
+          <button className="modal-close" onClick={handleClose}>
             ✕
           </button>
         </div>
@@ -1272,8 +2157,10 @@ export default function NewOrderModal({
                             }`}
                         </div>
                         <div>
-                          {selectedCustomer.address.neighborhood &&
-                            selectedCustomer.address.neighborhood}
+                          {(deliveryNeighborhoodValue ||
+                            selectedCustomer.address.neighborhood) &&
+                            (deliveryNeighborhoodValue ||
+                              selectedCustomer.address.neighborhood)}
                           {selectedCustomer.address.city &&
                             ` - ${selectedCustomer.address.city}`}
                           {selectedCustomer.address.state &&
@@ -1282,6 +2169,19 @@ export default function NewOrderModal({
                         {selectedCustomer.address.cep && (
                           <div>CEP: {selectedCustomer.address.cep}</div>
                         )}
+                      </div>
+                    )}
+                    {orderType === "delivery" &&
+                      missingAddressFields.length > 0 && (
+                        <div className="field-error-text">
+                          Endereco incompleto:{" "}
+                          {missingAddressFields.join(", ")}.
+                        </div>
+                      )}
+                    {orderType === "delivery" && blockedNeighborhoodMatch && (
+                      <div className="field-error-text">
+                        Bairro bloqueado para entrega:{" "}
+                        {blockedNeighborhoodMatch}.
                       </div>
                     )}
                   </div>
@@ -1298,6 +2198,34 @@ export default function NewOrderModal({
                         onChange={(e) => setCustomerSearch(e.target.value)}
                         placeholder="Nome, telefone, CPF..."
                       />
+
+                      {recentCustomers.length > 0 && (
+                        <div className="customer-recent-block">
+                          <div className="field-label">Ultimos clientes</div>
+                          <div className="customer-recent-list">
+                            {recentCustomers.map((c) => (
+                              <button
+                                key={`recent-${c.id}`}
+                                type="button"
+                                className="customer-recent-item"
+                                onClick={() => {
+                                  setSelectedCustomerId(c.id);
+                                  setShowCustomerSearch(false);
+                                }}
+                              >
+                                <span className="customer-recent-name">
+                                  {c.name || "(Sem nome)"}
+                                </span>
+                                {c.phone && (
+                                  <span className="customer-recent-meta">
+                                    {c.phone}
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="orderform-customer-list">
                         {filteredCustomers.length === 0 && (
@@ -1368,11 +2296,24 @@ export default function NewOrderModal({
                     <select
                       className="field-input"
                       value={orderType}
-                      onChange={(e) => setOrderType(e.target.value)}
+                      onChange={(e) => handleOrderTypeChange(e.target.value)}
                     >
-                      <option value="delivery">Entrega</option>
+                      <option
+                        value="delivery"
+                        disabled={
+                          !!deliveryTypeBlockedReason &&
+                          orderType !== "delivery"
+                        }
+                      >
+                        Entrega
+                      </option>
                       <option value="counter">Balcão / retirada</option>
                     </select>
+                    {deliveryTypeBlockedReason && (
+                      <div className="field-helper">
+                        Entrega indisponivel: {deliveryTypeBlockedReason}
+                      </div>
+                    )}
                   </div>
 
                   <div className="config-card">
@@ -1466,13 +2407,61 @@ export default function NewOrderModal({
                       editada manualmente.
                     </div>
 
-                    {distanceError && (
-                      <div className="field-error-text">{distanceError}</div>
-                    )}
-                  </div>
+                    <div className="distance-actions">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline"
+                        onClick={() =>
+                          handleAutoDistanceFromCustomer(selectedCustomer)
+                        }
+                        disabled={
+                          orderType !== "delivery" ||
+                          !selectedCustomer ||
+                          missingAddressFields.length > 0 ||
+                          isCalculatingDistance
+                        }
+                      >
+                        Recalcular distÇ½ncia
+                      </button>
+                    </div>
 
-                  <div className="config-card">
-                    <div className="field-label">Faixa de entrega</div>
+                  {distanceError && (
+                    <div className="field-error-text">{distanceError}</div>
+                  )}
+                  {maxDistanceExceeded && (
+                    <div className="field-error-text">
+                      Distancia acima do maximo configurado (
+                      {maxDistanceKmNumber} km).
+                    </div>
+                  )}
+                </div>
+
+                <div className="config-card">
+                  <div className="field-label">Bairro da entrega</div>
+                  <input
+                    className={
+                      "field-input" +
+                      (orderType === "delivery" &&
+                      (missingAddressFields.includes("Bairro") ||
+                        blockedNeighborhoodMatch)
+                        ? " input-error"
+                        : "")
+                    }
+                    value={deliveryAddressNeighborhood}
+                    onChange={(e) =>
+                      setDeliveryAddressNeighborhood(e.target.value)
+                    }
+                    placeholder="Ex: Santana"
+                    disabled={orderType !== "delivery"}
+                  />
+                  <div className="field-helper">
+                    Preenchido a partir do cliente e pode ser ajustado
+                    apenas para este pedido.
+                  </div>
+                </div>
+
+                <div className="config-card">
+                  <div className="field-label">Faixa de entrega</div>
                     <select
                       className="field-input"
                       value={
@@ -1578,6 +2567,18 @@ export default function NewOrderModal({
                             {formatCurrency(deliveryFeeNumber)}
                           </strong>
                         </div>
+                        {peakFeeNumber > 0 && (
+                          <div className="config-delivery-summary-line">
+                            Taxa pico:{" "}
+                            <strong>{formatCurrency(peakFeeNumber)}</strong>
+                          </div>
+                        )}
+                        {etaMinutesValue > 0 && (
+                          <div className="config-delivery-summary-line">
+                            Tempo estimado:{" "}
+                            <strong>{etaMinutesValue} min</strong>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <div className="config-delivery-summary-line">
@@ -2237,7 +3238,7 @@ export default function NewOrderModal({
             <button
               type="button"
               className="btn btn-outline"
-              onClick={onClose}
+              onClick={handleClose}
             >
               Cancelar
             </button>

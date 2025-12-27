@@ -228,6 +228,11 @@
   box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.14);
 }
 
+.customer-form-card .input.input-error {
+  border-color: rgba(239, 68, 68, 0.7);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14);
+}
+
 .customer-form-card .input-multiline {
   min-height: 96px;
   padding: 10px 12px;
@@ -275,6 +280,17 @@
   width: 100%;
   justify-content: space-between;
   flex-wrap: wrap;
+}
+
+.customer-form-error {
+  margin: 0 18px 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(239, 68, 68, 0.32);
+  background: rgba(239, 68, 68, 0.12);
+  color: rgba(127, 29, 29, 0.95);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 /* --------------------------------------------------------------------------

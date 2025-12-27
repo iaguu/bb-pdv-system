@@ -5,6 +5,41 @@ import Button from "../common/Button";
 
 const digitsOnly = (s) => (s || "").replace(/\D/g, "");
 
+const normalizeNeighborhoodKey = (value) => {
+  if (!value) return "";
+  return value
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+};
+
+const findBlockedNeighborhood = (neighborhood, blockedList) => {
+  if (!neighborhood || !Array.isArray(blockedList)) return null;
+  const key = normalizeNeighborhoodKey(neighborhood);
+  if (!key) return null;
+  return (
+    blockedList.find(
+      (item) => normalizeNeighborhoodKey(item) === key
+    ) || null
+  );
+};
+
+const normalizeSettingsData = (data) => {
+  if (!data) return null;
+  if (Array.isArray(data.items) && data.items.length > 0) {
+    return data.items[0];
+  }
+  if (Array.isArray(data) && data.length > 0) {
+    return data[0];
+  }
+  if (typeof data === "object") {
+    return data;
+  }
+  return null;
+};
+
 async function lookupCep(cepRaw) {
   const cep = digitsOnly(cepRaw);
   if (cep.length !== 8) {
@@ -36,6 +71,11 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     phone: editingData?.phone || "",
     cpf: editingData?.cpf || "",
     notes: editingData?.notes || "",
+    deliveryMinMinutes:
+      typeof editingData?.deliveryMinMinutes === "number"
+        ? editingData.deliveryMinMinutes
+        : null,
+    deliveryMetrics: editingData?.deliveryMetrics || null,
     deliveryFee:
       typeof editingData?.deliveryFee === "number"
         ? String(editingData.deliveryFee)
@@ -52,6 +92,9 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     },
   }));
 
+  const [blockedNeighborhoods, setBlockedNeighborhoods] = useState([]);
+  const [formErrors, setFormErrors] = useState({});
+  const [formErrorMessage, setFormErrorMessage] = useState("");
   const [cepStatus, setCepStatus] = useState("idle"); // idle | loading | ok | error
   const [cepMessage, setCepMessage] = useState("");
   const customerInitial =
@@ -59,13 +102,22 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
 
   // se o cliente mudar (editar outro), atualiza o form
   useEffect(() => {
-    if (!editingData) return;
+    if (!editingData) {
+      setFormErrors({});
+      setFormErrorMessage("");
+      return;
+    }
     setForm({
       id: editingData.id || undefined,
       name: editingData.name || "",
       phone: editingData.phone || "",
       cpf: editingData.cpf || "",
       notes: editingData.notes || "",
+      deliveryMinMinutes:
+        typeof editingData?.deliveryMinMinutes === "number"
+          ? editingData.deliveryMinMinutes
+          : null,
+      deliveryMetrics: editingData?.deliveryMetrics || null,
       deliveryFee:
         typeof editingData.deliveryFee === "number"
           ? String(editingData.deliveryFee)
@@ -81,9 +133,52 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
         reference: editingData.address?.reference || "",
       },
     });
+    setFormErrors({});
+    setFormErrorMessage("");
   }, [editingData]);
 
+  useEffect(() => {
+    let cancel = false;
+
+    async function loadBlockedNeighborhoods() {
+      if (!window?.dataEngine?.get) return;
+      try {
+        const settings = await window.dataEngine.get("settings");
+        const item = normalizeSettingsData(settings);
+        const list = item?.delivery?.blockedNeighborhoods;
+        if (cancel) return;
+        if (Array.isArray(list)) {
+          setBlockedNeighborhoods(
+            list.map((b) => (b || "").toString().trim()).filter(Boolean)
+          );
+        } else {
+          setBlockedNeighborhoods([]);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar bairros bloqueados:", err);
+      }
+    }
+
+    loadBlockedNeighborhoods();
+    return () => {
+      cancel = true;
+    };
+  }, []);
+
+  const clearFieldError = (key) => {
+    setFormErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    if (formErrorMessage) {
+      setFormErrorMessage("");
+    }
+  };
+
   const handleFieldChange = (field, value) => {
+    clearFieldError(field);
     setForm((prev) => ({
       ...prev,
       [field]: value,
@@ -91,6 +186,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
   };
 
   const handleAddressChange = (field, value) => {
+    clearFieldError(`address.${field}`);
     setForm((prev) => ({
       ...prev,
       address: {
@@ -130,12 +226,68 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setFormErrors({});
+    setFormErrorMessage("");
+
+    const addressErrors = {};
+    const missingLabels = [];
+
+    if (!form.address.cep.trim()) {
+      addressErrors["address.cep"] = true;
+      missingLabels.push("CEP");
+    }
+    if (!form.address.street.trim()) {
+      addressErrors["address.street"] = true;
+      missingLabels.push("Rua");
+    }
+    if (!form.address.number.trim()) {
+      addressErrors["address.number"] = true;
+      missingLabels.push("Numero");
+    }
+    if (!form.address.neighborhood.trim()) {
+      addressErrors["address.neighborhood"] = true;
+      missingLabels.push("Bairro");
+    }
+    if (!form.address.city.trim()) {
+      addressErrors["address.city"] = true;
+      missingLabels.push("Cidade");
+    }
+    if (!form.address.state.trim()) {
+      addressErrors["address.state"] = true;
+      missingLabels.push("Estado");
+    }
+
+    if (missingLabels.length > 0) {
+      setFormErrors(addressErrors);
+      setFormErrorMessage(
+        `Endereco incompleto. Faltam: ${missingLabels.join(", ")}.`
+      );
+      return;
+    }
+
+    const blockedMatch = findBlockedNeighborhood(
+      form.address.neighborhood,
+      blockedNeighborhoods
+    );
+    if (blockedMatch) {
+      setFormErrors({ "address.neighborhood": true });
+      setFormErrorMessage(
+        `Bairro bloqueado para entrega: ${blockedMatch}.`
+      );
+      return;
+    }
+
     const payload = {
       id: form.id,
       name: form.name.trim(),
       phone: digitsOnly(form.phone),
       cpf: digitsOnly(form.cpf),
       notes: form.notes.trim(),
+      deliveryMinMinutes:
+        typeof form.deliveryMinMinutes === "number"
+          ? form.deliveryMinMinutes
+          : null,
+      deliveryMetrics: form.deliveryMetrics || null,
       deliveryFee: form.deliveryFee ? Number(form.deliveryFee) : null,
       address: {
         cep: digitsOnly(form.address.cep),
@@ -236,6 +388,10 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
         )}
       </div>
 
+      {formErrorMessage && (
+        <div className="customer-form-error">{formErrorMessage}</div>
+      )}
+
       <form
         id="customer-form"
         className="customer-form-grid"
@@ -292,7 +448,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
               <span className="field-label">CEP</span>
               <div className="customer-cep-inline">
                 <input
-                  className="input"
+                  className={"input" + (formErrors["address.cep"] ? " input-error" : "")}
                   value={form.address.cep}
                   onChange={(e) => handleAddressChange("cep", e.target.value)}
                   placeholder="Somente números"
@@ -323,7 +479,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Rua</span>
               <input
-                className="input"
+                className={"input" + (formErrors["address.street"] ? " input-error" : "")}
                 value={form.address.street}
                 onChange={(e) =>
                   handleAddressChange("street", e.target.value)
@@ -334,7 +490,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Número</span>
               <input
-                className="input"
+                className={"input" + (formErrors["address.number"] ? " input-error" : "")}
                 value={form.address.number}
                 onChange={(e) =>
                   handleAddressChange("number", e.target.value)
@@ -347,7 +503,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Bairro</span>
               <input
-                className="input"
+                className={"input" + (formErrors["address.neighborhood"] ? " input-error" : "")}
                 value={form.address.neighborhood}
                 onChange={(e) =>
                   handleAddressChange("neighborhood", e.target.value)
@@ -358,7 +514,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Cidade</span>
               <input
-                className="input"
+                className={"input" + (formErrors["address.city"] ? " input-error" : "")}
                 value={form.address.city}
                 onChange={(e) =>
                   handleAddressChange("city", e.target.value)
@@ -369,7 +525,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Estado</span>
               <input
-                className="input"
+                className={"input" + (formErrors["address.state"] ? " input-error" : "")}
                 value={form.address.state}
                 onChange={(e) =>
                   handleAddressChange("state", e.target.value)

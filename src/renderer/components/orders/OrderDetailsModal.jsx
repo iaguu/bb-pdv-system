@@ -80,15 +80,26 @@ function normalizeItems(rawItems = []) {
       Number(it.total ?? it.lineTotal ?? it.line_total ?? 0) ||
       Number(unit || 0) * quantity;
 
-    const flavor1 =
-      it.name || it.title || it.flavor1Name || it.productName || "Item";
+    const flavor1Raw =
+      it.name ||
+      it.title ||
+      it.itemName ||
+      it.description ||
+      it.flavor1Name ||
+      it.productName ||
+      it.product?.name ||
+      it.label ||
+      "";
     const flavor2 = it.halfDescription || it.flavor2Name || "";
     const flavor3 = it.flavor3Name || "";
 
+    const flavor1 = String(flavor1Raw || "").trim();
+
+    const titleBase = flavor1 || "Item sem nome";
     const title =
       flavor2 || flavor3
-        ? [flavor1, flavor2, flavor3].filter(Boolean).join(" / ")
-        : flavor1;
+        ? [titleBase, flavor2, flavor3].filter(Boolean).join(" / ")
+        : titleBase;
 
     const sizeLabel = it.sizeLabel || it.size || it.sizeName || "";
 
@@ -187,11 +198,11 @@ const OrderDetailsModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Pedido #${order.shortId || order.id || order._id || "–"}`}
+      title={`Pedido #${order.shortId || order.id || order._id || "?"}`}
       className="order-details-modal"
     >
       <div className="order-details__body">
-        <div className="order-details__column order-details__column--left">
+        <div className="order-details__column order-details__column--main">
           <section className="order-section">
             <div className="order-section__header">
               <h3 className="order-section__title">Cliente</h3>
@@ -234,16 +245,16 @@ const OrderDetailsModal = ({
             </div>
           </section>
 
-          <section className="order-section">
+          <section className="order-section order-section--payment">
             <h3 className="order-section__title">Pagamento</h3>
-            <div className="order-kv">
-              <div>
-                <span className="order-kv__label">Forma</span>
+            <div className="order-kv order-kv--payment">
+              <div className="order-kv__stack">
+                <span className="order-kv__label">Forma atual</span>
                 <span className={`tag ${paymentTagClass}`}>
                   {paymentLabel}
                 </span>
               </div>
-              <div className="order-kv__inline">
+              <div className="order-kv__inline order-kv__inline--select">
                 <label className="order-kv__label">Alterar forma</label>
                 <select
                   value={paymentMethod || ""}
@@ -259,7 +270,7 @@ const OrderDetailsModal = ({
               </div>
             </div>
 
-            <div className="order-kv">
+            <div className="order-kv order-kv--payment">
               <div>
                 <span className="order-kv__label">Troco para</span>
                 <span className="order-kv__value">
@@ -274,9 +285,7 @@ const OrderDetailsModal = ({
               </div>
             </div>
           </section>
-        </div>
-
-        <div className="order-details__column order-details__column--right">
+        
           <section className="order-section">
             <div className="order-section__header">
               <h3 className="order-section__title">Itens</h3>
@@ -346,7 +355,11 @@ const OrderDetailsModal = ({
                   }
                   onClick={() => handleStatusClick(s.key)}
                 >
-                  {s.label}
+                  <span className="status-chip__dot" aria-hidden="true" />
+                  <span className="status-chip__label">{s.label}</span>
+                  {order.status === s.key && (
+                    <span className="status-chip__current">Atual</span>
+                  )}
                 </button>
               ))}
             </div>

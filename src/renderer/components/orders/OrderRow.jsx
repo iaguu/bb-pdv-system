@@ -1,4 +1,5 @@
 import React from "react";
+import { normalizeStatus } from "../../utils/orderUtils";
 
 function formatCurrency(value) {
   const v = Number(value || 0);
@@ -71,21 +72,18 @@ const OrderRow = ({ order, onClick, isNew }) => {
   const customerName =
     customerSnapshot?.name || order?.customer?.name || "Cliente";
 
-  const rawStatusKey = (status || "open").toString().toLowerCase().trim();
-  const normalizedStatusKey =
-    rawStatusKey === "out_for_delivery" || rawStatusKey === "in_delivery"
-      ? "delivering"
-      : rawStatusKey;
+  const normalizedStatusKey = normalizeStatus(status || "open");
 
   const statusInfo =
     STATUS_MAP[normalizedStatusKey] || {
-      label: rawStatusKey || "Em aberto",
+      label: normalizedStatusKey || "Em aberto",
       tone: "default",
     };
 
   const sourceKey = (source || "local").toLowerCase().trim();
   const sourceLabel =
     SOURCE_MAP[sourceKey] || SOURCE_MAP.local || "Balcao / Local";
+  const isWebSource = sourceKey === "website" || sourceKey === "web";
 
   const total =
     totals?.finalTotal ?? totals?.total ?? order?.total ?? 0;
@@ -140,13 +138,34 @@ const OrderRow = ({ order, onClick, isNew }) => {
   const motoboyStatusLabel =
     MOTOBOY_STATUS_MAP[motoboyStatusKey] || null;
 
+  const createdDate = createdAt ? new Date(createdAt) : null;
+  const minutesSince =
+    createdDate && !Number.isNaN(createdDate.getTime())
+      ? Math.round((Date.now() - createdDate.getTime()) / 60000)
+      : null;
+  const isOpenLike = ["open", "preparing", "out_for_delivery"].includes(
+    normalizedStatusKey
+  );
+  const minMinutes =
+    typeof order?.deliveryMinMinutes === "number"
+      ? order.deliveryMinMinutes
+      : 0;
+  const lateThreshold = minMinutes > 0 ? minMinutes : 40;
+  const isLate =
+    isOpenLike && minutesSince != null && minutesSince >= lateThreshold;
+
+  const elapsedLabel =
+    minutesSince == null
+      ? ""
+      : minutesSince < 60
+      ? `${minutesSince} min`
+      : `${Math.floor(minutesSince / 60)}h ${minutesSince % 60}m`;
+
   const classes = [
     "order-row",
     `order-row--status-${statusInfo.tone}`,
-    sourceKey === "website" || sourceKey === "web"
-      ? "order-row--web"
-      : "",
     isNew ? "order-row--new" : "",
+    isLate ? "order-row--late" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -196,12 +215,29 @@ const OrderRow = ({ order, onClick, isNew }) => {
               Novo pedido
             </span>
           )}
+          {isLate && minutesSince != null && (
+            <span className="order-row-chip order-row-chip--late">
+              Atrasado {minutesSince} min
+            </span>
+          )}
         </div>
       </div>
 
       <div className="order-row-right">
+        {isWebSource && (
+          <span className="order-row-web-badge">WEB</span>
+        )}
         {timeLabel && (
           <div className="order-row-time">{timeLabel}</div>
+        )}
+        {elapsedLabel && (
+          <div
+            className={
+              "order-row-elapsed" + (isLate ? " order-row-elapsed--late" : "")
+            }
+          >
+            {elapsedLabel}
+          </div>
         )}
 
         <div className="order-row-total-wrapper">

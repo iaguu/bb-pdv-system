@@ -30,9 +30,62 @@ $people-text-soft: #9ca3af;
 /* TOOLBAR (SEARCH)                                                          */
 /* ========================================================================== */
 
-.people-toolbar {
+.people-panel {
   margin-top: 8px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid $people-border;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+}
+
+.people-toolbar {
   margin-bottom: 10px;
+}
+
+/* ========================================================================== */
+/* TABS (CLIENTES / ENTREGADORES)                                             */
+/* ========================================================================== */
+
+.people-tabs {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.people-tabs .tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid $people-border;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.people-tabs .tab-item {
+  border: 0;
+  background: transparent;
+  color: $people-text-muted;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.people-tabs .tab-item:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: $people-text-main;
+  transform: translateY(-1px);
+}
+
+.people-tabs .tab-item-active {
+  background: #111827;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
 }
 
 /* ========================================================================== */
@@ -53,9 +106,33 @@ $people-text-soft: #9ca3af;
 /* ========================================================================== */
 
 .people-summary {
-  margin-bottom: 8px;
-  font-size: 13px;
+  margin-top: 6px;
+}
+
+.people-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.people-summary-card {
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.03);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.people-summary-label {
+  font-size: 12px;
   color: $people-text-muted;
+}
+
+.people-summary-value {
+  font-size: 16px;
+  color: $people-text-main;
 }
 
 /* ========================================================================== */
@@ -79,6 +156,10 @@ $people-text-soft: #9ca3af;
   border: 1px solid $people-border;
   background: $people-card-bg;
   overflow: hidden;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 /* Caso os rows tenham borda própria, esse padding suaviza o container */
@@ -89,6 +170,10 @@ $people-text-soft: #9ca3af;
 
 /* Em telas menores, dá um respiro lateral se o Page não tiver */
 @media (max-width: 640px) {
+  .people-panel {
+    padding: 12px;
+  }
+
   .customer-list,
   .motoboy-list {
     border-radius: 8px;
