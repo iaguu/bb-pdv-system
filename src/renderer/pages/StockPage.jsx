@@ -95,6 +95,8 @@ const StockPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const isInitialLoading = loading && products.length === 0;
+  const isRefreshing = loading && products.length > 0;
 
   // -----------------------------
   // LOAD INICIAL (produtos + estoque de ingredientes)
@@ -379,40 +381,62 @@ const StockPage = () => {
   // -----------------------------
   // HANDLERS – PRODUTOS (manual "sem estoque")
   // -----------------------------
-  const handleToggleProductOutOfStock = async (index) => {
-    setProducts(async (prev) => {
-      const base = Array.isArray(prev) ? [...prev] : [];
-      const current = base[index];
-      if (!current) return prev;
+  const handleToggleProductOutOfStock = async (product) => {
+    const base = Array.isArray(products) ? [...products] : [];
+    let targetIndex = -1;
 
-      const nextManualOut = !current._manualOutOfStock;
+    if (product?.id != null) {
+      targetIndex = base.findIndex(
+        (item) => String(item.id) === String(product.id)
+      );
+    }
 
-      base[index] = {
-        ...current,
-        _manualOutOfStock: nextManualOut,
-      };
-
-      const updated = computeProductsWithStock(base, ingredientStock);
-
-      try {
-        setSaving(true);
-        if (
-          window.dataEngine &&
-          typeof window.dataEngine.set === "function"
-        ) {
-          await window.dataEngine.set("products", {
-            items: updated,
-          });
-        }
-      } catch (err) {
-        console.error("[StockPage] Erro ao atualizar produto:", err);
-        setError("Erro ao atualizar disponibilidade do produto.");
-      } finally {
-        setSaving(false);
+    if (targetIndex < 0) {
+      const name = product?.name || product?.nome;
+      const type = (product?.type || "").toLowerCase();
+      const category = product?.categoria || product?.category || "";
+      if (name) {
+        targetIndex = base.findIndex((item) => {
+          const itemName = item?.name || item?.nome || "";
+          if (itemName !== name) return false;
+          const itemType = (item?.type || "").toLowerCase();
+          const itemCategory = item?.categoria || item?.category || "";
+          if (type && itemType !== type) return false;
+          if (category && itemCategory !== category) return false;
+          return true;
+        });
       }
+    }
 
-      return updated;
-    });
+    if (targetIndex < 0) return;
+
+    const current = base[targetIndex];
+    if (!current) return;
+
+    const nextManualOut = !current._manualOutOfStock;
+    const nowIso = new Date().toISOString();
+    base[targetIndex] = {
+      ...current,
+      _manualOutOfStock: nextManualOut,
+      updatedAt: nowIso,
+    };
+
+    const updated = computeProductsWithStock(base, ingredientStock);
+    setProducts(updated);
+
+    try {
+      setSaving(true);
+      if (window.dataEngine && typeof window.dataEngine.set === "function") {
+        await window.dataEngine.set("products", {
+          items: updated,
+        });
+      }
+    } catch (err) {
+      console.error("[StockPage] Erro ao atualizar produto:", err);
+      setError("Erro ao atualizar disponibilidade do produto.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Lista de produtos filtrada
@@ -693,9 +717,7 @@ const StockPage = () => {
                         <Button
                           size="sm"
                           variant={p._manualOutOfStock ? "secondary" : "ghost"}
-                          onClick={() =>
-                            handleToggleProductOutOfStock(index)
-                          }
+                          onClick={() => handleToggleProductOutOfStock(p)}
                         >
                           {p._manualOutOfStock
                             ? "Reativar manual"
@@ -739,56 +761,77 @@ const StockPage = () => {
         <div className="stock-panel">
           {error && <div className="stock-error">{error}</div>}
 
-          {/* Resumo rápido do estoque */}
-          <div className="stock-summary-grid">
-            <div className="stock-summary-card">
-              <div className="stock-summary-label">Ingredientes mapeados</div>
-              <div className="stock-summary-value">
-                {stockSummary.totalIngredients}
-              </div>
-            </div>
-            <div className="stock-summary-card">
-              <div className="stock-summary-label">Ingredientes em falta</div>
-              <div className="stock-summary-value highlight">
-                {stockSummary.missingIngredients}
-              </div>
-            </div>
-            <div className="stock-summary-card">
-              <div className="stock-summary-label">Produtos no catálogo</div>
-              <div className="stock-summary-value">
-                {stockSummary.totalProducts}
-              </div>
-            </div>
-            <div className="stock-summary-card">
-              <div className="stock-summary-label">
-                Pizzas pausadas (ingrediente)
-              </div>
-              <div className="stock-summary-value">
-                {stockSummary.autoPausedProducts}
-              </div>
-            </div>
-            <div className="stock-summary-card">
-              <div className="stock-summary-label">
-                Produtos pausados (manual)
-              </div>
-              <div className="stock-summary-value">
-                {stockSummary.manualPausedProducts}
-              </div>
-            </div>
-          </div>
+          {isRefreshing && (
+            <div className="order-list-refresh">Atualizando estoque...</div>
+          )}
 
-          <div className="stock-tabs">
-            <Tabs
-              value={tab}
-              onChange={setTab}
-              options={[
-                { value: "ingredients", label: "Ingredientes" },
-                { value: "products", label: "Produtos" },
-              ]}
-            />
-          </div>
+          {isInitialLoading ? (
+            <>
+              <div className="stock-summary-grid">
+                {[0, 1, 2, 3, 4].map((idx) => (
+                  <div
+                    key={`stock-summary-skeleton-${idx}`}
+                    className="skeleton skeleton-card"
+                  />
+                ))}
+              </div>
+              <div className="skeleton skeleton-row" />
+              <div className="skeleton skeleton-row" />
+            </>
+          ) : (
+            <>
+              {/* Resumo r??pido do estoque */}
+              <div className="stock-summary-grid">
+                <div className="stock-summary-card">
+                  <div className="stock-summary-label">Ingredientes mapeados</div>
+                  <div className="stock-summary-value">
+                    {stockSummary.totalIngredients}
+                  </div>
+                </div>
+                <div className="stock-summary-card">
+                  <div className="stock-summary-label">Ingredientes em falta</div>
+                  <div className="stock-summary-value highlight">
+                    {stockSummary.missingIngredients}
+                  </div>
+                </div>
+                <div className="stock-summary-card">
+                  <div className="stock-summary-label">Produtos no cat??logo</div>
+                  <div className="stock-summary-value">
+                    {stockSummary.totalProducts}
+                  </div>
+                </div>
+                <div className="stock-summary-card">
+                  <div className="stock-summary-label">
+                    Pizzas pausadas (ingrediente)
+                  </div>
+                  <div className="stock-summary-value">
+                    {stockSummary.autoPausedProducts}
+                  </div>
+                </div>
+                <div className="stock-summary-card">
+                  <div className="stock-summary-label">
+                    Produtos pausados (manual)
+                  </div>
+                  <div className="stock-summary-value">
+                    {stockSummary.manualPausedProducts}
+                  </div>
+                </div>
+              </div>
 
-          {tab === "ingredients" ? renderIngredientsTab() : renderProductsTab()}
+              <div className="stock-tabs">
+                <Tabs
+                  value={tab}
+                  onChange={setTab}
+                  options={[
+                    { value: "ingredients", label: "Ingredientes" },
+                    { value: "products", label: "Produtos" },
+                  ]}
+                />
+              </div>
+
+              {tab === "ingredients" ? renderIngredientsTab() : renderProductsTab()}
+            </>
+          )}
         </div>
       </div>
     </Page>

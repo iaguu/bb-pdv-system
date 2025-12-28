@@ -26,7 +26,7 @@ const OrderFilters = ({ value = {}, onChange, searchInputRef }) => {
     <div className="order-filters">
       <div className="order-status-tabs" role="tablist" aria-label="Status dos pedidos">
         {ORDER_STATUS_PRESETS.map((tab) => {
-          const isActive = currentStatus === tab.value;
+          const isActive = currentStatus === tab.key;
           const classes = [
             "order-status-tab",
             `order-status-tab--tone-${tab.tone}`,

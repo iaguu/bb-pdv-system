@@ -15,6 +15,9 @@
     "preview": "vite preview",
     "start": "electron .",
     "test:api": "node electron/tests/apiServer.validation.test.js",
+    "test:db": "node electron/tests/db.engine.test.js",
+    "test:motoboy": "node electron/tests/motoboy.link.test.js",
+    "test": "npm run test:api && npm run test:db && npm run test:motoboy",
     "electron:build": "npm run clean:dist && npm run build && electron-builder"
   },
   "dependencies": {

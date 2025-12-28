@@ -516,7 +516,9 @@ async function pullCollectionsFromRemote() {
 
   try {
     await loadSyncState();
-    const collections = db.listCollections();
+    const collections = db
+      .listCollections()
+      .filter((name) => SYNC_ITEM_COLLECTIONS.has(name));
 
     for (const name of collections) {
       const isItemCollection = SYNC_ITEM_COLLECTIONS.has(name);

@@ -222,6 +222,77 @@ $radius: 8px;
 }
 
 /* ============================================================================
+   SYNC STATUS BAR
+   ============================================================================ */
+.app-sync-status {
+  position: sticky;
+  top: 0;
+  z-index: 17;
+  margin: 10px 24px 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: #334155;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+.app-sync-status__left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-sync-status__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-sync-status__pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.app-sync-status__pill.is-online {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.app-sync-status__pill.is-offline {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.app-sync-status__btn {
+  border: 1px solid #cbd5f5;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-sync-status__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.app-sync-status__error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+/* ============================================================================
    TOAST - NOTIFICACAO DE PEDIDOS
    ============================================================================ */
 .app-toast {
@@ -278,5 +349,77 @@ $radius: 8px;
   width: 28px;
   height: 28px;
   object-fit: contain;
+}
+
+/* ============================================================================
+   SKELETONS + EMPTY STATES
+   ============================================================================ */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0) 0%,
+    rgba(248, 250, 252, 0.8) 50%,
+    rgba(226, 232, 240, 0) 100%
+  );
+  animation: skeleton-shimmer 1.4s infinite;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 999px;
+}
+
+.skeleton-card {
+  height: 72px;
+}
+
+.skeleton-row {
+  height: 18px;
+  border-radius: 10px;
+  margin: 10px 0;
+}
+
+.empty-state {
+  border: 1px dashed #cbd5f5;
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+}
+
+.empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.empty-description {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.empty-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
 

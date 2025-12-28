@@ -15,7 +15,13 @@ const STATUS_GROUPS = [
   { key: "cancelled", label: "Cancelados", tone: "cancelled" },
 ];
 
-const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
+const OrderList = ({
+  orders = [],
+  filters = {},
+  onClickOrder,
+  onCreateOrder,
+  isRefreshing = false,
+}) => {
   const { status = "open", source = "all", search = "" } = filters;
 
   const { groupedOrders, totalCount } = useMemo(() => {
@@ -141,20 +147,31 @@ const OrderList = ({ orders = [], filters = {}, onClickOrder }) => {
 
   if (totalCount === 0) {
     return (
-      <div className="order-list-empty">
-        <div className="order-list-empty-icon">📭</div>
-        <div className="order-list-empty-title">
-          Nenhum pedido encontrado
-        </div>
-        <div className="order-list-empty-subtitle">
+      <div className="empty-state">
+        <div className="empty-title">Nenhum pedido encontrado</div>
+        <div className="empty-description">
           Ajuste os filtros ou aguarde novos pedidos chegarem.
         </div>
+        {typeof onCreateOrder === "function" && (
+          <div className="empty-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={onCreateOrder}
+            >
+              Criar pedido
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="order-list">
+      {isRefreshing && (
+        <div className="order-list-refresh">Atualizando pedidos...</div>
+      )}
       {STATUS_GROUPS.map((group) => {
         const bucket = groupedOrders[group.key] || [];
         if (bucket.length === 0) return null;

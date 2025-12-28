@@ -6,7 +6,7 @@ export const ORDER_STATUS_PRESETS = [
     key: "open",
     label: "Em aberto",
     tone: "open",
-    statuses: ["open", "preparing", "out_for_delivery"],
+    statuses: ["open"],
   },
   {
     key: "preparing",
@@ -42,18 +42,37 @@ export const ORDER_STATUS_PRESETS = [
 
 export const normalizeStatus = (status) => {
   if (!status) return "open";
-  const s = status.toString().toLowerCase();
-  if (["finalizado", "done", "entregue", "concluido", "concluída"].includes(s)) {
+  const s = status
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+  if (
+    [
+      "finalizado",
+      "finalizada",
+      "done",
+      "entregue",
+      "delivered",
+      "concluido",
+      "concluida",
+    ].includes(s)
+  ) {
     return "done";
   }
-  if (["cancelado", "cancelled"].includes(s)) {
+  if (["cancelado", "cancelada", "cancelled", "canceled"].includes(s)) {
     return "cancelled";
   }
   if (
     [
       "preparing",
+      "in_preparation",
+      "in preparation",
       "preparo",
       "em_preparo",
+      "em preparo",
       "preparando",
       "ready",
       "pronto",
@@ -65,7 +84,14 @@ export const normalizeStatus = (status) => {
   if (
     [
       "out_for_delivery",
+      "out for delivery",
       "em_entrega",
+      "em entrega",
+      "in_delivery",
+      "in delivery",
+      "saiu p/ entrega",
+      "saiu p/entrega",
+      "saiu para entrega",
       "delivery",
       "delivering",
       "assigned",
@@ -74,7 +100,20 @@ export const normalizeStatus = (status) => {
   ) {
     return "out_for_delivery";
   }
-  if (["open", "em_aberto", "pendente"].includes(s)) return "open";
+  if (
+    [
+      "open",
+      "em_aberto",
+      "em aberto",
+      "aberto",
+      "pendente",
+      "pending",
+      "new",
+      "novo",
+    ].includes(s)
+  ) {
+    return "open";
+  }
   return s;
 };
 

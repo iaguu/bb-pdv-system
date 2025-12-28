@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Modal from "../common/Modal";
+import ConfirmDialog from "../common/ConfirmDialog";
 import { digitsOnly, lookupCep, normalizeCustomer } from "./utils";
 import { emitToast } from "../../utils/toast";
 
@@ -12,6 +13,7 @@ export default function ClientDetailsModal({
   const [editing, setEditing] = useState(null);
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const lastCepLookupRef = useRef("");
   const autoCepTimerRef = useRef(null);
 
@@ -119,44 +121,49 @@ export default function ClientDetailsModal({
   };
 
   const triggerDelete = () => {
-    if (!window.confirm(`Excluir o cliente "${editing.name}"?`)) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    setShowDeleteConfirm(false);
     onDelete(editing.id);
   };
 
   const formId = "client-details-form";
 
   return (
-    <Modal
-      isOpen={Boolean(customer)}
-      onClose={onClose}
-      title={`Cliente: ${editing.name}`}
-      className="modal-client"
-      bodyClassName="modal-form"
-      footer={
-        <div className="modal-footer-actions modal-footer-actions--split">
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={onClose}
-          >
-            Voltar
-          </button>
-
-          <div className="modal-footer-actions">
+    <>
+      <Modal
+        isOpen={Boolean(customer)}
+        onClose={onClose}
+        title={`Cliente: ${editing.name}`}
+        className="modal-client"
+        bodyClassName="modal-form"
+        footer={
+          <div className="modal-footer-actions modal-footer-actions--split">
             <button
               type="button"
-              className="btn btn-outline btn-danger-soft"
-              onClick={triggerDelete}
+              className="btn btn-outline"
+              onClick={onClose}
             >
-              Excluir
+              Voltar
             </button>
-            <button type="submit" className="btn btn-primary" form={formId}>
-              Salvar alterações
-            </button>
+
+            <div className="modal-footer-actions">
+              <button
+                type="button"
+                className="btn btn-outline btn-danger-soft"
+                onClick={triggerDelete}
+              >
+                Excluir
+              </button>
+              <button type="submit" className="btn btn-primary" form={formId}>
+                Salvar alterações
+              </button>
+            </div>
           </div>
-        </div>
-      }
-    >
+        }
+      >
       <form id={formId} className="modal-form" onSubmit={submit}>
         {/* DADOS PRINCIPAIS */}
         <div className="modal-section">
@@ -305,6 +312,18 @@ export default function ClientDetailsModal({
           </div>
         )}
       </form>
-    </Modal>
+      </Modal>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Excluir cliente"
+        message={`Excluir o cliente "${editing.name}"?`}
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        tone="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    </>
   );
 }

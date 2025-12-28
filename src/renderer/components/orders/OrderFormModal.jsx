@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Modal from "../common/Modal";
 import CustomerFormModal from "../people/CustomerFormModal";
 import { lookupCep } from "../clients/utils";
+import { emitToast } from "../../utils/toast";
 
 function digitsOnly(s) {
   return (s || "").replace(/\D/g, "");
@@ -641,6 +642,13 @@ export default function NewOrderModal({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [submitError, setSubmitError] = useState("");
+
+  const customerSearchRef = useRef(null);
+  const counterLabelRef = useRef(null);
+  const pizzaQuantityRef = useRef(null);
+  const deliveryNeighborhoodRef = useRef(null);
+  const distanceSectionRef = useRef(null);
 
   // -----------------------------
   // Cliente
@@ -2040,31 +2048,31 @@ export default function NewOrderModal({
   // -----------------------------
   const handleAddPizza = () => {
     if (!pizzaCatalog.length) {
-      alert("Nenhuma pizza cadastrada.");
+      emitToast({ type: "warning", message: "Nenhuma pizza cadastrada." });
       return;
     }
 
     const q = Number(quantity) || 0;
     if (q <= 0) {
-      alert("Quantidade inválida.");
+      emitToast({ type: "warning", message: "Quantidade inválida." });
       return;
     }
 
     const pizza1 = findById(flavor1, pizzaCatalog);
     if (!pizza1) {
-      alert("Selecione ao menos o 1º sabor.");
+      emitToast({ type: "warning", message: "Selecione ao menos o 1º sabor." });
       return;
     }
 
     let pizza2 = null;
     if (twoFlavorsEnabled || threeFlavorsEnabled) {
       if (!flavor2) {
-        alert("Selecione o 2º sabor ou volte para 1 sabor.");
+        emitToast({ type: "warning", message: "Selecione o 2º sabor ou volte para 1 sabor." });
         return;
       }
       pizza2 = findById(flavor2, pizzaCatalog);
       if (!pizza2) {
-        alert("Sabor 2 inválido.");
+        emitToast({ type: "warning", message: "Sabor 2 inválido." });
         return;
       }
     }
@@ -2072,12 +2080,12 @@ export default function NewOrderModal({
     let pizza3 = null;
     if (threeFlavorsEnabled) {
       if (!flavor3) {
-        alert("Selecione o 3º sabor ou volte para 1/2 sabores.");
+        emitToast({ type: "warning", message: "Selecione o 3º sabor ou volte para 1/2 sabores." });
         return;
       }
       pizza3 = findById(flavor3, pizzaCatalog);
       if (!pizza3) {
-        alert("Sabor 3 inválido.");
+        emitToast({ type: "warning", message: "Sabor 3 inválido." });
         return;
       }
     }
@@ -2139,26 +2147,26 @@ export default function NewOrderModal({
   // -----------------------------
   const handleAddDrink = () => {
     if (!drinkCatalog.length) {
-      alert("Nenhuma bebida cadastrada.");
+      emitToast({ type: "warning", message: "Nenhuma bebida cadastrada." });
       return;
     }
 
     const q = Number(drinkQuantity) || 0;
     if (q <= 0) {
-      alert("Quantidade inválida.");
+      emitToast({ type: "warning", message: "Quantidade inválida." });
       return;
     }
 
     const drink = findById(selectedDrinkId, drinkCatalog);
     if (!drink) {
-      alert("Selecione uma bebida.");
+      emitToast({ type: "warning", message: "Selecione uma bebida." });
       return;
     }
 
     const unit = drink.prices.grande || drink.prices.broto || 0;
 
     if (!unit) {
-      alert("Bebida sem preço configurado.");
+      emitToast({ type: "warning", message: "Bebida sem preço configurado." });
       return;
     }
 
@@ -2303,14 +2311,62 @@ export default function NewOrderModal({
   // -----------------------------
   // Build draft + submit
   // -----------------------------
+  const focusSubmitField = (field) => {
+    if (!field) return;
+
+    if (field === "customer") {
+      setShowCustomerSearch(true);
+      setTimeout(() => {
+        if (customerSearchRef.current) {
+          customerSearchRef.current.focus();
+        }
+      }, 0);
+      return;
+    }
+
+    if (field === "counterLabel") {
+      if (counterLabelRef.current) {
+        counterLabelRef.current.focus();
+      }
+      return;
+    }
+
+    if (field === "items") {
+      if (pizzaQuantityRef.current) {
+        pizzaQuantityRef.current.focus();
+      }
+      return;
+    }
+
+    if (field === "deliveryNeighborhood") {
+      if (deliveryNeighborhoodRef.current) {
+        deliveryNeighborhoodRef.current.focus();
+      }
+      return;
+    }
+
+    if (field === "distance") {
+      if (distanceSectionRef.current) {
+        distanceSectionRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }
+  };
+
   const buildDraft = () => {
     if (!orderItems.length) {
-      return { error: "Adicione pelo menos uma pizza ou bebida ao pedido." };
+      return {
+        error: "Adicione pelo menos uma pizza ou bebida ao pedido.",
+        errorField: "items",
+      };
     }
 
     if (!isEditing && !businessHoursStatus.isOpen) {
       return {
         error: `Horário fechado. ${businessHoursMessage}`,
+        errorField: "items",
       };
     }
 
@@ -2324,6 +2380,7 @@ export default function NewOrderModal({
       if (!selectedCustomer) {
         return {
           error: "Selecione um cliente ou troque para Balcão / rápido.",
+          errorField: "customer",
         };
       }
       customerId = selectedCustomer.id;
@@ -2354,6 +2411,7 @@ export default function NewOrderModal({
       if (!label) {
         return {
           error: "Informe uma identificação para Balcão / rápido.",
+          errorField: "counterLabel",
         };
       }
       customerName = label;
@@ -2363,6 +2421,7 @@ export default function NewOrderModal({
       if (customerMode !== "registered" || !customerAddress) {
         return {
           error: "Selecione um cliente cadastrado para entrega.",
+          errorField: "customer",
         };
       }
 
@@ -2375,6 +2434,7 @@ export default function NewOrderModal({
           error: `Endereço incompleto no cadastro do cliente: ${missing.join(
             ", "
           )}.`,
+          errorField: "deliveryNeighborhood",
         };
       }
 
@@ -2385,6 +2445,7 @@ export default function NewOrderModal({
       if (blockedMatch) {
         return {
           error: `Não entregamos no bairro "${blockedMatch}".`,
+          errorField: "deliveryNeighborhood",
         };
       }
     }
@@ -2394,12 +2455,14 @@ export default function NewOrderModal({
         error: `Pedido mínimo para entrega: ${formatCurrency(
           minOrderValueNumber
         )}.`,
+        errorField: "items",
       };
     }
 
     if (maxDistanceExceeded) {
       return {
           error: `Distância acima do máximo permitido (${maxDistanceKmNumber} km).`,
+          errorField: "distance",
       };
     }
 
@@ -2486,11 +2549,14 @@ export default function NewOrderModal({
   const handleSubmit = (e, options = { action: "save" }) => {
     if (e && e.preventDefault) e.preventDefault();
 
-    const { draft, error } = buildDraft();
+    const { draft, error, errorField } = buildDraft();
     if (error) {
-      alert(error);
+      setSubmitError(error);
+      emitToast({ type: "warning", message: error });
+      focusSubmitField(errorField);
       return;
     }
+    setSubmitError("");
 
     if (typeof onConfirm === "function") {
       if (!isEditing) {
@@ -2499,6 +2565,22 @@ export default function NewOrderModal({
       onConfirm(draft, options);
     }
   };
+
+  useEffect(() => {
+    if (!submitError) return;
+    setSubmitError("");
+  }, [
+    submitError,
+    orderItems,
+    selectedCustomerId,
+    counterLabel,
+    orderType,
+    deliveryAddressNeighborhood,
+    deliveryDistanceKm,
+    minOrderNotMet,
+    maxDistanceExceeded,
+    businessHoursStatus?.isOpen,
+  ]);
 
   if (!isOpen) return null;
 
@@ -2556,6 +2638,11 @@ export default function NewOrderModal({
               {orderType === "delivery" && blockedNeighborhoodMatch && (
                 <div className="field-error-text orderform-banner">
                   Bairro bloqueado para entrega: {blockedNeighborhoodMatch}.
+                </div>
+              )}
+              {submitError && (
+                <div className="field-error-text orderform-banner">
+                  {submitError}
                 </div>
               )}
             {loadError && <div className="modal-error-text">{loadError}</div>}
@@ -2673,7 +2760,15 @@ export default function NewOrderModal({
                           type="button"
                           className="btn btn-sm btn-outline"
                           onClick={() => {
+                            setSelectedCustomerId(null);
+                            setSelectedCustomerAddressId("primary");
+                            setCustomerSearch("");
                             setShowCustomerSearch(true);
+                            setTimeout(() => {
+                              if (customerSearchRef.current) {
+                                customerSearchRef.current.focus();
+                              }
+                            }, 0);
                           }}
                         >
                           Trocar cliente
@@ -2774,6 +2869,7 @@ export default function NewOrderModal({
                     <div className="customer-list-block">
                       <div className="field-label">Buscar cliente</div>
                       <input
+                        ref={customerSearchRef}
                         className="field-input"
                         value={customerSearch}
                         onChange={(e) => setCustomerSearch(e.target.value)}
@@ -2848,6 +2944,7 @@ export default function NewOrderModal({
                   <div className="counter-block">
                     <div className="field-label">Identificação rápida</div>
                     <input
+                      ref={counterLabelRef}
                       className="field-input"
                       value={counterLabel}
                       onChange={(e) => setCounterLabel(e.target.value)}
@@ -2951,7 +3048,7 @@ export default function NewOrderModal({
 
                 {/* Linha 2 – Distância + Faixa de entrega */}
                 <div className="config-cards-row">
-                  <div className="config-card">
+                  <div className="config-card" ref={distanceSectionRef}>
                     <div className="field-label">Distância até o cliente</div>
 
                     <div className="distance-summary-row">
@@ -3029,6 +3126,7 @@ export default function NewOrderModal({
                 <div className="config-card">
                   <div className="field-label">Bairro da entrega</div>
                   <input
+                    ref={deliveryNeighborhoodRef}
                     className={
                       "field-input" +
                       (orderType === "delivery" &&
@@ -3225,6 +3323,7 @@ export default function NewOrderModal({
                   <div>
                     <div className="field-label">Quantidade</div>
                     <input
+                      ref={pizzaQuantityRef}
                       className="field-input"
                       type="number"
                       min="1"

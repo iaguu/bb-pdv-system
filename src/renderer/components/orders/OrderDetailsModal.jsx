@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import Modal from "../common/Modal";
 import Button from "../common/Button";
+import { normalizeStatus } from "../../utils/orderUtils";
 
 function formatCurrency(value) {
   const v = Number(value || 0);
@@ -182,6 +183,8 @@ const OrderDetailsModal = ({
 
   const grandTotal = subtotal + deliveryFee - discount;
 
+  const normalizedStatus = normalizeStatus(order.status || "open");
+
   const handleStatusClick = (key) => {
     if (onChangeStatus) onChangeStatus(orderId, key);
   };
@@ -349,7 +352,7 @@ const OrderDetailsModal = ({
                   type="button"
                   className={
                     "status-chip " +
-                    (order.status === s.key ? "status-chip--active" : "") +
+                    (normalizedStatus === s.key ? "status-chip--active" : "") +
                     " status-chip--" +
                     s.tone
                   }
@@ -357,7 +360,7 @@ const OrderDetailsModal = ({
                 >
                   <span className="status-chip__dot" aria-hidden="true" />
                   <span className="status-chip__label">{s.label}</span>
-                  {order.status === s.key && (
+                  {normalizedStatus === s.key && (
                     <span className="status-chip__current">Atual</span>
                   )}
                 </button>

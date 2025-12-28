@@ -1,8 +1,9 @@
 ﻿// src/renderer/pages/SettingsPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Page from "../components/layout/Page";
 import Button from "../components/common/Button";
 import Modal from "../components/common/Modal";
+import { emitToast } from "../utils/toast";
 
 const ZONA_NORTE_BAIRROS = [
   "Santana",
@@ -194,6 +195,78 @@ const API_ENDPOINT_GROUPS = [
     ],
   },
   {
+    title: "PDV",
+    description: "Resumo, configuracoes e status do PDV.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/pdv/summary",
+        auth: "api-key",
+        desc: "Resumo rapido do PDV.",
+      },
+      {
+        method: "GET",
+        path: "/api/pdv/health",
+        auth: "api-key",
+        desc: "Status do data dir e contagens.",
+      },
+      {
+        method: "GET",
+        path: "/api/pdv/settings",
+        auth: "api-key",
+        desc: "Configuracoes normalizadas.",
+      },
+      {
+        method: "GET",
+        path: "/api/pdv/business-hours",
+        auth: "api-key",
+        desc: "Horario e status de funcionamento.",
+      },
+      {
+        method: "GET",
+        path: "/api/pdv/delivery/quote?distanceKm=3&subtotal=80&neighborhood=Santana",
+        auth: "api-key",
+        desc: "Simulacao de entrega.",
+      },
+      {
+        method: "GET",
+        path: "/api/pdv/products/availability",
+        auth: "api-key",
+        desc: "Status de disponibilidade dos produtos.",
+      },
+      {
+        method: "GET",
+        path: "/api/pdv/stock/alerts",
+        auth: "api-key",
+        desc: "Alertas de estoque e produtos afetados.",
+      },
+      {
+        method: "GET",
+        path: "/api/pdv/orders/metrics?from=2025-01-01&to=2025-12-31",
+        auth: "api-key",
+        desc: "Metricas resumidas de pedidos.",
+      },
+      {
+        method: "GET",
+        path: "/api/pdv/customers/segments",
+        auth: "api-key",
+        desc: "Segmentacao de clientes.",
+      },
+      {
+        method: "GET",
+        path: "/api/pdv/printing/config",
+        auth: "api-key",
+        desc: "Config atual de impressoras.",
+      },
+      {
+        method: "GET",
+        path: "/api/orders/stream",
+        auth: "api-key",
+        desc: "SSE de eventos de pedidos.",
+      },
+    ],
+  },
+  {
     title: "Clientes",
     description: "Cadastro e busca por telefone.",
     endpoints: [
@@ -367,6 +440,207 @@ const normalizeSettingsData = (data) => {
   return null;
 };
 
+const sanitizeImportedSettings = (raw, envConfig = {}) => {
+  const base = buildDefaultSettings();
+  const input = raw && typeof raw === "object" ? raw : {};
+  const next = { ...base, ...input };
+
+  if (!next.id) next.id = "default";
+  if (!next.pizzaria) next.pizzaria = base.pizzaria;
+  if (!next.versao) next.versao = base.versao;
+  if (!next.tema) next.tema = base.tema;
+
+  next.printing = {
+    kitchenPrinterName: input.printing?.kitchenPrinterName || "",
+    counterPrinterName: input.printing?.counterPrinterName || "",
+    silentMode:
+      input.printing?.silentMode !== undefined
+        ? !!input.printing.silentMode
+        : true,
+    autoPrintWebsiteOrders: !!input.printing?.autoPrintWebsiteOrders,
+  };
+
+  const openTime = input.businessHours?.openTime || "11:00";
+  const closeTime = input.businessHours?.closeTime || "23:00";
+  const closedWeekdays = Array.isArray(input.businessHours?.closedWeekdays)
+    ? input.businessHours.closedWeekdays
+    : [];
+  const baseSchedule = buildWeeklySchedule({
+    openTime,
+    closeTime,
+    closedWeekdays,
+  });
+  const rawSchedule = Array.isArray(input.businessHours?.weeklySchedule)
+    ? input.businessHours.weeklySchedule
+    : null;
+  const weeklySchedule = rawSchedule
+    ? baseSchedule.map((entry) => {
+        const match = rawSchedule.find(
+          (day) => Number(day.day) === entry.day
+        );
+        if (!match) return entry;
+        return {
+          ...entry,
+          enabled: match.enabled !== false,
+          openTime: match.openTime || entry.openTime,
+          closeTime: match.closeTime || entry.closeTime,
+        };
+      })
+    : baseSchedule;
+  const normalizedClosedWeekdays = weeklySchedule
+    .filter((entry) => entry.enabled === false)
+    .map((entry) => entry.day);
+
+  next.businessHours = {
+    enabled: !!input.businessHours?.enabled,
+    openTime,
+    closeTime,
+    closedWeekdays: normalizedClosedWeekdays,
+    weeklySchedule,
+  };
+
+  if (!input.delivery || !Array.isArray(input.delivery.ranges)) {
+    next.delivery = buildDefaultDeliveryConfig();
+  } else {
+    const blocked = Array.isArray(input.delivery.blockedNeighborhoods)
+      ? input.delivery.blockedNeighborhoods
+          .map((b) => (b || "").toString().trim())
+          .filter(Boolean)
+      : [];
+    const peakFee = input.delivery.peakFee || {};
+    next.delivery = {
+      mode: input.delivery.mode || "km_table",
+      baseLocationLabel:
+        input.delivery.baseLocationLabel || "Chora Menino (bairro base)",
+      blockedNeighborhoods: blocked,
+      minOrderValue:
+        typeof input.delivery.minOrderValue === "number"
+          ? input.delivery.minOrderValue
+          : Number(input.delivery.minOrderValue || 0),
+      maxDistanceKm:
+        typeof input.delivery.maxDistanceKm === "number"
+          ? input.delivery.maxDistanceKm
+          : Number(input.delivery.maxDistanceKm || 0),
+      etaMinutesDefault:
+        typeof input.delivery.etaMinutesDefault === "number"
+          ? input.delivery.etaMinutesDefault
+          : Number(input.delivery.etaMinutesDefault || 45),
+      peakFee: {
+        enabled: !!peakFee.enabled,
+        days: Array.isArray(peakFee.days) ? peakFee.days : [],
+        startTime: peakFee.startTime || "18:00",
+        endTime: peakFee.endTime || "22:00",
+        amount:
+          typeof peakFee.amount === "number"
+            ? peakFee.amount
+            : Number(peakFee.amount || 0),
+      },
+      ranges: input.delivery.ranges.map((r, idx) => ({
+        id: r.id || `r_${idx}`,
+        label: r.label || "",
+        minKm:
+          typeof r.minKm === "number"
+            ? r.minKm
+            : Number(r.minKm || 0),
+        maxKm:
+          typeof r.maxKm === "number"
+            ? r.maxKm
+            : Number(r.maxKm || 0),
+        price:
+          typeof r.price === "number"
+            ? r.price
+            : Number(r.price || 0),
+      })),
+    };
+  }
+
+  const envBaseUrl =
+    typeof envConfig?.apiBaseUrl === "string" ? envConfig.apiBaseUrl : "";
+  const envToken =
+    typeof envConfig?.publicApiToken === "string"
+      ? envConfig.publicApiToken
+      : "";
+  next.api = {
+    base_url: envBaseUrl,
+    api_key: envToken,
+  };
+
+  return next;
+};
+
+const buildSettingsDiff = (current, next) => {
+  if (!current || !next) return [];
+  const keys = new Set([
+    ...Object.keys(current || {}),
+    ...Object.keys(next || {}),
+  ]);
+  const changes = [];
+  keys.forEach((key) => {
+    const curValue = current[key];
+    const nextValue = next[key];
+    if (JSON.stringify(curValue) !== JSON.stringify(nextValue)) {
+      changes.push(key);
+    }
+  });
+  return changes;
+};
+
+const normalizeRangeValue = (value) => {
+  if (value === "" || value === null || value === undefined) return null;
+  const normalized = value.toString().replace(",", ".");
+  const n = Number(normalized);
+  return Number.isNaN(n) ? null : n;
+};
+
+const isPickupRange = (range) => {
+  const id = String(range?.id || "").toLowerCase();
+  const label = String(range?.label || "").toLowerCase();
+  return (
+    id === "pickup" || label.includes("pickup") || label.includes("retirar")
+  );
+};
+
+const validateDeliveryRanges = (ranges) => {
+  if (!Array.isArray(ranges)) return [];
+  const issues = [];
+
+  const working = ranges
+    .map((range, index) => ({
+      index,
+      id: range.id || `r_${index}`,
+      label: range.label || `Faixa ${index + 1}`,
+      minKm: normalizeRangeValue(range.minKm),
+      maxKm: normalizeRangeValue(range.maxKm),
+      isPickup: isPickupRange(range),
+    }))
+    .filter((range) => range.minKm !== null && range.maxKm !== null);
+
+  working.forEach((range) => {
+    if (range.minKm > range.maxKm) {
+      issues.push(`Faixa "${range.label}" com minKm maior que maxKm.`);
+    }
+  });
+
+  const filtered = working
+    .filter((range) => !range.isPickup)
+    .sort((a, b) => a.minKm - b.minKm);
+
+  for (let i = 1; i < filtered.length; i += 1) {
+    const prev = filtered[i - 1];
+    const current = filtered[i];
+    if (current.minKm < prev.maxKm) {
+      issues.push(
+        `Sobreposicao entre "${prev.label}" e "${current.label}".`
+      );
+    }
+    if (current.minKm > prev.maxKm) {
+      issues.push(`Gap entre "${prev.label}" e "${current.label}".`);
+    }
+  }
+
+  return issues;
+};
+
 /**
  * Monta um texto de teste "bonitinho" para impressora térmica,
  * com largura aproximada de 32 colunas (padrão de muitas Bematech / Epson).
@@ -414,9 +688,12 @@ function buildThermalTestTicket({
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState(null);
+  const initialSettingsRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [dirtyFields, setDirtyFields] = useState([]);
+  const [isDirty, setIsDirty] = useState(false);
   const [printMessage, setPrintMessage] = useState("");
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
@@ -442,6 +719,40 @@ const SettingsPage = () => {
   const [apiTestResult, setApiTestResult] = useState(null);
   const [apiTestLoading, setApiTestLoading] = useState(false);
   const [apiTestError, setApiTestError] = useState("");
+  const [showToolsBackup, setShowToolsBackup] = useState(false);
+  const [showToolsDeliveryQuote, setShowToolsDeliveryQuote] = useState(false);
+  const [showToolsStockAlerts, setShowToolsStockAlerts] = useState(false);
+  const [showToolsOrdersStream, setShowToolsOrdersStream] = useState(false);
+  const [showToolsHealthSnapshot, setShowToolsHealthSnapshot] = useState(false);
+  const [backupPayload, setBackupPayload] = useState("");
+  const [importPayload, setImportPayload] = useState("");
+  const [importPreview, setImportPreview] = useState(null);
+  const [importDiff, setImportDiff] = useState([]);
+  const [importError, setImportError] = useState("");
+  const [importApplying, setImportApplying] = useState(false);
+  const [deliveryQuoteState, setDeliveryQuoteState] = useState({
+    distanceKm: "3",
+    subtotal: "80",
+    neighborhood: "",
+    orderType: "delivery",
+  });
+  const [deliveryQuoteResult, setDeliveryQuoteResult] = useState(null);
+  const [deliveryQuoteLoading, setDeliveryQuoteLoading] = useState(false);
+  const [deliveryQuoteError, setDeliveryQuoteError] = useState("");
+  const [stockAlertsResult, setStockAlertsResult] = useState(null);
+  const [stockAlertsLoading, setStockAlertsLoading] = useState(false);
+  const [stockAlertsError, setStockAlertsError] = useState("");
+  const [ordersStreamActive, setOrdersStreamActive] = useState(false);
+  const [ordersStreamEvents, setOrdersStreamEvents] = useState([]);
+  const [ordersStreamError, setOrdersStreamError] = useState("");
+  const [ordersStreamTypes, setOrdersStreamTypes] = useState({
+    created: true,
+    updated: true,
+  });
+  const ordersStreamRef = useRef(null);
+  const [healthSnapshotResult, setHealthSnapshotResult] = useState(null);
+  const [healthSnapshotLoading, setHealthSnapshotLoading] = useState(false);
+  const [healthSnapshotError, setHealthSnapshotError] = useState("");
 
   // Lista de impressoras do sistema
   const [printers, setPrinters] = useState([]);
@@ -467,8 +778,8 @@ const SettingsPage = () => {
         if (!item.api) {
           item.api = { base_url: "", api_key: "" };
         }
-        let apiBaseUrlValue = item.api.base_url || "";
-        let apiTokenValue = item.api.api_key || "";
+        let apiBaseUrlValue = "";
+        let apiTokenValue = "";
         if (window.electronAPI?.getPublicApiConfig) {
           try {
             const envConfig = await window.electronAPI.getPublicApiConfig();
@@ -628,10 +939,12 @@ const SettingsPage = () => {
         }
 
         setSettings(item);
+        initialSettingsRef.current = JSON.parse(JSON.stringify(item));
       } catch (err) {
         console.error("[Settings] Erro ao carregar:", err);
         setError("Não foi possível carregar as configurações.");
         setSettings(buildDefaultSettings());
+        initialSettingsRef.current = buildDefaultSettings();
       } finally {
         setLoading(false);
       }
@@ -639,6 +952,32 @@ const SettingsPage = () => {
 
     load();
   }, []);
+
+
+  useEffect(() => {
+    if (!settings || !initialSettingsRef.current) return;
+    const diff = buildSettingsDiff(initialSettingsRef.current, settings);
+    setDirtyFields(diff);
+    setIsDirty(diff.length > 0);
+  }, [settings]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    window.__settingsDirty = isDirty;
+    return () => {
+      window.__settingsDirty = false;
+    };
+  }, [isDirty]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      if (!isDirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
 
   // Carregar lista de impressoras do sistema
   const loadPrinters = async () => {
@@ -671,9 +1010,10 @@ const SettingsPage = () => {
   }, []);
 
   useEffect(() => {
-    let timer;
+    let timer = null;
 
     const loadSyncStatus = async () => {
+      if (document.hidden) return;
       if (!window.electronAPI || !window.electronAPI.getSyncStatus) return;
       try {
         const status = await window.electronAPI.getSyncStatus();
@@ -683,11 +1023,30 @@ const SettingsPage = () => {
       }
     };
 
-    loadSyncStatus();
-    timer = setInterval(loadSyncStatus, 5000);
+    const start = () => {
+      if (timer) return;
+      loadSyncStatus();
+      timer = setInterval(loadSyncStatus, 5000);
+    };
+
+    const stop = () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) stop();
+      else start();
+    };
+
+    start();
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      if (timer) clearInterval(timer);
+      stop();
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 
@@ -711,6 +1070,32 @@ const SettingsPage = () => {
       cancel = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (showToolsStockAlerts) {
+      handleLoadStockAlerts();
+    }
+  }, [showToolsStockAlerts]);
+
+  useEffect(() => {
+    if (showToolsHealthSnapshot) {
+      handleHealthSnapshot();
+    }
+  }, [showToolsHealthSnapshot]);
+
+  useEffect(() => {
+    if (!showToolsOrdersStream && ordersStreamRef.current) {
+      ordersStreamRef.current.close();
+      ordersStreamRef.current = null;
+      setOrdersStreamActive(false);
+    }
+    return () => {
+      if (ordersStreamRef.current) {
+        ordersStreamRef.current.close();
+        ordersStreamRef.current = null;
+      }
+    };
+  }, [showToolsOrdersStream]);
 
   const handleChange = (field, value) => {
     setSettings((prev) => ({
@@ -819,13 +1204,40 @@ const SettingsPage = () => {
         ? current.closedWeekdays
         : [];
       const exists = days.includes(dayValue);
+      const schedule = Array.isArray(current.weeklySchedule)
+        ? [...current.weeklySchedule]
+        : buildWeeklySchedule({
+            openTime: current.openTime || "11:00",
+            closeTime: current.closeTime || "23:00",
+            closedWeekdays: current.closedWeekdays || [],
+          });
+      const index = schedule.findIndex(
+        (entry) => Number(entry.day) === dayValue
+      );
+      const baseEntry =
+        index >= 0
+          ? schedule[index]
+          : {
+              day: dayValue,
+              enabled: true,
+              openTime: current.openTime || "11:00",
+              closeTime: current.closeTime || "23:00",
+            };
+      const updated = { ...baseEntry, enabled: exists };
+      if (index >= 0) {
+        schedule[index] = updated;
+      } else {
+        schedule.push(updated);
+      }
+      const closedWeekdays = schedule
+        .filter((entry) => entry.enabled === false)
+        .map((entry) => entry.day);
       return {
         ...prev,
         businessHours: {
           ...current,
-          closedWeekdays: exists
-            ? days.filter((d) => d !== dayValue)
-            : [...days, dayValue],
+          weeklySchedule: schedule,
+          closedWeekdays,
         },
       };
     });
@@ -1180,6 +1592,288 @@ const SettingsPage = () => {
     setShowApiConsole(true);
   };
 
+  const getApiBaseUrl = () => (apiBaseUrlValue || "").replace(/\/+$/, "");
+
+  const buildApiHeaders = () => {
+    const headers = {};
+    if (apiTokenValue) {
+      headers["x-api-key"] = apiTokenValue;
+    }
+    return headers;
+  };
+
+  const handleGenerateBackup = () => {
+    const payload = {
+      ...settings,
+      api: {
+        base_url: publicApiConfig.apiBaseUrl || "",
+        api_key: publicApiConfig.publicApiToken || "",
+      },
+    };
+    setBackupPayload(JSON.stringify(payload, null, 2));
+  };
+
+  const handlePreviewImport = () => {
+    setImportError("");
+    setImportDiff([]);
+    setImportPreview(null);
+    if (!importPayload.trim()) {
+      setImportError("Cole o JSON antes de validar.");
+      return;
+    }
+    try {
+      const parsed = JSON.parse(importPayload);
+      const sanitized = sanitizeImportedSettings(parsed, publicApiConfig);
+      setImportPreview(sanitized);
+      setImportDiff(buildSettingsDiff(settings, sanitized));
+    } catch (err) {
+      setImportError("JSON invalido. Corrija o conteudo e tente novamente.");
+    }
+  };
+
+  const handleApplyImport = async () => {
+    if (!importPreview) return;
+    if (!window.dataEngine || !window.dataEngine.set) {
+      setImportError("DataEngine indisponivel para aplicar o backup.");
+      return;
+    }
+    try {
+      setImportApplying(true);
+      await window.dataEngine.set("settings", {
+        items: [importPreview],
+      });
+      setSettings(importPreview);
+      setPrintMessage("Backup aplicado com sucesso.");
+      setTimeout(() => setPrintMessage(""), 3000);
+      setImportPayload("");
+      setImportPreview(null);
+      setImportDiff([]);
+    } catch (err) {
+      setImportError("Erro ao aplicar o backup. Veja o console.");
+    } finally {
+      setImportApplying(false);
+    }
+  };
+
+  const handleDeliveryQuote = async () => {
+    const baseUrl = getApiBaseUrl();
+    if (!baseUrl) {
+      setDeliveryQuoteError("Base URL nao configurada no .env.");
+      setDeliveryQuoteResult(null);
+      return;
+    }
+    setDeliveryQuoteLoading(true);
+    setDeliveryQuoteError("");
+    setDeliveryQuoteResult(null);
+    try {
+      const params = new URLSearchParams();
+      if (deliveryQuoteState.distanceKm) {
+        params.set("distanceKm", deliveryQuoteState.distanceKm);
+      }
+      if (deliveryQuoteState.subtotal) {
+        params.set("subtotal", deliveryQuoteState.subtotal);
+      }
+      if (deliveryQuoteState.neighborhood) {
+        params.set("neighborhood", deliveryQuoteState.neighborhood);
+      }
+      if (deliveryQuoteState.orderType) {
+        params.set("orderType", deliveryQuoteState.orderType);
+      }
+      const url = `${baseUrl}/api/pdv/delivery/quote?${params.toString()}`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: buildApiHeaders(),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setDeliveryQuoteError(
+          payload?.message || `Erro HTTP ${response.status}`
+        );
+        return;
+      }
+      setDeliveryQuoteResult(payload);
+    } catch (err) {
+      setDeliveryQuoteError(err?.message || "Erro ao buscar cotacao.");
+    } finally {
+      setDeliveryQuoteLoading(false);
+    }
+  };
+
+  const handleLoadStockAlerts = async () => {
+    const baseUrl = getApiBaseUrl();
+    if (!baseUrl) {
+      setStockAlertsError("Base URL nao configurada no .env.");
+      setStockAlertsResult(null);
+      return;
+    }
+    setStockAlertsLoading(true);
+    setStockAlertsError("");
+    setStockAlertsResult(null);
+    try {
+      const response = await fetch(`${baseUrl}/api/pdv/stock/alerts`, {
+        method: "GET",
+        headers: buildApiHeaders(),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setStockAlertsError(
+          payload?.message || `Erro HTTP ${response.status}`
+        );
+        return;
+      }
+      setStockAlertsResult(payload);
+    } catch (err) {
+      setStockAlertsError(err?.message || "Erro ao buscar alertas.");
+    } finally {
+      setStockAlertsLoading(false);
+    }
+  };
+
+  const handleHealthSnapshot = async () => {
+    const baseUrl = getApiBaseUrl();
+    if (!baseUrl) {
+      setHealthSnapshotError("Base URL nao configurada no .env.");
+      setHealthSnapshotResult(null);
+      return;
+    }
+    setHealthSnapshotLoading(true);
+    setHealthSnapshotError("");
+    setHealthSnapshotResult(null);
+    try {
+      const headers = buildApiHeaders();
+      const [healthRes, summaryRes] = await Promise.all([
+        fetch(`${baseUrl}/api/pdv/health`, { headers }),
+        fetch(`${baseUrl}/api/pdv/summary`, { headers }),
+      ]);
+      const health = await healthRes.json().catch(() => null);
+      const summary = await summaryRes.json().catch(() => null);
+      if (!healthRes.ok || !summaryRes.ok) {
+        setHealthSnapshotError("Falha ao carregar snapshot.");
+        return;
+      }
+      setHealthSnapshotResult({
+        generatedAt: new Date().toISOString(),
+        health,
+        summary,
+      });
+    } catch (err) {
+      setHealthSnapshotError(err?.message || "Erro ao gerar snapshot.");
+    } finally {
+      setHealthSnapshotLoading(false);
+    }
+  };
+
+  const handleStartOrdersStream = () => {
+    const baseUrl = getApiBaseUrl();
+    if (!baseUrl) {
+      setOrdersStreamError("Base URL nao configurada no .env.");
+      setOrdersStreamEvents([]);
+      return;
+    }
+    const types = [];
+    if (ordersStreamTypes.created) types.push("created");
+    if (ordersStreamTypes.updated) types.push("updated");
+    if (types.length === 0) {
+      setOrdersStreamError("Selecione ao menos um tipo de evento.");
+      setOrdersStreamEvents([]);
+      return;
+    }
+    const params = new URLSearchParams();
+    if (types.length) {
+      params.set("types", types.join(","));
+    }
+    if (apiTokenValue) {
+      params.set("api_key", apiTokenValue);
+    }
+    const url = `${baseUrl}/api/orders/stream?${params.toString()}`;
+    if (ordersStreamRef.current) {
+      ordersStreamRef.current.close();
+    }
+    setOrdersStreamError("");
+    setOrdersStreamEvents([]);
+    const source = new EventSource(url);
+    ordersStreamRef.current = source;
+    setOrdersStreamActive(true);
+
+    source.addEventListener("created", (event) => {
+      let payload = {};
+      try {
+        payload = JSON.parse(event.data || "{}");
+      } catch (err) {
+        payload = {};
+      }
+      setOrdersStreamEvents((prev) => [
+        {
+          type: "created",
+          id: payload?.id || payload?.orderId || "",
+          at: new Date().toISOString(),
+        },
+        ...prev,
+      ].slice(0, 50));
+    });
+    source.addEventListener("updated", (event) => {
+      let payload = {};
+      try {
+        payload = JSON.parse(event.data || "{}");
+      } catch (err) {
+        payload = {};
+      }
+      setOrdersStreamEvents((prev) => [
+        {
+          type: "updated",
+          id: payload?.id || payload?.orderId || "",
+          at: new Date().toISOString(),
+        },
+        ...prev,
+      ].slice(0, 50));
+    });
+    source.addEventListener("ready", (event) => {
+      let payload = {};
+      try {
+        payload = JSON.parse(event.data || "{}");
+      } catch (err) {
+        payload = {};
+      }
+      setOrdersStreamEvents((prev) => [
+        {
+          type: "ready",
+          id: payload?.types?.join(",") || "",
+          at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    });
+    source.addEventListener("error", () => {
+      setOrdersStreamError("Conexao SSE perdida.");
+      setOrdersStreamActive(false);
+      source.close();
+    });
+  };
+
+  const handleStopOrdersStream = () => {
+    if (ordersStreamRef.current) {
+      ordersStreamRef.current.close();
+      ordersStreamRef.current = null;
+    }
+    setOrdersStreamActive(false);
+  };
+
+  const handleCloseBackupModal = () => {
+    setShowToolsBackup(false);
+    setImportError("");
+    setImportDiff([]);
+    setImportPreview(null);
+    setBackupPayload("");
+    setImportPayload("");
+  };
+
+  const handleCloseOrdersStreamModal = () => {
+    handleStopOrdersStream();
+    setShowToolsOrdersStream(false);
+    setOrdersStreamEvents([]);
+    setOrdersStreamError("");
+  };
+
   const getSamplePath = (path) =>
     path
       .replace(":collection", "orders")
@@ -1190,6 +1884,15 @@ const SettingsPage = () => {
     if (auth === "sync-token") return "sync token";
     if (auth === "api-key") return "api key";
     return "publico";
+  };
+
+
+  const handleResetChanges = () => {
+    if (!initialSettingsRef.current) return;
+    const snapshot = JSON.parse(JSON.stringify(initialSettingsRef.current));
+    setSettings(snapshot);
+    setDirtyFields([]);
+    setIsDirty(false);
   };
 
   const handleSave = async () => {
@@ -1213,6 +1916,9 @@ const SettingsPage = () => {
 
       console.log("[Settings] Salvo com sucesso:", payload);
       setSettings(payload);
+      initialSettingsRef.current = JSON.parse(JSON.stringify(payload));
+      setDirtyFields([]);
+      setIsDirty(false);
       setPrintMessage("Configurações salvas com sucesso.");
       setTimeout(() => setPrintMessage(""), 3000);
     } catch (err) {
@@ -1230,7 +1936,10 @@ const SettingsPage = () => {
    */
   const handleTestPrinter = async (target) => {
     if (!window.electronAPI || !window.electronAPI.printTickets) {
-      alert("Função de impressão não está disponível no app.");
+      emitToast({
+        type: "warning",
+        message: "Função de impressão não está disponível no app.",
+      });
       return;
     }
 
@@ -1349,15 +2058,20 @@ const SettingsPage = () => {
 
   const kitchenPrinterName = settings.printing?.kitchenPrinterName || "";
   const counterPrinterName = settings.printing?.counterPrinterName || "";
+  const printerNameSet = new Set(
+    Array.isArray(printers) ? printers.map((p) => p.name) : []
+  );
+  const kitchenPrinterMissing =
+    kitchenPrinterName && !printerNameSet.has(kitchenPrinterName);
+  const counterPrinterMissing =
+    counterPrinterName && !printerNameSet.has(counterPrinterName);
   const delivery = settings.delivery || buildDefaultDeliveryConfig();
   const blockedNeighborhoods =
     Array.isArray(delivery.blockedNeighborhoods)
       ? delivery.blockedNeighborhoods
       : [];
-  const apiBaseUrlValue =
-    publicApiConfig.apiBaseUrl || settings.api?.base_url || "";
-  const apiTokenValue =
-    publicApiConfig.publicApiToken || settings.api?.api_key || "";
+  const apiBaseUrlValue = publicApiConfig.apiBaseUrl || "";
+  const apiTokenValue = publicApiConfig.publicApiToken || "";
   const apiTokenDisplay = apiTokenVisible
     ? apiTokenValue
     : apiTokenValue
@@ -1372,19 +2086,37 @@ const SettingsPage = () => {
         closeTime: settings.businessHours?.closeTime || "23:00",
         closedWeekdays: settings.businessHours?.closedWeekdays || [],
       });
+  const deliveryRangeIssues = validateDeliveryRanges(delivery.ranges);
 
   return (
     <Page
       title="Configurações"
       subtitle="Ajustes gerais da pizzaria, integrações, entrega e impressão."
       actions={
-        <Button
-          variant="primary"
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? "Salvando..." : "Salvar"}
-        </Button>
+        <div className="settings-actions">
+          {isDirty && (
+            <span className="settings-dirty-badge">
+              Alteracoes nao salvas
+              {dirtyFields.length > 0 ? ` (${dirtyFields.length})` : ""}
+            </span>
+          )}
+          {isDirty && (
+            <Button
+              variant="outline"
+              onClick={handleResetChanges}
+              disabled={saving}
+            >
+              Descartar
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
       }
     >
       {error && (
@@ -1413,11 +2145,24 @@ const SettingsPage = () => {
         </p>
       )}
 
+
+      <div className="settings-nav">
+        <span className="settings-nav-label">Atalhos</span>
+        <div className="settings-nav-links">
+          <a className="settings-nav-link" href="#settings-general">Dados gerais</a>
+          <a className="settings-nav-link" href="#settings-integrations">Integracoes</a>
+          <a className="settings-nav-link" href="#settings-tools">Ferramentas</a>
+          <a className="settings-nav-link" href="#settings-delivery">Entrega</a>
+          <a className="settings-nav-link" href="#settings-hours">Horario</a>
+          <a className="settings-nav-link" href="#settings-printing">Impressao</a>
+        </div>
+      </div>
+
       <div className="settings-layout">
         {/* COLUNA ESQUERDA – Geral / Aparência / Integração / Entrega */}
         <div className="settings-column">
           {/* Pizzaria */}
-          <div className="settings-section">
+          <div className="settings-section" id="settings-general">
             <div className="settings-section-title">Dados gerais</div>
 
             <div className="form-grid settings-grid">
@@ -1521,7 +2266,7 @@ const SettingsPage = () => {
           </div>
 
           {/* Integrações / API */}
-          <div className="settings-section">
+          <div className="settings-section" id="settings-integrations">
             <div className="settings-section-title">
               Integrações / API
             </div>
@@ -1537,7 +2282,7 @@ const SettingsPage = () => {
                   disabled
                 />
                 <span className="field-helper">
-                  Valor carregado do .env (SYNC_BASE_URL).
+                  Valor carregado do .env (SYNC_BASE_URL). Para alterar, edite o .env e reinicie o app.
                 </span>
               </label>
 
@@ -1551,7 +2296,7 @@ const SettingsPage = () => {
                   disabled
                 />
                 <span className="field-helper">
-                  Valor carregado do .env (PUBLIC_API_TOKEN). Use o console para ver completo.
+                  Valor carregado do .env (PUBLIC_API_TOKEN). Para alterar, edite o .env e reinicie o app.
                 </span>
               </label>
             </div>
@@ -1607,8 +2352,64 @@ const SettingsPage = () => {
             )}
           </div>
 
+          {/* Ferramentas */}
+          <div className="settings-section" id="settings-tools">
+            <div className="settings-section-title">Ferramentas</div>
+            <div className="field-helper" style={{ marginBottom: 8 }}>
+              Atalhos para diagnostico rapido e operacao de integracoes.
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 10,
+              }}
+            >
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowToolsBackup(true)}
+              >
+                Backup / restaurar settings
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowToolsDeliveryQuote(true)}
+              >
+                Simular entrega
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowToolsStockAlerts(true)}
+              >
+                Alertas de estoque
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowToolsOrdersStream(true)}
+              >
+                Monitor de pedidos (SSE)
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowToolsHealthSnapshot(true)}
+              >
+                Snapshot de health
+              </Button>
+            </div>
+          </div>
+
           {/* ENTREGA / TABELA POR KM */}
-          <div className="settings-section">
+          <div className="settings-section" id="settings-delivery">
             <div className="settings-section-title">
               Taxas de entrega (distância em km)
             </div>
@@ -1755,6 +2556,28 @@ const SettingsPage = () => {
                   Adicionar faixa
                 </Button>
               </div>
+
+              {delivery.mode === "km_table" &&
+                deliveryRangeIssues.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <div className="field-label">Avisos da tabela</div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "#b45309",
+                      display: "grid",
+                      gap: 4,
+                      marginTop: 6,
+                    }}
+                  >
+                    {deliveryRangeIssues.map((issue, index) => (
+                      <div key={`range-issue-${index}`}>
+                        - {issue}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <p className="field-helper" style={{ marginTop: 8 }}>
                 Esta tabela é o padrão para cálculo da taxa de entrega
@@ -2019,7 +2842,7 @@ const SettingsPage = () => {
               )}
             </div>
 
-            <div className="business-hours-card">
+            <div className="business-hours-card" id="settings-hours">
               <div className="settings-section-title">
                 Horario de funcionamento
               </div>
@@ -2179,7 +3002,7 @@ const SettingsPage = () => {
 
         {/* COLUNA DIREITA – Impressão */}
         <div className="settings-column">
-          <div className="settings-section">
+          <div className="settings-section" id="settings-printing">
             <div className="settings-section-title">
               Impressão de pedidos
             </div>
@@ -2252,6 +3075,17 @@ const SettingsPage = () => {
                     </option>
                   ))}
                 </select>
+                {kitchenPrinterMissing && (
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: 12,
+                      color: "#b45309",
+                    }}
+                  >
+                    Impressora configurada nao encontrada no sistema.
+                  </div>
+                )}
 
                 <div className="field-helper">
                   Selecione uma impressora térmica para tickets de
@@ -2311,6 +3145,17 @@ const SettingsPage = () => {
                     </option>
                   ))}
                 </select>
+                {counterPrinterMissing && (
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: 12,
+                      color: "#b45309",
+                    }}
+                  >
+                    Impressora configurada nao encontrada no sistema.
+                  </div>
+                )}
 
                 <div className="field-helper">
                   Usada para impressão de conta / comprovante de
@@ -2390,6 +3235,405 @@ const SettingsPage = () => {
         </div>
 
       
+      {showToolsBackup && (
+        <Modal
+          title="Backup / restaurar settings"
+          subtitle="Exportar e importar configuracoes"
+          size="lg"
+          onClose={handleCloseBackupModal}
+        >
+          <div style={{ display: "grid", gap: 16 }}>
+            <div>
+              <div className="field-label">Exportar</div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                  marginTop: 8,
+                }}
+              >
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleGenerateBackup}
+                >
+                  Gerar backup
+                </Button>
+                {backupPayload &&
+                  typeof navigator !== "undefined" &&
+                  navigator.clipboard && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      navigator.clipboard.writeText(backupPayload)
+                    }
+                  >
+                    Copiar
+                  </Button>
+                )}
+              </div>
+              <textarea
+                className="input"
+                rows={8}
+                style={{ marginTop: 8 }}
+                value={backupPayload}
+                readOnly
+                placeholder="Clique em gerar backup para criar o JSON."
+              />
+            </div>
+
+            <div>
+              <div className="field-label">Importar</div>
+              <textarea
+                className="input"
+                rows={8}
+                style={{ marginTop: 8 }}
+                value={importPayload}
+                onChange={(e) => setImportPayload(e.target.value)}
+                placeholder="Cole aqui o JSON do backup."
+              />
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                  marginTop: 8,
+                }}
+              >
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handlePreviewImport}
+                >
+                  Validar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="primary"
+                  disabled={!importPreview || importApplying}
+                  onClick={handleApplyImport}
+                >
+                  {importApplying ? "Aplicando..." : "Aplicar"}
+                </Button>
+              </div>
+              {importError && (
+                <div style={{ marginTop: 8, color: "#b91c1c" }}>
+                  {importError}
+                </div>
+              )}
+              {importPreview && (
+                <div style={{ marginTop: 8 }}>
+                  <div className="field-helper">
+                    Campos alterados:{" "}
+                    {importDiff.length > 0
+                      ? importDiff.join(", ")
+                      : "nenhum"}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {showToolsDeliveryQuote && (
+        <Modal
+          title="Simular entrega"
+          subtitle="Consulta /api/pdv/delivery/quote"
+          size="md"
+          onClose={() => setShowToolsDeliveryQuote(false)}
+        >
+          <div style={{ display: "grid", gap: 12 }}>
+            <div className="form-grid settings-grid">
+              <label className="field">
+                <span className="field-label">Tipo</span>
+                <select
+                  className="input"
+                  value={deliveryQuoteState.orderType}
+                  onChange={(e) =>
+                    setDeliveryQuoteState((prev) => ({
+                      ...prev,
+                      orderType: e.target.value,
+                    }))
+                  }
+                >
+                  <option value="delivery">Delivery</option>
+                  <option value="pickup">Pickup</option>
+                </select>
+              </label>
+              <label className="field">
+                <span className="field-label">Distancia (km)</span>
+                <input
+                  className="input"
+                  value={deliveryQuoteState.distanceKm}
+                  onChange={(e) =>
+                    setDeliveryQuoteState((prev) => ({
+                      ...prev,
+                      distanceKm: e.target.value,
+                    }))
+                  }
+                  placeholder="3"
+                />
+              </label>
+              <label className="field">
+                <span className="field-label">Subtotal (R$)</span>
+                <input
+                  className="input"
+                  value={deliveryQuoteState.subtotal}
+                  onChange={(e) =>
+                    setDeliveryQuoteState((prev) => ({
+                      ...prev,
+                      subtotal: e.target.value,
+                    }))
+                  }
+                  placeholder="80"
+                />
+              </label>
+              <label className="field">
+                <span className="field-label">Bairro</span>
+                <input
+                  className="input"
+                  value={deliveryQuoteState.neighborhood}
+                  onChange={(e) =>
+                    setDeliveryQuoteState((prev) => ({
+                      ...prev,
+                      neighborhood: e.target.value,
+                    }))
+                  }
+                  placeholder="Santana"
+                />
+              </label>
+            </div>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleDeliveryQuote}
+              disabled={deliveryQuoteLoading}
+            >
+              {deliveryQuoteLoading ? "Consultando..." : "Consultar"}
+            </Button>
+            {deliveryQuoteError && (
+              <div style={{ color: "#b91c1c" }}>{deliveryQuoteError}</div>
+            )}
+            {deliveryQuoteResult && (
+              <pre className="api-test-response">
+                {JSON.stringify(deliveryQuoteResult, null, 2)}
+              </pre>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {showToolsStockAlerts && (
+        <Modal
+          title="Alertas de estoque"
+          subtitle="Consulta /api/pdv/stock/alerts"
+          size="lg"
+          onClose={() => setShowToolsStockAlerts(false)}
+        >
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleLoadStockAlerts}
+                disabled={stockAlertsLoading}
+              >
+                {stockAlertsLoading ? "Atualizando..." : "Atualizar"}
+              </Button>
+              {stockAlertsError && (
+                <span style={{ color: "#b91c1c" }}>
+                  {stockAlertsError}
+                </span>
+              )}
+            </div>
+
+            {stockAlertsResult && (
+              <div style={{ display: "grid", gap: 12 }}>
+                <div className="field-helper">
+                  Ingredientes em falta:{" "}
+                  {stockAlertsResult.missingIngredientsCount || 0} | Produtos
+                  afetados: {stockAlertsResult.affectedProductsCount || 0}
+                </div>
+
+                <div>
+                  <div className="field-label">Ingredientes em falta</div>
+                  <div style={{ marginTop: 6 }}>
+                    {Array.isArray(stockAlertsResult.missingIngredients) &&
+                    stockAlertsResult.missingIngredients.length > 0 ? (
+                      stockAlertsResult.missingIngredients.map((item) => (
+                        <div key={item.key}>
+                          - {item.name} (qtd: {item.quantity ?? 0})
+                        </div>
+                      ))
+                    ) : (
+                      <div className="field-helper">Nenhum item em falta.</div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="field-label">Produtos afetados</div>
+                  <div style={{ marginTop: 6 }}>
+                    {Array.isArray(stockAlertsResult.affectedProducts) &&
+                    stockAlertsResult.affectedProducts.length > 0 ? (
+                      stockAlertsResult.affectedProducts.map((item) => (
+                        <div key={item.id || item.name}>
+                          - {item.name} ({item.missingIngredients?.join(", ")})
+                        </div>
+                      ))
+                    ) : (
+                      <div className="field-helper">
+                        Nenhum produto afetado.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {showToolsOrdersStream && (
+        <Modal
+          title="Monitor de pedidos (SSE)"
+          subtitle="Eventos em tempo real"
+          size="lg"
+          onClose={handleCloseOrdersStreamModal}
+        >
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={ordersStreamTypes.created}
+                  onChange={(e) =>
+                    setOrdersStreamTypes((prev) => ({
+                      ...prev,
+                      created: e.target.checked,
+                    }))
+                  }
+                />
+                <span>Created</span>
+              </label>
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={ordersStreamTypes.updated}
+                  onChange={(e) =>
+                    setOrdersStreamTypes((prev) => ({
+                      ...prev,
+                      updated: e.target.checked,
+                    }))
+                  }
+                />
+                <span>Updated</span>
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleStartOrdersStream}
+                disabled={ordersStreamActive}
+              >
+                Iniciar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={handleStopOrdersStream}
+                disabled={!ordersStreamActive}
+              >
+                Parar
+              </Button>
+              {ordersStreamActive && (
+                <span className="field-helper">Conectado</span>
+              )}
+            </div>
+
+            {ordersStreamError && (
+              <div style={{ color: "#b91c1c" }}>{ordersStreamError}</div>
+            )}
+
+            <div
+              style={{
+                maxHeight: 280,
+                overflow: "auto",
+                border: "1px solid #e5e7eb",
+                borderRadius: 8,
+                padding: 10,
+                background: "#f9fafb",
+                fontSize: 12,
+              }}
+            >
+              {ordersStreamEvents.length > 0 ? (
+                ordersStreamEvents.map((event, index) => (
+                  <div key={`${event.type}-${event.id}-${index}`}>
+                    [{event.at}] {event.type} {event.id}
+                  </div>
+                ))
+              ) : (
+                <div>Nenhum evento recebido.</div>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {showToolsHealthSnapshot && (
+        <Modal
+          title="Snapshot de health"
+          subtitle="Resumo do PDV e status da API"
+          size="lg"
+          onClose={() => setShowToolsHealthSnapshot(false)}
+        >
+          <div style={{ display: "grid", gap: 12 }}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleHealthSnapshot}
+              disabled={healthSnapshotLoading}
+            >
+              {healthSnapshotLoading ? "Gerando..." : "Atualizar snapshot"}
+            </Button>
+            {healthSnapshotError && (
+              <div style={{ color: "#b91c1c" }}>{healthSnapshotError}</div>
+            )}
+            {healthSnapshotResult && (
+              <>
+                <pre className="api-test-response">
+                  {JSON.stringify(healthSnapshotResult, null, 2)}
+                </pre>
+                {typeof navigator !== "undefined" && navigator.clipboard && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      navigator.clipboard.writeText(
+                        JSON.stringify(healthSnapshotResult, null, 2)
+                      )
+                    }
+                  >
+                    Copiar snapshot
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </Modal>
+      )}
+
       {showApiConsole && (
         <Modal
           title="Console da API"

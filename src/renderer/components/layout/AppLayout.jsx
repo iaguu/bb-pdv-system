@@ -19,6 +19,9 @@ const AppLayout = ({ children }) => {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [syncAlert, setSyncAlert] = useState(null);
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [syncNowPending, setSyncNowPending] = useState(false);
+  const [syncNowError, setSyncNowError] = useState("");
   const [appToasts, setAppToasts] = useState([]);
   const lastSeenRef = useRef(
     typeof window !== "undefined"
@@ -191,6 +194,7 @@ const AppLayout = ({ children }) => {
       if (!window.electronAPI || !window.electronAPI.getSyncStatus) return;
       try {
         const status = await window.electronAPI.getSyncStatus();
+        setSyncStatus(status || null);
         if (status?.lastPullErrorType === "dns") {
           setSyncAlert(
             "Sem conexao com o servidor (DNS). Aguarde o ngrok voltar ou atualize a URL."
@@ -266,6 +270,35 @@ const AppLayout = ({ children }) => {
     setAppToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  const formatSyncTime = (value) => {
+    if (!value) return "nunca";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "nunca";
+    return parsed.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const handleSyncNow = async () => {
+    if (!window.electronAPI?.syncNow) return;
+    setSyncNowError("");
+    setSyncNowPending(true);
+    try {
+      const result = await window.electronAPI.syncNow();
+      if (result?.success === false) {
+        setSyncNowError(result?.error || "Falha ao sincronizar.");
+      }
+      const updated = await window.electronAPI.getSyncStatus();
+      setSyncStatus(updated || null);
+    } catch (err) {
+      console.error("[AppLayout] Erro ao sincronizar agora:", err);
+      setSyncNowError("Falha ao sincronizar.");
+    } finally {
+      setSyncNowPending(false);
+    }
+  };
+
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
@@ -328,6 +361,49 @@ const AppLayout = ({ children }) => {
         {syncAlert && (
           <div className="app-sync-alert" role="alert">
             {syncAlert}
+          </div>
+        )}
+        {syncStatus && (
+          <div className="app-sync-status" role="status" aria-live="polite">
+            <div className="app-sync-status__left">
+              <span
+                className={
+                  "app-sync-status__pill " +
+                  (syncStatus.online ? "is-online" : "is-offline")
+                }
+              >
+                {syncStatus.online ? "Online" : "Offline"}
+              </span>
+              <span>Ultimo pull: {formatSyncTime(syncStatus.lastPullAt)}</span>
+              <span>Ultimo push: {formatSyncTime(syncStatus.lastPushAt)}</span>
+              {typeof syncStatus.queueRemaining === "number" &&
+                syncStatus.queueRemaining > 0 && (
+                  <span>Fila: {syncStatus.queueRemaining}</span>
+                )}
+              {syncStatus.lastPullError && (
+                <span className="app-sync-status__error">
+                  Erro: {syncStatus.lastPullError}
+                </span>
+              )}
+              {syncStatus.lastPushError && !syncStatus.lastPullError && (
+                <span className="app-sync-status__error">
+                  Erro push: {syncStatus.lastPushError}
+                </span>
+              )}
+            </div>
+            <div className="app-sync-status__right">
+              {syncNowError && (
+                <span className="app-sync-status__error">{syncNowError}</span>
+              )}
+              <button
+                type="button"
+                className="app-sync-status__btn"
+                onClick={handleSyncNow}
+                disabled={syncNowPending}
+              >
+                {syncNowPending ? "Sincronizando..." : "Sincronizar agora"}
+              </button>
+            </div>
           </div>
         )}
         {toastVisible && (

@@ -1,6 +1,7 @@
 // src/renderer/components/products/NewProductModal.jsx
 import React, { useState, useEffect } from "react";
 import Modal from "../common/Modal";
+import ConfirmDialog from "../common/ConfirmDialog";
 import { CATEGORY_LABELS } from "../../pages/Products";
 import { emitToast } from "../../utils/toast";
 
@@ -13,6 +14,9 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
   const [priceSingle, setPriceSingle] = useState("");
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [showPriceConfirm, setShowPriceConfirm] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState(null);
+  const [priceConfirmMessage, setPriceConfirmMessage] = useState("");
 
   // sempre que abrir, reseta o formulário
   useEffect(() => {
@@ -49,13 +53,6 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
       const broto = Number(priceBroto) || 0;
       const grande = Number(priceGrande) || 0;
 
-      if (!broto && !grande) {
-        const confirmar = window.confirm(
-          "Os preços de broto e grande estão zerados. Deseja continuar mesmo assim?"
-        );
-        if (!confirmar) return;
-      }
-
       productDraft = {
         type,
         name: name.trim(),
@@ -68,13 +65,6 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
     } else {
       const price = Number(priceSingle) || 0;
 
-      if (!price) {
-        const confirmar = window.confirm(
-          "O preço está zerado. Deseja continuar mesmo assim?"
-        );
-        if (!confirmar) return;
-      }
-
       productDraft = {
         type,
         name: name.trim(),
@@ -85,6 +75,20 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
       };
     }
 
+    if (
+      (type === "pizza" && !productDraft.priceBroto && !productDraft.priceGrande) ||
+      (type !== "pizza" && !productDraft.price)
+    ) {
+      setPendingDraft(productDraft);
+      setPriceConfirmMessage(
+        type === "pizza"
+          ? "Os preços de broto e grande estão zerados. Deseja continuar mesmo assim?"
+          : "O preço está zerado. Deseja continuar mesmo assim?"
+      );
+      setShowPriceConfirm(true);
+      return;
+    }
+
     if (typeof onConfirm === "function") {
       onConfirm(productDraft);
     }
@@ -92,6 +96,8 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
 
   const handleCancel = () => {
     reset();
+    setShowPriceConfirm(false);
+    setPendingDraft(null);
     if (typeof onClose === "function") {
       onClose();
     }
@@ -103,29 +109,30 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
   const formId = "new-product-form";
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleCancel}
-      title="Novo produto"
-      subtitle="Cadastre pizzas, bebidas ou adicionais do catálogo."
-      className="product-modal"
-      headerContent={<span className="product-type-badge">{typeLabel}</span>}
-      bodyClassName="modal-form product-modal-body"
-      footer={
-        <div className="modal-footer-actions">
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={handleCancel}
-          >
-            Cancelar
-          </button>
-          <button type="submit" className="btn btn-primary" form={formId}>
-            Cadastrar produto
-          </button>
-        </div>
-      }
-    >
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={handleCancel}
+        title="Novo produto"
+        subtitle="Cadastre pizzas, bebidas ou adicionais do catálogo."
+        className="product-modal"
+        headerContent={<span className="product-type-badge">{typeLabel}</span>}
+        bodyClassName="modal-form product-modal-body"
+        footer={
+          <div className="modal-footer-actions">
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={handleCancel}
+            >
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary" form={formId}>
+              Cadastrar produto
+            </button>
+          </div>
+        }
+      >
       <form id={formId} className="modal-form" onSubmit={handleSubmit}>
         {/* SEÇÃO: TIPO */}
         <div className="modal-section">
@@ -259,6 +266,27 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
           </div>
         </div>
       </form>
-    </Modal>
+      </Modal>
+
+      <ConfirmDialog
+        open={showPriceConfirm}
+        title="Preço zerado"
+        message={priceConfirmMessage}
+        confirmLabel="Continuar"
+        cancelLabel="Revisar"
+        tone="warning"
+        onConfirm={() => {
+          setShowPriceConfirm(false);
+          if (typeof onConfirm === "function" && pendingDraft) {
+            onConfirm(pendingDraft);
+          }
+          setPendingDraft(null);
+        }}
+        onCancel={() => {
+          setShowPriceConfirm(false);
+          setPendingDraft(null);
+        }}
+      />
+    </>
   );
 }

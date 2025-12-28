@@ -727,6 +727,12 @@ const PeoplePage = () => {
   const isLoading = isCustomersTab
     ? loadingCustomers
     : loadingMotoboys;
+  const isRefreshing = isCustomersTab
+    ? loadingCustomers && customers.length > 0
+    : loadingMotoboys && motoboys.length > 0;
+  const isInitialLoading = isCustomersTab
+    ? loadingCustomers && customers.length === 0
+    : loadingMotoboys && motoboys.length === 0;
 
   const hasItems = isCustomersTab
     ? filteredCustomers.length > 0
@@ -739,6 +745,13 @@ const PeoplePage = () => {
       actions={
         isCustomersTab ? (
           <div className="people-actions">
+            <Button
+              variant="ghost"
+              onClick={loadCustomers}
+              disabled={loadingCustomers}
+            >
+              Atualizar
+            </Button>
             <Button
               variant="outline"
               onClick={handleExportCustomersJson}
@@ -765,9 +778,18 @@ const PeoplePage = () => {
             />
           </div>
         ) : (
-          <Button variant="primary" onClick={openNewMotoboy}>
-            Novo motoboy
-          </Button>
+          <div className="people-actions">
+            <Button
+              variant="ghost"
+              onClick={loadMotoboys}
+              disabled={loadingMotoboys}
+            >
+              Atualizar
+            </Button>
+            <Button variant="primary" onClick={openNewMotoboy}>
+              Novo motoboy
+            </Button>
+          </div>
         )
       }
     >
@@ -951,21 +973,36 @@ const PeoplePage = () => {
         </div>
       </div>
 
-      {isLoading && (
-        <p className="people-loading">
-          Carregando dados de{" "}
-          {isCustomersTab ? "clientes" : "motoboys"}...
-        </p>
+      {isRefreshing && (
+        <div className="order-list-refresh">Atualizando dados...</div>
       )}
 
-      {!isLoading && (
+      {isInitialLoading && (
+        <div className={isCustomersTab ? "customer-list" : "motoboy-list"}>
+          {[0, 1, 2].map((idx) => (
+            <div key={`people-skeleton-${idx}`} className="skeleton skeleton-card" />
+          ))}
+        </div>
+      )}
+
+      {!isInitialLoading && (
         <>
           {isCustomersTab ? (
             <>
               {!hasItems ? (
                 <EmptyState
                   title="Nenhum cliente"
-                  description="Cadastre clientes para facilitar os próximos pedidos."
+                  description="Cadastre clientes para facilitar os proximos pedidos."
+                  actions={
+                    <>
+                      <Button variant="primary" onClick={openNewCustomer}>
+                        Novo cliente
+                      </Button>
+                      <Button variant="outline" onClick={handleImportCustomersClick}>
+                        Importar JSON
+                      </Button>
+                    </>
+                  }
                 />
               ) : (
                 <div className="customer-list">
@@ -985,6 +1022,11 @@ const PeoplePage = () => {
                 <EmptyState
                   title="Nenhum entregador"
                   description="Cadastre seus motoboys para controlar as entregas."
+                  actions={
+                    <Button variant="primary" onClick={openNewMotoboy}>
+                      Novo motoboy
+                    </Button>
+                  }
                 />
               ) : (
                 <div className="motoboy-list">

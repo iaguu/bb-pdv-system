@@ -59,13 +59,20 @@ const CatalogPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [importStatus, setImportStatus] = useState(null); // {type: 'ok'|'error', message: string}
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fileInputRef = useRef(null);
+  const hasLoadedRef = useRef(false);
 
   // ------------------ CARREGAR DO DATAENGINE ------------------
   const loadProducts = async () => {
     try {
-      setLoading(true);
+      const initialLoad = !hasLoadedRef.current;
+      if (initialLoad) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       if (!window.dataEngine || typeof window.dataEngine.get !== "function") {
         console.warn("[CatalogPage] window.dataEngine.get nao disponivel");
         setProducts([]);
@@ -75,11 +82,13 @@ const CatalogPage = () => {
       const data = await window.dataEngine.get("products");
       const items = normalizeProductsData(data);
       setProducts(items);
+      hasLoadedRef.current = true;
     } catch (err) {
       console.error("Erro ao carregar produtos:", err);
       setProducts([]);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -423,17 +432,34 @@ const CatalogPage = () => {
         </div>
       </div>
 
-      {loading ? (
-        <p className="catalog-loading">Carregando produtos...</p>
+      {loading && products.length === 0 ? (
+        <div className="product-list">
+          {[0, 1, 2, 3, 4, 5].map((idx) => (
+            <div key={`product-skeleton-${idx}`} className="skeleton skeleton-card" />
+          ))}
+        </div>
       ) : filteredProducts.length === 0 ? (
         <div className="empty-state">
           <h3 className="empty-title">Nenhum produto encontrado.</h3>
           <p className="empty-description">
             Ajuste a busca ou filtros, ou importe um JSON de catalogo.
           </p>
+          <div className="empty-actions">
+            <Button variant="primary" onClick={() => setShowForm(true)}>
+              Novo produto
+            </Button>
+            <Button variant="ghost" onClick={handleClickImport}>
+              Importar JSON
+            </Button>
+          </div>
         </div>
       ) : (
-        <ProductList products={filteredProducts} onEdit={openForm} />
+        <>
+          {isRefreshing && (
+            <div className="order-list-refresh">Atualizando catálogo...</div>
+          )}
+          <ProductList products={filteredProducts} onEdit={openForm} />
+        </>
       )}
 
       {showForm && (

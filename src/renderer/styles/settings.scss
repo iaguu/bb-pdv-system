@@ -28,6 +28,61 @@ $settings-text-soft: #9ca3af;
   gap: 12px;
 }
 
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-dirty-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fde68a;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.settings-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.settings-nav-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: $settings-text-soft;
+}
+
+.settings-nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-nav-link {
+  border: 1px solid $settings-border;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: $settings-text-main;
+  background: #ffffff;
+  text-decoration: none;
+}
+
+.settings-nav-link:hover {
+  border-color: #cbd5f5;
+  background: #f8fafc;
+}
+
 /* ========================================================================== */
 /* SEÇÕES                                                                    */
 /* ========================================================================== */

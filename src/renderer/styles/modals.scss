@@ -226,6 +226,13 @@ body.has-modal-open {
   grid-template-columns: 1fr 1fr;
 }
 
+.confirm-dialog-message {
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+}
+
 @media (max-width: 960px) {
   .modal-window {
     max-height: calc(100vh - 36px);

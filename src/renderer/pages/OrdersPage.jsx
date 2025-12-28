@@ -22,8 +22,10 @@ const OrdersPage = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [formInitialOrder, setFormInitialOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const searchInputRef = useRef(null);
   const lateOrdersRef = useRef(new Set());
+  const hasLoadedRef = useRef(false);
 
   const formatCurrency = (value) =>
     (Number(value) || 0).toLocaleString("pt-BR", {
@@ -44,7 +46,6 @@ const OrdersPage = () => {
       const normalizedStatus = normalizeStatus(
         order.status ||
           order.orderStatus ||
-          order.payment?.status ||
           order.pedidoStatus
       );
       return {
@@ -412,7 +413,12 @@ const OrdersPage = () => {
         return;
       }
 
-      setIsLoading(true);
+      const initialLoad = !hasLoadedRef.current;
+      if (initialLoad) {
+        setIsLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       const data = await window.dataEngine.get("orders");
 
       const items = Array.isArray(data?.items) ? data.items : [];
@@ -425,10 +431,12 @@ const OrdersPage = () => {
       );
 
       setOrders(normalizedOrders);
+      hasLoadedRef.current = true;
     } catch (err) {
       console.error("[OrdersPage] Erro ao carregar pedidos:", err);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
@@ -603,6 +611,11 @@ const OrdersPage = () => {
     try {
       if (!orderId) return;
 
+      const currentOrder =
+        orders.find((o) => o.id === orderId || o._id === orderId) ||
+        selectedOrder ||
+        null;
+
       // Atualiza otimistamente no estado
       setOrders((prev) =>
         prev.map((o) =>
@@ -639,7 +652,7 @@ const OrdersPage = () => {
 
       if (!window.dataEngine) {
         console.warn(
-          "[OrdersPage] dataEngine não disponível; status só atualizado em memória."
+          "[OrdersPage] dataEngine nao disponivel; status so atualizado em memoria."
         );
         return;
       }
@@ -647,16 +660,29 @@ const OrdersPage = () => {
       const updatePayload = {
         status: newStatus,
         history: [
-          ...(Array.isArray(selectedOrder?.history)
-            ? selectedOrder.history
+          ...(Array.isArray(currentOrder?.history)
+            ? currentOrder.history
             : []),
           { status: newStatus, at: new Date().toISOString() },
         ],
       };
 
+      let updatedViaUpdateItem = false;
       if (typeof window.dataEngine.updateItem === "function") {
-        await window.dataEngine.updateItem("orders", orderId, updatePayload);
-      } else if (typeof window.dataEngine.set === "function") {
+        const idToUpdate = currentOrder?.id || null;
+        if (idToUpdate) {
+          try {
+            await window.dataEngine.updateItem("orders", idToUpdate, updatePayload);
+            updatedViaUpdateItem = true;
+          } catch (err) {
+            console.warn(
+              "[OrdersPage] updateItem falhou, usando set: " + (err?.message || err)
+            );
+          }
+        }
+      }
+
+      if (!updatedViaUpdateItem && typeof window.dataEngine.set === "function") {
         const current = await window.dataEngine.get("orders");
         const items = Array.isArray(current?.items) ? current.items : [];
         const updatedItems = items.map((o) =>
@@ -665,9 +691,9 @@ const OrdersPage = () => {
             : o
         );
         await window.dataEngine.set("orders", { items: updatedItems });
-      } else {
+      } else if (!updatedViaUpdateItem) {
         console.warn(
-          "[OrdersPage] Nenhum método conhecido para persistir alteração de status."
+          "[OrdersPage] Nenhum metodo conhecido para persistir alteracao de status."
         );
       }
 
@@ -684,7 +710,7 @@ const OrdersPage = () => {
     }
   };
 
-  // 🔄 NOVA LÓGICA DE IMPRESSÃO (alinhada com main.js + OrderDetailsModal)
+  // NOVA LOGICA DE IMPRESSAO (alinhada com main.js + OrderDetailsModal)
   const handlePrintOrder = useCallback(async (order, mode = "full") => {
     try {
       if (!order) return;
@@ -848,17 +874,20 @@ const OrdersPage = () => {
     setActiveModal("create");
   };
 
-  // ========= EXCLUIR (SOFT DELETE) =========
+  // ========= EXCLUIR (HARD DELETE) =========
 
   const handleDeleteOrder = async (orderToDelete) => {
     try {
       if (!orderToDelete) return;
 
-      const orderId = resolveOrderId(orderToDelete);
-      const deletedAt = new Date().toISOString();
-      const deletedBy = "sistema"; // no futuro: usuário logado
+      const confirmed = window.confirm(
+        "Deseja realmente excluir este pedido? Esta acao nao pode ser desfeita."
+      );
+      if (!confirmed) return;
 
-      // Otimista: remove da lista em memória
+      const orderId = resolveOrderId(orderToDelete);
+
+      // Otimista: remove da lista em memoria
       setOrders((prev) =>
         prev.filter((o) => {
           if (orderId) {
@@ -873,38 +902,30 @@ const OrdersPage = () => {
 
       if (!window.dataEngine) {
         console.warn(
-          "[OrdersPage] dataEngine não disponível; exclusão só em memória."
+          "[OrdersPage] dataEngine nao disponivel; exclusao so em memoria."
         );
         return;
       }
 
-      const updatePayload = {
-        deleted: true,
-        deletedAt,
-        deletedBy,
-      };
+      let removed = false;
+      if (orderId && typeof window.dataEngine.removeItem === "function") {
+        const result = await window.dataEngine.removeItem("orders", orderId);
+        removed = Boolean(result);
+      }
 
-      if (orderId && typeof window.dataEngine.updateItem === "function") {
-        await window.dataEngine.updateItem("orders", orderId, updatePayload);
-      } else if (typeof window.dataEngine.set === "function") {
+      if (!removed && typeof window.dataEngine.set === "function") {
         const current = await window.dataEngine.get("orders");
         const items = Array.isArray(current?.items) ? current.items : [];
-        const updated = items.map((o) => {
+        const updated = items.filter((o) => {
           if (orderId) {
-            if (o.id === orderId || o._id === orderId) {
-              return { ...o, ...updatePayload };
-            }
-            return o;
+            return o.id !== orderId && o._id !== orderId;
           }
-          if (JSON.stringify(o) === JSON.stringify(orderToDelete)) {
-            return { ...o, ...updatePayload };
-          }
-          return o;
+          return JSON.stringify(o) !== JSON.stringify(orderToDelete);
         });
         await window.dataEngine.set("orders", { items: updated });
-      } else {
+      } else if (!removed) {
         console.warn(
-          "[OrdersPage] Nenhum método conhecido para persistir exclusão."
+          "[OrdersPage] Nenhum metodo conhecido para persistir exclusao."
         );
       }
 
@@ -992,18 +1013,28 @@ const OrdersPage = () => {
           <button
             className="btn btn-outline"
             onClick={loadOrders}
-            disabled={isLoading}
+            disabled={isLoading || isRefreshing}
           >
-            {isLoading ? "Atualizando..." : "Atualizar"}
+            {isLoading || isRefreshing ? "Atualizando..." : "Atualizar"}
           </button>
         </div>
       </div>
 
-      <OrderList
-        orders={orders}
-        filters={filters}
-        onClickOrder={handleOpenDetails}
-      />
+      {isLoading && orders.length === 0 ? (
+        <div className="order-list">
+          {[0, 1, 2, 3].map((idx) => (
+            <div key={`orders-skeleton-${idx}`} className="skeleton skeleton-card" />
+          ))}
+        </div>
+      ) : (
+        <OrderList
+          orders={orders}
+          filters={filters}
+          onClickOrder={handleOpenDetails}
+          onCreateOrder={handleNewOrderClick}
+          isRefreshing={isRefreshing}
+        />
+      )}
 
       {/* Modal de detalhes */}
       {activeModal === "details" && selectedOrder && (

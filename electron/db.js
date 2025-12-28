@@ -31,9 +31,18 @@ const COLLECTION_FILES = {
   orders: 'orders.json',
   motoboys: 'motoboys.json',
   cashSessions: 'cashSessions.json',
+  stock_ingredients: 'stock_ingredients.json',
   settings: 'settings.json',
   dashboard: 'dashboard.json'
 };
+const SYNC_COLLECTIONS = new Set([
+  'products',
+  'customers',
+  'orders',
+  'motoboys',
+  'cashSessions',
+  'settings'
+]);
 
 const APPDATA_SCOPE = process.env.APPDATA_SCOPE || 'BB-PEDIDOS';
 const PACKAGED_DATA_DIR = path.join(__dirname, 'data');
@@ -103,6 +112,7 @@ function getDefaultData(collection) {
     case 'orders':
     case 'motoboys':
     case 'cashSessions':
+    case 'stock_ingredients':
       return { items: [] };
     case 'settings':
       return {
@@ -265,6 +275,7 @@ async function enqueueSyncPayload(collection, payload) {
 }
 
 async function pushCollectionToRemote(collection, payload, options = null) {
+  if (!SYNC_COLLECTIONS.has(collection)) return true;
   const baseUrl = getSyncBaseUrl();
   if (!baseUrl) return false;
 
@@ -314,7 +325,10 @@ async function flushSyncQueue() {
     return { success: false, flushed: 0, remaining: 0 };
   }
 
-  const queue = await readSyncQueue();
+  const queue = (await readSyncQueue()).filter((entry) =>
+    SYNC_COLLECTIONS.has(entry.collection)
+  );
+  await writeSyncQueue(queue);
   if (queue.length === 0) {
     return { success: true, flushed: 0, remaining: 0 };
   }

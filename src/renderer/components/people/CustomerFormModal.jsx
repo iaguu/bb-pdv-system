@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Modal from "../common/Modal";
 import Button from "../common/Button";
+import ConfirmDialog from "../common/ConfirmDialog";
 
 const digitsOnly = (s) => (s || "").replace(/\D/g, "");
 
@@ -97,8 +98,17 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
   const [formErrorMessage, setFormErrorMessage] = useState("");
   const [cepStatus, setCepStatus] = useState("idle"); // idle | loading | ok | error
   const [cepMessage, setCepMessage] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const lastCepLookupRef = useRef("");
   const autoCepTimerRef = useRef(null);
+  const nameRef = useRef(null);
+  const phoneRef = useRef(null);
+  const cepRef = useRef(null);
+  const streetRef = useRef(null);
+  const numberRef = useRef(null);
+  const neighborhoodRef = useRef(null);
+  const cityRef = useRef(null);
+  const stateRef = useRef(null);
   const customerInitial =
     form.name.trim().charAt(0).toUpperCase() || displayName.charAt(0);
 
@@ -204,6 +214,36 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     }));
   };
 
+  const focusFirstError = (errors) => {
+    if (!errors) return;
+    const order = [
+      "name",
+      "phone",
+      "address.cep",
+      "address.street",
+      "address.number",
+      "address.neighborhood",
+      "address.city",
+      "address.state",
+    ];
+    const refMap = {
+      name: nameRef,
+      phone: phoneRef,
+      "address.cep": cepRef,
+      "address.street": streetRef,
+      "address.number": numberRef,
+      "address.neighborhood": neighborhoodRef,
+      "address.city": cityRef,
+      "address.state": stateRef,
+    };
+    const firstKey = order.find((key) => errors[key]);
+    if (!firstKey) return;
+    const ref = refMap[firstKey];
+    if (ref && ref.current) {
+      ref.current.focus();
+    }
+  };
+
   const runCepLookup = async ({ auto = false } = {}) => {
     try {
       const cepDigits = digitsOnly(form.address.cep);
@@ -286,6 +326,25 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     setFormErrors({});
     setFormErrorMessage("");
 
+    const baseErrors = {};
+    const phoneDigits = digitsOnly(form.phone);
+
+    if (!form.name.trim()) {
+      baseErrors.name = true;
+    }
+    if (!phoneDigits || phoneDigits.length < 10) {
+      baseErrors.phone = true;
+    }
+
+    if (Object.keys(baseErrors).length > 0) {
+      setFormErrors(baseErrors);
+      setFormErrorMessage(
+        "Informe nome e telefone válidos antes de salvar."
+      );
+      focusFirstError(baseErrors);
+      return;
+    }
+
     const addressErrors = {};
     const missingLabels = [];
 
@@ -319,6 +378,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
       setFormErrorMessage(
         `Endereço incompleto. Faltam: ${missingLabels.join(", ")}.`
       );
+      focusFirstError(addressErrors);
       return;
     }
 
@@ -331,6 +391,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
       setFormErrorMessage(
         `Bairro bloqueado para entrega: ${blockedMatch}.`
       );
+      focusFirstError({ "address.neighborhood": true });
       return;
     }
 
@@ -369,39 +430,41 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     onClose();
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!editingData?.id) return;
-    const confirmed = window.confirm(
-      "Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita."
-    );
-    if (!confirmed) return;
+    setShowDeleteConfirm(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!editingData?.id) return;
+    setShowDeleteConfirm(false);
     await window.dataEngine.removeItem("customers", editingData.id);
     if (onSaved) onSaved();
     onClose();
   };
 
   return (
-    <Modal
-      title={editingData ? "Editar cliente" : "Novo cliente"}
-      onClose={onClose}
-      footer={
-        <div className="modal-footer-actions">
-          {editingData?.id && (
-            <Button variant="danger" type="button" onClick={handleDelete}>
-              Excluir
-            </Button>
-          )}
+    <>
+      <Modal
+        title={editingData ? "Editar cliente" : "Novo cliente"}
+        onClose={onClose}
+        footer={
+          <div className="modal-footer-actions">
+            {editingData?.id && (
+              <Button variant="danger" type="button" onClick={handleDelete}>
+                Excluir
+              </Button>
+            )}
 
-          <Button variant="ghost" type="button" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button variant="primary" type="submit" form="customer-form">
-            Salvar
-          </Button>
-        </div>
-      }
-    >
+            <Button variant="ghost" type="button" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button variant="primary" type="submit" form="customer-form">
+              Salvar
+            </Button>
+          </div>
+        }
+      >
       <div className="customer-form-header">
         <div className="customer-form-avatar">{customerInitial}</div>
         <div className="customer-form-header-body">
@@ -465,6 +528,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Nome</span>
               <input
+                ref={nameRef}
                 className="input"
                 value={form.name}
                 onChange={(e) => handleFieldChange("name", e.target.value)}
@@ -475,6 +539,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Telefone</span>
               <input
+                ref={phoneRef}
                 className="input"
                 value={form.phone}
                 onChange={(e) => handleFieldChange("phone", e.target.value)}
@@ -505,6 +570,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
               <span className="field-label">CEP</span>
               <div className="customer-cep-inline">
                 <input
+                  ref={cepRef}
                   className={"input" + (formErrors["address.cep"] ? " input-error" : "")}
                   value={form.address.cep}
                   onChange={(e) => handleAddressChange("cep", e.target.value)}
@@ -536,6 +602,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Rua</span>
               <input
+                ref={streetRef}
                 className={"input" + (formErrors["address.street"] ? " input-error" : "")}
                 value={form.address.street}
                 onChange={(e) =>
@@ -547,6 +614,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Número</span>
               <input
+                ref={numberRef}
                 className={"input" + (formErrors["address.number"] ? " input-error" : "")}
                 value={form.address.number}
                 onChange={(e) =>
@@ -560,6 +628,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Bairro</span>
               <input
+                ref={neighborhoodRef}
                 className={"input" + (formErrors["address.neighborhood"] ? " input-error" : "")}
                 value={form.address.neighborhood}
                 onChange={(e) =>
@@ -571,6 +640,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Cidade</span>
               <input
+                ref={cityRef}
                 className={"input" + (formErrors["address.city"] ? " input-error" : "")}
                 value={form.address.city}
                 onChange={(e) =>
@@ -582,6 +652,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <label className="field">
               <span className="field-label">Estado</span>
               <input
+                ref={stateRef}
                 className={"input" + (formErrors["address.state"] ? " input-error" : "")}
                 value={form.address.state}
                 onChange={(e) =>
@@ -665,7 +736,19 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
       </div>
         </section>
       </form>
-    </Modal>
+      </Modal>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Excluir cliente"
+        message="Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        tone="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    </>
   );
 };
 

@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react';
 
@@ -63,6 +64,7 @@ function isInLastDays(isoOrDate, days) {
 export default function DeliveriesPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [period, setPeriod] = useState('today'); // today | 7d | 30d | all
   const [statusFilter, setStatusFilter] = useState('in_progress'); // pending | in_progress | delivered | problem | all
@@ -73,60 +75,58 @@ export default function DeliveriesPage() {
   // lista simples de motoboys (apenas para facilitar seleção)
   const [driverInput, setDriverInput] = useState('');
   const [knownDrivers, setKnownDrivers] = useState([]);
+  const hasLoadedRef = useRef(false);
 
   // carrega pedidos do DB
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadOrders() {
-      try {
+  const loadOrders = useCallback(async () => {
+    const initialLoad = !hasLoadedRef.current;
+    try {
+      if (initialLoad) {
         setLoading(true);
-
-        if (!window.db?.orders?.getAll) {
-          console.warn('window.db.orders.getAll não está disponível.');
-          return;
-        }
-
-        const list = await window.db.orders.getAll();
-        if (cancelled) return;
-
-        const arr = Array.isArray(list) ? list : [];
-
-        // ordena do mais novo para o mais antigo
-        arr.sort((a, b) => {
-          const aDate = a.createdAtISO || a.createdAt;
-          const bDate = b.createdAtISO || b.createdAt;
-          if (!aDate && !bDate) return 0;
-          if (!aDate) return 1;
-          if (!bDate) return -1;
-          return new Date(bDate) - new Date(aDate);
-        });
-
-        setOrders(arr);
-
-        // popula lista de motoboys existentes nos pedidos
-        const drivers = new Set();
-        arr.forEach((o) => {
-          if (o.driverName) {
-            drivers.add(String(o.driverName).trim());
-          }
-        });
-        setKnownDrivers(Array.from(drivers));
-      } catch (err) {
-        console.error('Erro ao carregar pedidos para Entregas:', err);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      } else {
+        setIsRefreshing(true);
       }
+
+      if (!window.db?.orders?.getAll) {
+        console.warn('window.db.orders.getAll nao esta disponivel.');
+        return;
+      }
+
+      const list = await window.db.orders.getAll();
+      const arr = Array.isArray(list) ? list : [];
+
+      // ordena do mais novo para o mais antigo
+      arr.sort((a, b) => {
+        const aDate = a.createdAtISO || a.createdAt;
+        const bDate = b.createdAtISO || b.createdAt;
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1;
+        if (!bDate) return -1;
+        return new Date(bDate) - new Date(aDate);
+      });
+
+      setOrders(arr);
+      hasLoadedRef.current = true;
+
+      // popula lista de motoboys existentes nos pedidos
+      const drivers = new Set();
+      arr.forEach((o) => {
+        if (o.driverName) {
+          drivers.add(String(o.driverName).trim());
+        }
+      });
+      setKnownDrivers(Array.from(drivers));
+    } catch (err) {
+      console.error('Erro ao carregar pedidos para Entregas:', err);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
     }
-
-    loadOrders();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
 
   // inicializa datas com hoje
   useEffect(() => {
@@ -202,6 +202,7 @@ export default function DeliveriesPage() {
   }, [deliveryOrders, period, dateFrom, dateTo, statusFilter]);
 
   const hasData = filteredDeliveries.length > 0;
+  const isInitialLoading = loading && !hasLoadedRef.current;
 
   // helper pra salvar array de pedidos
   const persistOrders = useCallback(
@@ -388,6 +389,11 @@ export default function DeliveriesPage() {
     }
   };
 
+  const handleResetFilters = () => {
+    setPeriod('today');
+    setStatusFilter('in_progress');
+  };
+
   // render
   return (
     <div className="page-deliveries">
@@ -464,6 +470,14 @@ export default function DeliveriesPage() {
               />
             </div>
           </div>
+          <button
+            type="button"
+            className="btn btn-outline btn-small"
+            onClick={loadOrders}
+            disabled={loading || isRefreshing}
+          >
+            {loading || isRefreshing ? 'Atualizando...' : 'Atualizar'}
+          </button>
         </div>
       </div>
 
@@ -560,20 +574,55 @@ export default function DeliveriesPage() {
         </div>
       </div>
 
-      {loading && (
-        <div className="deliveries-empty">
-          Carregando pedidos de entrega...
-        </div>
+      {isRefreshing && (
+        <div className="order-list-refresh">Atualizando entregas...</div>
+      )}
+
+      {isInitialLoading && (
+        <>
+          <div className="deliveries-summary-grid">
+            {[0, 1, 2, 3, 4, 5].map((idx) => (
+              <div
+                key={`deliveries-summary-skeleton-${idx}`}
+                className="skeleton skeleton-card"
+              />
+            ))}
+          </div>
+          <div className="deliveries-panel">
+            <div className="skeleton skeleton-row" />
+            <div className="skeleton skeleton-row" />
+            <div className="skeleton skeleton-row" />
+          </div>
+        </>
       )}
 
       {!loading && !hasData && (
-        <div className="deliveries-empty">
-          Nenhuma entrega encontrada para {periodLabel()}. Ajuste os filtros
-          ou confirme se há pedidos com entrega (não retirada) cadastrados.
+        <div className="empty-state">
+          <div className="empty-title">Nenhuma entrega encontrada</div>
+          <div className="empty-description">
+            Nenhuma entrega para {periodLabel()}. Ajuste os filtros ou
+            confirme se ha pedidos com entrega cadastrados.
+          </div>
+          <div className="empty-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleResetFilters}
+            >
+              Limpar filtros
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={loadOrders}
+            >
+              Recarregar
+            </button>
+          </div>
         </div>
       )}
 
-      {!loading && hasData && (
+      {!isInitialLoading && hasData && (
         <>
           {/* cards resumo */}
           <div className="deliveries-summary-grid">
