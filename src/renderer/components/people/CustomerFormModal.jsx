@@ -1,5 +1,5 @@
 // src/renderer/components/people/CustomerFormModal.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Modal from "../common/Modal";
 import Button from "../common/Button";
 
@@ -97,6 +97,8 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
   const [formErrorMessage, setFormErrorMessage] = useState("");
   const [cepStatus, setCepStatus] = useState("idle"); // idle | loading | ok | error
   const [cepMessage, setCepMessage] = useState("");
+  const lastCepLookupRef = useRef("");
+  const autoCepTimerRef = useRef(null);
   const customerInitial =
     form.name.trim().charAt(0).toUpperCase() || displayName.charAt(0);
 
@@ -105,6 +107,9 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     if (!editingData) {
       setFormErrors({});
       setFormErrorMessage("");
+      setCepStatus("idle");
+      setCepMessage("");
+      lastCepLookupRef.current = "";
       return;
     }
     setForm({
@@ -135,6 +140,9 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     });
     setFormErrors({});
     setFormErrorMessage("");
+    setCepStatus("idle");
+    setCepMessage("");
+    lastCepLookupRef.current = "";
   }, [editingData]);
 
   useEffect(() => {
@@ -196,26 +204,49 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     }));
   };
 
-  const handleCepSearch = async () => {
+  const runCepLookup = async ({ auto = false } = {}) => {
     try {
+      const cepDigits = digitsOnly(form.address.cep);
+      if (cepDigits.length !== 8) {
+        if (!auto) {
+          setCepStatus("error");
+          setCepMessage("CEP deve ter 8 dígitos.");
+        }
+        return;
+      }
+
+      if (cepStatus === "loading") return;
+      if (auto && cepDigits === lastCepLookupRef.current) return;
+
       setCepStatus("loading");
       setCepMessage("Buscando CEP...");
-      const data = await lookupCep(form.address.cep);
+      const data = await lookupCep(cepDigits);
 
       setForm((prev) => ({
         ...prev,
         address: {
           ...prev.address,
           cep: digitsOnly(prev.address.cep),
-          street: data.logradouro || prev.address.street,
-          neighborhood: data.bairro || prev.address.neighborhood,
+          street:
+            auto && prev.address.street
+              ? prev.address.street
+              : data.logradouro || prev.address.street,
+          neighborhood:
+            auto && prev.address.neighborhood
+              ? prev.address.neighborhood
+              : data.bairro || prev.address.neighborhood,
           city: data.localidade || prev.address.city,
           state: data.uf || prev.address.state,
         },
       }));
 
+      lastCepLookupRef.current = cepDigits;
       setCepStatus("ok");
-      setCepMessage("Endereço atualizado pelo CEP.");
+      setCepMessage(
+        auto
+          ? "Cidade e estado atualizados pelo CEP."
+          : "Endereço atualizado pelo CEP."
+      );
     } catch (err) {
       console.error("Erro ao buscar CEP:", err);
       setCepStatus("error");
@@ -223,6 +254,32 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     }
   };
 
+  const handleCepSearch = () => runCepLookup();
+
+  useEffect(() => {
+    const cepDigits = digitsOnly(form.address.cep);
+    if (cepDigits.length !== 8) {
+      if (autoCepTimerRef.current) {
+        clearTimeout(autoCepTimerRef.current);
+      }
+      return;
+    }
+
+    if (cepDigits === lastCepLookupRef.current) return;
+
+    if (autoCepTimerRef.current) {
+      clearTimeout(autoCepTimerRef.current);
+    }
+    autoCepTimerRef.current = setTimeout(() => {
+      runCepLookup({ auto: true });
+    }, 600);
+
+    return () => {
+      if (autoCepTimerRef.current) {
+        clearTimeout(autoCepTimerRef.current);
+      }
+    };
+  }, [form.address.cep]);
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -242,7 +299,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     }
     if (!form.address.number.trim()) {
       addressErrors["address.number"] = true;
-      missingLabels.push("Numero");
+      missingLabels.push("Número");
     }
     if (!form.address.neighborhood.trim()) {
       addressErrors["address.neighborhood"] = true;
@@ -260,7 +317,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     if (missingLabels.length > 0) {
       setFormErrors(addressErrors);
       setFormErrorMessage(
-        `Endereco incompleto. Faltam: ${missingLabels.join(", ")}.`
+        `Endereço incompleto. Faltam: ${missingLabels.join(", ")}.`
       );
       return;
     }
@@ -356,13 +413,13 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
                 (editingData ? "customer-pill-edit" : "customer-pill-new")
               }
             >
-              {editingData ? "Em ediÇõo" : "Novo cadastro"}
+              {editingData ? "Em edição" : "Novo cadastro"}
             </span>
           </div>
           <p className="customer-form-subtitle">
             {editingData
-              ? "Revise contato, endereÇõo e observaÇõÇæes antes de salvar."
-              : "Preencha os campos de contato e endereÇõo para cadastrar."}
+              ? "Revise contato, endereço e observações antes de salvar."
+              : "Preencha os campos de contato e endereço para cadastrar."}
           </p>
           <div className="customer-form-meta">
             <span className="customer-pill-soft">
@@ -370,8 +427,8 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             </span>
             <span className="customer-pill-soft">
               {form.address.city || form.address.street
-                ? "EndereÇõo preenchido"
-                : "EndereÇõo pendente"}
+                ? "Endereço preenchido"
+                : "Endereço pendente"}
             </span>
           </div>
         </div>
@@ -379,7 +436,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
 
       <div className="customer-form-top-actions">
         <Button variant="primary" type="submit" form="customer-form">
-          {editingData ? "Salvar alteraÇõÇæes" : "Cadastrar cliente"}
+          {editingData ? "Salvar alterações" : "Cadastrar cliente"}
         </Button>
         {editingData?.id && (
           <Button variant="danger" type="button" onClick={handleDelete}>

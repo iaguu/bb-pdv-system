@@ -131,9 +131,28 @@ function getDefaultData(collection) {
 async function readRawFile(filePath, fallback) {
   try {
     const raw = await fs.promises.readFile(filePath, 'utf8');
-    const content = raw.replace(/^\uFEFF/, '');
+    const content = raw.replace(/\u0000/g, '').replace(/^\uFEFF/, '');
     if (!content.trim()) return fallback;
-    return JSON.parse(content);
+    try {
+      return JSON.parse(content);
+    } catch (parseErr) {
+      const corruptedPath = `${filePath}.corrupted-${Date.now()}`;
+      console.error(`[DataEngine] Invalid JSON at ${filePath}:`, parseErr);
+      try {
+        await fs.promises.rename(filePath, corruptedPath);
+      } catch (renameErr) {
+        console.error(
+          `[DataEngine] Failed to backup corrupted file ${filePath}:`,
+          renameErr
+        );
+      }
+      await fs.promises.writeFile(
+        filePath,
+        JSON.stringify(fallback, null, 2),
+        'utf8'
+      );
+      return fallback;
+    }
   } catch (err) {
     if (err.code === 'ENOENT') {
       // Se não existe, cria com o default

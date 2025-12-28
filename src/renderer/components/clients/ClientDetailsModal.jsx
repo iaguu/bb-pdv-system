@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Modal from "../common/Modal";
 import { digitsOnly, lookupCep, normalizeCustomer } from "./utils";
 import { emitToast } from "../../utils/toast";
@@ -12,11 +12,14 @@ export default function ClientDetailsModal({
   const [editing, setEditing] = useState(null);
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState("");
+  const lastCepLookupRef = useRef("");
+  const autoCepTimerRef = useRef(null);
 
   useEffect(() => {
     setEditing(normalizeCustomer(customer));
     setCepLoading(false);
     setCepError("");
+    lastCepLookupRef.current = "";
   }, [customer]);
 
   if (!customer || !editing) return null;
@@ -32,22 +35,76 @@ export default function ClientDetailsModal({
     }));
   };
 
-  const handleCepSearch = async () => {
+  const runCepLookup = async ({ auto = false } = {}) => {
     try {
+      if (!editing) return;
+      const cepDigits = digitsOnly(editing.address.cep);
+      if (cepDigits.length !== 8) {
+        if (!auto) {
+          setCepError("CEP deve ter 8 dígitos.");
+        }
+        return;
+      }
+
+      if (cepLoading) return;
+      if (auto && cepDigits === lastCepLookupRef.current) return;
+
       setCepError("");
       setCepLoading(true);
-      const addr = await lookupCep(editing.address.cep);
-      setEditing((prev) => ({
-        ...prev,
-        address: { ...prev.address, ...addr },
-      }));
+      const addr = await lookupCep(cepDigits);
+      setEditing((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          address: {
+            ...prev.address,
+            cep: addr.cep || prev.address.cep,
+            street: auto
+              ? prev.address.street || addr.street
+              : addr.street || prev.address.street,
+            neighborhood: auto
+              ? prev.address.neighborhood || addr.neighborhood
+              : addr.neighborhood || prev.address.neighborhood,
+            city: addr.city || prev.address.city,
+            state: addr.state || prev.address.state,
+          },
+        };
+      });
+      lastCepLookupRef.current = cepDigits;
     } catch (err) {
-      setCepError(err.message);
+      setCepError(err.message || "Não foi possível buscar o CEP.");
     } finally {
       setCepLoading(false);
     }
   };
 
+  const handleCepSearch = () => runCepLookup();
+
+  useEffect(() => {
+    if (!editing) return;
+    const cepDigits = digitsOnly(editing.address.cep);
+    if (cepDigits.length !== 8) {
+      if (autoCepTimerRef.current) {
+        clearTimeout(autoCepTimerRef.current);
+      }
+      return;
+    }
+
+    if (cepDigits === lastCepLookupRef.current) return;
+
+    if (autoCepTimerRef.current) {
+      clearTimeout(autoCepTimerRef.current);
+    }
+    autoCepTimerRef.current = setTimeout(() => {
+      runCepLookup({ auto: true });
+    }, 600);
+
+    return () => {
+      if (autoCepTimerRef.current) {
+        clearTimeout(autoCepTimerRef.current);
+      }
+    };
+  }, [editing?.address?.cep]);
   const submit = (e) => {
     e.preventDefault();
     const nm = editing.name.trim();

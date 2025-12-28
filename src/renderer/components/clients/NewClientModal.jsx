@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Modal from "../common/Modal";
 import { digitsOnly, lookupCep } from "./utils";
 import { emitToast } from "../../utils/toast";
@@ -20,6 +20,8 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
 
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState("");
+  const lastCepLookupRef = useRef("");
+  const autoCepTimerRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -38,6 +40,7 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
       });
       setCepLoading(false);
       setCepError("");
+      lastCepLookupRef.current = "";
     }
   }, [isOpen]);
 
@@ -45,19 +48,33 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
     setForm((f) => ({ ...f, [field]: value }));
   };
 
-  const handleCepSearch = async () => {
+  const runCepLookup = async ({ auto = false } = {}) => {
     try {
+      const cepDigits = digitsOnly(form.cep);
+      if (cepDigits.length !== 8) {
+        if (!auto) {
+          setCepError("CEP deve ter 8 dígitos.");
+        }
+        return;
+      }
+
+      if (cepLoading) return;
+      if (auto && cepDigits === lastCepLookupRef.current) return;
+
       setCepError("");
       setCepLoading(true);
-      const addr = await lookupCep(form.cep);
+      const addr = await lookupCep(cepDigits);
       setForm((f) => ({
         ...f,
         cep: addr.cep,
-        street: addr.street,
-        neighborhood: addr.neighborhood,
+        street: auto ? f.street || addr.street : addr.street || f.street,
+        neighborhood: auto
+          ? f.neighborhood || addr.neighborhood
+          : addr.neighborhood || f.neighborhood,
         city: addr.city,
         state: addr.state,
       }));
+      lastCepLookupRef.current = cepDigits;
     } catch (err) {
       setCepError(err.message || "Não foi possível buscar o CEP.");
     } finally {
@@ -65,6 +82,33 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
     }
   };
 
+  const handleCepSearch = () => runCepLookup();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const cepDigits = digitsOnly(form.cep);
+    if (cepDigits.length !== 8) {
+      if (autoCepTimerRef.current) {
+        clearTimeout(autoCepTimerRef.current);
+      }
+      return;
+    }
+
+    if (cepDigits === lastCepLookupRef.current) return;
+
+    if (autoCepTimerRef.current) {
+      clearTimeout(autoCepTimerRef.current);
+    }
+    autoCepTimerRef.current = setTimeout(() => {
+      runCepLookup({ auto: true });
+    }, 600);
+
+    return () => {
+      if (autoCepTimerRef.current) {
+        clearTimeout(autoCepTimerRef.current);
+      }
+    };
+  }, [form.cep, isOpen]);
   const submit = (e) => {
     e.preventDefault();
     const nm = form.name.trim();

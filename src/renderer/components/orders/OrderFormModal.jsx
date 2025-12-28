@@ -1,8 +1,36 @@
 // src/renderer/components/orders/NewOrderModal.jsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Modal from "../common/Modal";
+import CustomerFormModal from "../people/CustomerFormModal";
+import { lookupCep } from "../clients/utils";
 
 function digitsOnly(s) {
   return (s || "").replace(/\D/g, "");
+}
+
+async function lookupCepByAddress({ street, city, state }) {
+  if (!street || !city || !state) {
+    throw new Error("Endereço incompleto para buscar CEP.");
+  }
+  const url = `https://viacep.com.br/ws/${encodeURIComponent(
+    state
+  )}/${encodeURIComponent(city)}/${encodeURIComponent(street)}/json/`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error("Erro ao consultar CEP.");
+  }
+  const data = await res.json();
+  if (!Array.isArray(data) || data.length === 0 || data.erro) {
+    throw new Error("CEP não encontrado.");
+  }
+  const first = data[0] || {};
+  return {
+    cep: digitsOnly(first.cep || ""),
+    street: first.logradouro || "",
+    neighborhood: first.bairro || "",
+    city: first.localidade || city,
+    state: first.uf || state,
+  };
 }
 
 function normalizeNeighborhoodKey(value) {
@@ -32,13 +60,28 @@ function getMissingAddressFields(address, neighborhoodOverride) {
   const missing = [];
   const addr = address || {};
   if (!addr.street) missing.push("Rua");
-  if (!addr.number) missing.push("Numero");
+  if (!addr.number) missing.push("Número");
   const neighborhood =
     neighborhoodOverride || addr.neighborhood || addr.bairro || "";
   if (!neighborhood) missing.push("Bairro");
   if (!addr.city) missing.push("Cidade");
   if (!addr.state) missing.push("Estado");
   return missing;
+}
+
+function createEmptyAltAddress() {
+  return {
+    id: "",
+    label: "",
+    cep: "",
+    street: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    reference: "",
+  };
 }
 
 /**
@@ -343,7 +386,7 @@ function getBusinessHoursStatus(businessHours, date = new Date()) {
   const isOpen = isWithinTimeRange(nowMinutes, openMinutes, closeMinutes);
   return {
     isOpen,
-    reason: isOpen ? "" : "Fora do horario de funcionamento.",
+    reason: isOpen ? "" : "Fora do horário de funcionamento.",
   };
 }
 
@@ -607,6 +650,18 @@ export default function NewOrderModal({
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [showCustomerSearch, setShowCustomerSearch] = useState(true);
   const [counterLabel, setCounterLabel] = useState("Balcão");
+  const [selectedCustomerAddressId, setSelectedCustomerAddressId] =
+    useState("primary");
+  const [showCustomerEditModal, setShowCustomerEditModal] = useState(false);
+  const [showAltAddressModal, setShowAltAddressModal] = useState(false);
+  const [altAddressDraft, setAltAddressDraft] = useState(() =>
+    createEmptyAltAddress()
+  );
+  const [altAddressError, setAltAddressError] = useState("");
+  const [isSyncingCustomerAddress, setIsSyncingCustomerAddress] =
+    useState(false);
+  const lastAddressSyncRef = useRef("");
+  const lastDistanceCalcRef = useRef("");
 
   // -----------------------------
   // Pizza atual (editor)
@@ -745,11 +800,27 @@ export default function NewOrderModal({
       if (!preferCounter && matchingCustomer) {
         setCustomerMode("registered");
         setSelectedCustomerId(matchingCustomer.id);
+        const addressIdCandidate =
+          order.customerAddressId ||
+          order.customerAddress?.id ||
+          order.customer?.addressId ||
+          null;
+        if (addressIdCandidate && Array.isArray(matchingCustomer.addresses)) {
+          const exists = matchingCustomer.addresses.some(
+            (addr) => String(addr.id) === String(addressIdCandidate)
+          );
+          setSelectedCustomerAddressId(
+            exists ? addressIdCandidate : "primary"
+          );
+        } else {
+          setSelectedCustomerAddressId("primary");
+        }
         setShowCustomerSearch(!!customers.length);
         setCounterLabel("Balcão");
       } else {
         setCustomerMode("counter");
         setSelectedCustomerId(null);
+        setSelectedCustomerAddressId("primary");
         setShowCustomerSearch(false);
         const counterLabelValue =
           (order.counterLabel || snapshotName || "").trim() || "Cliente";
@@ -929,6 +1000,7 @@ export default function NewOrderModal({
             setCustomerMode(customersArr.length ? "registered" : "counter");
             setCustomerSearch("");
             setSelectedCustomerId(null);
+            setSelectedCustomerAddressId("primary");
             setShowCustomerSearch(true);
             setCounterLabel("Balcão");
 
@@ -984,6 +1056,7 @@ export default function NewOrderModal({
           setCustomerMode("counter");
           setCustomerSearch("");
           setSelectedCustomerId(null);
+          setSelectedCustomerAddressId("primary");
           setShowCustomerSearch(false);
           setCounterLabel("Balcão");
 
@@ -1042,19 +1115,28 @@ export default function NewOrderModal({
     if (!term) return customers;
 
     const digits = digitsOnly(term);
+    const hasDigits = digits.length > 0;
 
     return customers.filter((c) => {
-      const name = (c.name || "").toLowerCase();
-      const phone = (c.phone || "").toLowerCase();
-      const cpf = (c.cpf || "").toLowerCase();
-
-      return (
-        name.includes(term) ||
-        phone.includes(term) ||
-        cpf.includes(term) ||
-        digitsOnly(c.phone || "").includes(digits) ||
-        digitsOnly(c.cpf || "").includes(digits)
+      const name = (c.name || c.nome || "").toLowerCase();
+      const phone = (c.phone || c.phoneRaw || c.telefone || "")
+        .toString()
+        .toLowerCase();
+      const cpf = (c.cpf || c.document || c.cpf_cnpj || "")
+        .toString()
+        .toLowerCase();
+      const phoneDigits = digitsOnly(
+        c.phone || c.phoneRaw || c.telefone || ""
       );
+      const cpfDigits = digitsOnly(c.cpf || c.document || c.cpf_cnpj || "");
+
+      const matchesText =
+        name.includes(term) || phone.includes(term) || cpf.includes(term);
+      const matchesDigits =
+        hasDigits &&
+        (phoneDigits.includes(digits) || cpfDigits.includes(digits));
+
+      return matchesText || matchesDigits;
     });
   }, [customers, customerSearch]);
 
@@ -1064,11 +1146,77 @@ export default function NewOrderModal({
   }, [selectedCustomerId, customers]);
 
   useEffect(() => {
+    if (!selectedCustomerId) {
+      if (selectedCustomerAddressId !== "primary") {
+        setSelectedCustomerAddressId("primary");
+      }
+      return;
+    }
+
+    if (!selectedCustomerAddressId) {
+      setSelectedCustomerAddressId("primary");
+      return;
+    }
+
+    if (selectedCustomerAddressId === "primary") return;
+
+    const customer = customers.find(
+      (c) => String(c.id) === String(selectedCustomerId)
+    );
+    const addresses = Array.isArray(customer?.addresses)
+      ? customer.addresses
+      : [];
+    const exists = addresses.some(
+      (addr) => String(addr.id) === String(selectedCustomerAddressId)
+    );
+
+    if (!exists) {
+      setSelectedCustomerAddressId("primary");
+    }
+  }, [selectedCustomerId, selectedCustomerAddressId, customers]);
+
+  const customerAltAddresses = useMemo(() => {
+    if (!selectedCustomer?.addresses) return [];
+    return Array.isArray(selectedCustomer.addresses)
+      ? selectedCustomer.addresses
+      : [];
+  }, [selectedCustomer]);
+
+  const activeCustomerAddress = useMemo(() => {
+    if (!selectedCustomer) return null;
+    if (selectedCustomerAddressId === "primary") {
+      return selectedCustomer.address || null;
+    }
+    return (
+      customerAltAddresses.find(
+        (addr) => String(addr.id) === String(selectedCustomerAddressId)
+      ) ||
+      selectedCustomer.address ||
+      null
+    );
+  }, [selectedCustomer, customerAltAddresses, selectedCustomerAddressId]);
+
+  const activeCustomerAddressLabel = useMemo(() => {
+    if (!selectedCustomer) return "";
+    if (selectedCustomerAddressId === "primary") return "Endereço principal";
+    const match = customerAltAddresses.find(
+      (addr) => String(addr.id) === String(selectedCustomerAddressId)
+    );
+    const label = match?.label || match?.apelido || "";
+    return label ? `Alternativo: ${label}` : "Endereço alternativo";
+  }, [selectedCustomer, customerAltAddresses, selectedCustomerAddressId]);
+
+  useEffect(() => {
     if (customerMode !== "registered") return;
-    const addr = selectedCustomer?.address || {};
+    const addr = activeCustomerAddress || {};
     const neighborhood = addr.neighborhood || addr.bairro || "";
     setDeliveryAddressNeighborhood(neighborhood);
-  }, [selectedCustomerId, customerMode, selectedCustomer]);
+  }, [
+    selectedCustomerId,
+    selectedCustomerAddressId,
+    customerMode,
+    activeCustomerAddress,
+  ]);
 
   const recentCustomers = useMemo(() => {
     if (!customers.length) return [];
@@ -1085,19 +1233,235 @@ export default function NewOrderModal({
     return mapped.map((entry) => entry.customer);
   }, [customers]);
 
+  const refreshCustomers = useCallback(async () => {
+    if (!window?.dataEngine?.get) return [];
+    try {
+      const customersDb = await window.dataEngine.get("customers");
+      const customersArr = Array.isArray(customersDb?.items)
+        ? customersDb.items
+        : Array.isArray(customersDb)
+        ? customersDb
+        : [];
+      setCustomers(customersArr);
+      return customersArr;
+    } catch (err) {
+      console.error("[OrderFormModal] Erro ao recarregar clientes:", err);
+      return [];
+    }
+  }, []);
+
+  const updateCustomerRecord = useCallback(async (id, changes) => {
+    if (!window?.dataEngine?.updateItem) return null;
+    try {
+      const updated = await window.dataEngine.updateItem(
+        "customers",
+        id,
+        changes
+      );
+      setCustomers((prev) =>
+        prev.map((c) => (String(c.id) === String(id) ? updated : c))
+      );
+      return updated;
+    } catch (err) {
+      console.error("[OrderFormModal] Erro ao atualizar cliente:", err);
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showAltAddressModal) return;
+    setAltAddressDraft(createEmptyAltAddress());
+    setAltAddressError("");
+  }, [showAltAddressModal]);
+
+  const handleAltAddressFieldChange = (field, value) => {
+    if (altAddressError) {
+      setAltAddressError("");
+    }
+    setAltAddressDraft((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleAltAddressCepLookup = async () => {
+    const cepDigits = digitsOnly(altAddressDraft.cep);
+    if (cepDigits.length !== 8) {
+      setAltAddressError("CEP deve ter 8 dígitos.");
+      return;
+    }
+    try {
+      setAltAddressError("");
+      const data = await lookupCep(cepDigits);
+      setAltAddressDraft((prev) => ({
+        ...prev,
+        cep: data.cep,
+        street: prev.street || data.street,
+        neighborhood: prev.neighborhood || data.neighborhood,
+        city: data.city,
+        state: data.state,
+      }));
+    } catch (err) {
+      setAltAddressError(err.message || "Não foi possível buscar o CEP.");
+    }
+  };
+
+  const handleUseAddress = (addressId) => {
+    setSelectedCustomerAddressId(addressId);
+    setShowAltAddressModal(false);
+
+    const addr =
+      addressId === "primary"
+        ? selectedCustomer?.address
+        : customerAltAddresses.find(
+            (item) => String(item.id) === String(addressId)
+          );
+
+    if (addr?.neighborhood || addr?.bairro) {
+      setDeliveryAddressNeighborhood(
+        addr.neighborhood || addr.bairro || ""
+      );
+    }
+  };
+
+  const handleSaveAltAddress = async () => {
+    if (!selectedCustomer) return;
+    setAltAddressError("");
+
+    const cepDigits = digitsOnly(altAddressDraft.cep);
+    let draft = {
+      ...altAddressDraft,
+      cep: cepDigits,
+      street: altAddressDraft.street.trim(),
+      neighborhood: altAddressDraft.neighborhood.trim(),
+      city: altAddressDraft.city.trim(),
+      state: altAddressDraft.state.trim(),
+      number: altAddressDraft.number.trim(),
+      complement: altAddressDraft.complement.trim(),
+      reference: altAddressDraft.reference.trim(),
+      label: altAddressDraft.label.trim(),
+    };
+
+    if (cepDigits.length === 8 && (!draft.city || !draft.state)) {
+      try {
+        const data = await lookupCep(cepDigits);
+        draft = {
+          ...draft,
+          street: draft.street || data.street,
+          neighborhood: draft.neighborhood || data.neighborhood,
+          city: draft.city || data.city,
+          state: draft.state || data.state,
+        };
+      } catch (err) {
+        setAltAddressError(err.message || "Não foi possível buscar o CEP.");
+        return;
+      }
+    }
+
+    if (
+      !cepDigits &&
+      draft.street &&
+      draft.city &&
+      draft.state
+    ) {
+      try {
+        const data = await lookupCepByAddress({
+          street: draft.street,
+          city: draft.city,
+          state: draft.state,
+        });
+        draft = {
+          ...draft,
+          cep: data.cep || draft.cep,
+          neighborhood: draft.neighborhood || data.neighborhood,
+        };
+      } catch (err) {
+        setAltAddressError(
+          err.message || "Não foi possível identificar o CEP."
+        );
+        return;
+      }
+    }
+
+    const missing = getMissingAddressFields(
+      draft,
+      draft.neighborhood || ""
+    );
+    if (missing.length > 0) {
+      setAltAddressError(
+        `Endereço incompleto. Faltam: ${missing.join(", ")}.`
+      );
+      return;
+    }
+
+    const newId =
+      draft.id ||
+      `addr-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const nextAddress = {
+      ...draft,
+      id: newId,
+      label:
+        draft.label ||
+        `Endereço ${customerAltAddresses.length + 1}`,
+    };
+
+    const updatedAddresses = [
+      ...customerAltAddresses.filter(
+        (item) => String(item.id) !== String(newId)
+      ),
+      nextAddress,
+    ];
+
+    const updatedCustomer = await updateCustomerRecord(
+      selectedCustomer.id,
+      {
+        addresses: updatedAddresses,
+      }
+    );
+
+    if (updatedCustomer) {
+      setSelectedCustomerAddressId(newId);
+      setShowAltAddressModal(false);
+      setDeliveryAddressNeighborhood(
+        nextAddress.neighborhood || ""
+      );
+    }
+  };
+
   const deliveryNeighborhoodValue = useMemo(() => {
     if (deliveryAddressNeighborhood) return deliveryAddressNeighborhood.trim();
-    const addr = selectedCustomer?.address || {};
+    const addr = activeCustomerAddress || {};
     return addr.neighborhood || addr.bairro || "";
-  }, [deliveryAddressNeighborhood, selectedCustomer]);
+  }, [deliveryAddressNeighborhood, activeCustomerAddress]);
+
+  const customerAddressLines = useMemo(() => {
+    if (!activeCustomerAddress) {
+      return { line1: "", line2: "" };
+    }
+    const addr = activeCustomerAddress || {};
+    let line1 = "";
+    if (addr.street) {
+      line1 = addr.street;
+      if (addr.number) line1 += `, ${addr.number}`;
+    }
+
+    const neighborhood =
+      deliveryNeighborhoodValue || addr.neighborhood || addr.bairro || "";
+    let line2 = "";
+    if (neighborhood) line2 = neighborhood;
+    if (addr.city) line2 += (line2 ? " - " : "") + addr.city;
+    if (addr.state) line2 += (line2 ? " / " : "") + addr.state;
+
+    return { line1, line2 };
+  }, [activeCustomerAddress, deliveryNeighborhoodValue]);
 
   const missingAddressFields = useMemo(() => {
     if (!selectedCustomer || customerMode !== "registered") return [];
     return getMissingAddressFields(
-      selectedCustomer.address,
+      activeCustomerAddress,
       deliveryNeighborhoodValue
     );
-  }, [selectedCustomer, customerMode, deliveryNeighborhoodValue]);
+  }, [selectedCustomer, customerMode, deliveryNeighborhoodValue, activeCustomerAddress]);
 
   const isDeliveryAddressComplete = missingAddressFields.length === 0;
 
@@ -1111,13 +1475,13 @@ export default function NewOrderModal({
 
   const deliveryTypeBlockedReason = useMemo(() => {
     if (customerMode !== "registered") {
-      return "Disponivel apenas para clientes cadastrados.";
+      return "Disponível apenas para clientes cadastrados.";
     }
     if (!selectedCustomer) {
       return "Selecione um cliente cadastrado.";
     }
     if (!isDeliveryAddressComplete) {
-      return `Endereco incompleto: ${missingAddressFields.join(", ")}.`;
+      return `Endereço incompleto: ${missingAddressFields.join(", ")}.`;
     }
     if (blockedNeighborhoodMatch) {
       return `Bairro bloqueado: ${blockedNeighborhoodMatch}.`;
@@ -1142,6 +1506,7 @@ export default function NewOrderModal({
     () => ({
       customerMode,
       selectedCustomerId,
+      selectedCustomerAddressId,
       counterLabel,
       orderItems,
       orderType,
@@ -1160,6 +1525,7 @@ export default function NewOrderModal({
     [
       customerMode,
       selectedCustomerId,
+      selectedCustomerAddressId,
       counterLabel,
       orderItems,
       orderType,
@@ -1184,14 +1550,36 @@ export default function NewOrderModal({
       const nextCustomerMode =
         snapshot.customerMode === "counter" ? "counter" : "registered";
       setCustomerMode(nextCustomerMode);
-      setCounterLabel(snapshot.counterLabel || "Balcao");
+      setCounterLabel(snapshot.counterLabel || "Balcão");
 
       const customerExists = customers.some(
         (c) => String(c.id) === String(snapshot.selectedCustomerId)
       );
-      setSelectedCustomerId(customerExists ? snapshot.selectedCustomerId : null);
+      const nextCustomerId = customerExists ? snapshot.selectedCustomerId : null;
+      setSelectedCustomerId(nextCustomerId);
       setShowCustomerSearch(!customerExists);
       setCustomerSearch("");
+
+      const addressIdCandidate =
+        snapshot.selectedCustomerAddressId ||
+        snapshot.customerAddressId ||
+        "primary";
+      if (!customerExists || !nextCustomerId) {
+        setSelectedCustomerAddressId("primary");
+      } else if (addressIdCandidate === "primary") {
+        setSelectedCustomerAddressId("primary");
+      } else {
+        const matchedCustomer = customers.find(
+          (c) => String(c.id) === String(nextCustomerId)
+        );
+        const addresses = Array.isArray(matchedCustomer?.addresses)
+          ? matchedCustomer.addresses
+          : [];
+        const exists = addresses.some(
+          (addr) => String(addr.id) === String(addressIdCandidate)
+        );
+        setSelectedCustomerAddressId(exists ? addressIdCandidate : "primary");
+      }
 
       setOrderItems(
         Array.isArray(snapshot.orderItems) ? snapshot.orderItems : []
@@ -1285,8 +1673,10 @@ export default function NewOrderModal({
   // -----------------------------
   // Ação: calcular distância usando endereço do cliente
   // -----------------------------
-  const handleAutoDistanceFromCustomer = async (customerParam) => {
+  const handleAutoDistanceFromCustomer = useCallback(async (customerParam, neighborhoodOverride) => {
     const customer = customerParam || selectedCustomer;
+    const neighborhoodValue =
+      neighborhoodOverride ?? deliveryAddressNeighborhood;
 
     if (orderType !== "delivery" || !customer || !customer.address) {
       setDistanceError("Selecione um cliente para entrega.");
@@ -1294,13 +1684,10 @@ export default function NewOrderModal({
     }
 
     const addr = customer.address || {};
-    const missing = getMissingAddressFields(
-      addr,
-      deliveryAddressNeighborhood
-    );
+    const missing = getMissingAddressFields(addr, neighborhoodValue);
     if (missing.length > 0) {
       setDistanceError(
-        `Endereco incompleto. Faltam: ${missing.join(", ")}.`
+        `Endereço incompleto. Faltam: ${missing.join(", ")}.`
       );
       return;
     }
@@ -1313,7 +1700,7 @@ export default function NewOrderModal({
     }
 
     const neighborhood =
-      deliveryAddressNeighborhood || addr.neighborhood || addr.bairro;
+      neighborhoodValue || addr.neighborhood || addr.bairro;
     if (neighborhood) parts.push(neighborhood);
     if (addr.city) parts.push(addr.city);
     if (addr.state) parts.push(addr.state);
@@ -1323,7 +1710,7 @@ export default function NewOrderModal({
 
     if (!destination) {
       setDistanceError(
-        "Endereco do cliente incompleto. Preencha rua/bairro/cidade para usar o calculo automatico."
+        "Endereço do cliente incompleto. Preencha rua/bairro/cidade para usar o cálculo automático."
       );
       return;
     }
@@ -1350,19 +1737,160 @@ export default function NewOrderModal({
 
     setDeliveryDistanceKm(asString);
     // efeito de recalcular taxa entra pelo useEffect de orderType/deliveryDistanceKm
-  };
-
-  // Calcula automaticamente assim que um cliente com endereço é selecionado
-  useEffect(() => {
-    if (
-      orderType !== "delivery" ||
-      !selectedCustomer ||
-      !selectedCustomer.address
-    ) {
-      return;
-    }
-    handleAutoDistanceFromCustomer(selectedCustomer);
   }, [orderType, selectedCustomer, deliveryAddressNeighborhood]);
+
+  useEffect(() => {
+    if (customerMode !== "registered") return;
+    if (!selectedCustomer || !activeCustomerAddress) return;
+    const addr = activeCustomerAddress || {};
+    const cepDigits = digitsOnly(addr.cep || "");
+    const hasCep = cepDigits.length === 8;
+    const missingCityState = !addr.city || !addr.state;
+    const canLookupByCep = hasCep && missingCityState;
+    const canLookupByAddress =
+      !hasCep && addr.street && addr.city && addr.state;
+
+    if (!canLookupByCep && !canLookupByAddress) return;
+
+    const key = [
+      selectedCustomer.id,
+      selectedCustomerAddressId,
+      cepDigits,
+      addr.street || "",
+      addr.neighborhood || "",
+      addr.city || "",
+      addr.state || "",
+    ].join("|");
+
+    if (lastAddressSyncRef.current === key) return;
+    lastAddressSyncRef.current = key;
+
+    let cancelled = false;
+
+    const syncAddress = async () => {
+      setIsSyncingCustomerAddress(true);
+      try {
+        const lookupData = canLookupByCep
+          ? await lookupCep(cepDigits)
+          : await lookupCepByAddress({
+              street: addr.street,
+              city: addr.city,
+              state: addr.state,
+            });
+
+        const patch = {
+          cep: addr.cep || lookupData.cep,
+          street: addr.street || lookupData.street,
+          neighborhood: addr.neighborhood || lookupData.neighborhood,
+          city: addr.city || lookupData.city,
+          state: addr.state || lookupData.state,
+        };
+
+        const updatedAddress = {
+          ...addr,
+          ...patch,
+        };
+
+        let updatedCustomer = null;
+        if (selectedCustomerAddressId === "primary") {
+          updatedCustomer = await updateCustomerRecord(selectedCustomer.id, {
+            address: updatedAddress,
+          });
+        } else {
+          const updatedAddresses = customerAltAddresses.map((item) =>
+            String(item.id) === String(selectedCustomerAddressId)
+              ? { ...item, ...updatedAddress }
+              : item
+          );
+          updatedCustomer = await updateCustomerRecord(selectedCustomer.id, {
+            addresses: updatedAddresses,
+          });
+        }
+
+        if (cancelled || !updatedCustomer) return;
+
+        const nextNeighborhood =
+          updatedAddress.neighborhood || updatedAddress.bairro || "";
+        if (nextNeighborhood) {
+          setDeliveryAddressNeighborhood(nextNeighborhood);
+        }
+
+        if (orderType === "delivery") {
+          lastDistanceCalcRef.current = [
+            selectedCustomer.id,
+            selectedCustomerAddressId,
+            nextNeighborhood || deliveryNeighborhoodValue,
+            updatedAddress.cep || "",
+            updatedAddress.street || "",
+            updatedAddress.number || "",
+            updatedAddress.city || "",
+            updatedAddress.state || "",
+          ].join("|");
+          await handleAutoDistanceFromCustomer(
+            { ...updatedCustomer, address: updatedAddress },
+            nextNeighborhood || deliveryNeighborhoodValue
+          );
+        }
+      } catch (err) {
+        console.error("[OrderFormModal] Erro ao buscar CEP:", err);
+      } finally {
+        if (!cancelled) setIsSyncingCustomerAddress(false);
+      }
+    };
+
+    void syncAddress();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    customerMode,
+    selectedCustomer,
+    selectedCustomerAddressId,
+    activeCustomerAddress,
+    customerAltAddresses,
+    orderType,
+    deliveryNeighborhoodValue,
+    updateCustomerRecord,
+    handleAutoDistanceFromCustomer,
+  ]);
+
+  useEffect(() => {
+    if (customerMode !== "registered") return;
+    if (orderType !== "delivery") return;
+    if (!selectedCustomer || !activeCustomerAddress) return;
+    if (missingAddressFields.length > 0) return;
+    if (isCalculatingDistance) return;
+
+    const key = [
+      selectedCustomer.id,
+      selectedCustomerAddressId,
+      deliveryNeighborhoodValue,
+      activeCustomerAddress.cep || "",
+      activeCustomerAddress.street || "",
+      activeCustomerAddress.number || "",
+      activeCustomerAddress.city || "",
+      activeCustomerAddress.state || "",
+    ].join("|");
+
+    if (lastDistanceCalcRef.current === key) return;
+    lastDistanceCalcRef.current = key;
+
+    void handleAutoDistanceFromCustomer(
+      { ...selectedCustomer, address: activeCustomerAddress },
+      deliveryNeighborhoodValue
+    );
+  }, [
+    customerMode,
+    orderType,
+    selectedCustomer,
+    activeCustomerAddress,
+    selectedCustomerAddressId,
+    deliveryNeighborhoodValue,
+    missingAddressFields.length,
+    isCalculatingDistance,
+    handleAutoDistanceFromCustomer,
+  ]);
 
   // -----------------------------
   // Filtro de pizzas e drinks
@@ -1770,7 +2298,7 @@ export default function NewOrderModal({
     subtotal < minOrderValueNumber;
 
   const businessHoursMessage =
-    businessHoursStatus.reason || "Fora do horario de funcionamento.";
+    businessHoursStatus.reason || "Fora do horário de funcionamento.";
 
   // -----------------------------
   // Build draft + submit
@@ -1782,7 +2310,7 @@ export default function NewOrderModal({
 
     if (!isEditing && !businessHoursStatus.isOpen) {
       return {
-        error: `Horario fechado. ${businessHoursMessage}`,
+        error: `Horário fechado. ${businessHoursMessage}`,
       };
     }
 
@@ -1802,8 +2330,8 @@ export default function NewOrderModal({
       customerName = selectedCustomer.name || "";
       customerPhone = selectedCustomer.phone || "";
       customerCpf = selectedCustomer.cpf || "";
-      if (selectedCustomer.address) {
-        const addr = selectedCustomer.address;
+      if (activeCustomerAddress) {
+        const addr = activeCustomerAddress;
         const neighborhoodValue =
           (
             deliveryAddressNeighborhood ||
@@ -1844,7 +2372,7 @@ export default function NewOrderModal({
       );
       if (missing.length > 0) {
         return {
-          error: `Endereco incompleto no cadastro do cliente: ${missing.join(
+          error: `Endereço incompleto no cadastro do cliente: ${missing.join(
             ", "
           )}.`,
         };
@@ -1863,7 +2391,7 @@ export default function NewOrderModal({
 
     if (minOrderNotMet) {
       return {
-        error: `Pedido minimo para entrega: ${formatCurrency(
+        error: `Pedido mínimo para entrega: ${formatCurrency(
           minOrderValueNumber
         )}.`,
       };
@@ -1871,7 +2399,7 @@ export default function NewOrderModal({
 
     if (maxDistanceExceeded) {
       return {
-        error: `Distancia acima do maximo permitido (${maxDistanceKmNumber} km).`,
+          error: `Distância acima do máximo permitido (${maxDistanceKmNumber} km).`,
       };
     }
 
@@ -1915,6 +2443,10 @@ export default function NewOrderModal({
       customerPhone,
       customerCpf,
       customerAddress,
+      customerAddressId:
+        customerMode === "registered" ? selectedCustomerAddressId : null,
+      customerAddressLabel:
+        customerMode === "registered" ? activeCustomerAddressLabel : null,
       counterLabel: customerMode === "counter" ? counterLabel.trim() : null,
       items: orderItems,
       subtotal,
@@ -1994,7 +2526,8 @@ export default function NewOrderModal({
   // Render
   // -----------------------------
   return (
-    <div className="modal-backdrop">
+    <>
+      <div className="modal-backdrop">
       <div className="modal-window orderform-modal">
         {/* HEADER */}
           <div className="modal-header">
@@ -2016,7 +2549,7 @@ export default function NewOrderModal({
               )}
               {orderType === "delivery" && minOrderNotMet && (
                 <div className="field-error-text orderform-banner">
-                  Pedido minimo para entrega:{" "}
+                  Pedido mínimo para entrega:{" "}
                   {formatCurrency(minOrderValueNumber)}.
                 </div>
               )}
@@ -2128,53 +2661,101 @@ export default function NewOrderModal({
                         </div>
                         <div className="customer-summary-meta">
                           {selectedCustomer.phone && (
-                            <span>📞 {selectedCustomer.phone}</span>
+                            <span>Tel: {selectedCustomer.phone}</span>
                           )}
                           {selectedCustomer.cpf && (
-                            <span> • CPF: {selectedCustomer.cpf}</span>
+                            <span>CPF: {selectedCustomer.cpf}</span>
                           )}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline"
-                        onClick={() => {
-                          setShowCustomerSearch(true);
-                        }}
-                      >
-                        Trocar cliente
-                      </button>
+                      <div className="customer-summary-actions">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline"
+                          onClick={() => {
+                            setShowCustomerSearch(true);
+                          }}
+                        >
+                          Trocar cliente
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline"
+                          onClick={() => setShowCustomerEditModal(true)}
+                        >
+                          Editar cliente
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline"
+                          onClick={() => {
+                            setShowAltAddressModal(true);
+                            setAltAddressError("");
+                          }}
+                        >
+                          Endereços
+                        </button>
+                      </div>
                     </div>
 
-                    {selectedCustomer.address && (
+                    {activeCustomerAddress && (
                       <div className="customer-summary-body">
-                        <div>
-                          {selectedCustomer.address.street &&
-                            `${selectedCustomer.address.street}${
-                              selectedCustomer.address.number
-                                ? ", " + selectedCustomer.address.number
-                                : ""
-                            }`}
-                        </div>
-                        <div>
-                          {(deliveryNeighborhoodValue ||
-                            selectedCustomer.address.neighborhood) &&
-                            (deliveryNeighborhoodValue ||
-                              selectedCustomer.address.neighborhood)}
-                          {selectedCustomer.address.city &&
-                            ` - ${selectedCustomer.address.city}`}
-                          {selectedCustomer.address.state &&
-                            ` / ${selectedCustomer.address.state}`}
-                        </div>
-                        {selectedCustomer.address.cep && (
-                          <div>CEP: {selectedCustomer.address.cep}</div>
+                        {customerAddressLines.line1 ||
+                        customerAddressLines.line2 ? (
+                          <>
+                            {customerAddressLines.line1 && (
+                              <div className="customer-summary-line">
+                                <span className="customer-summary-label">
+                                  Endereço
+                                </span>
+                                <span className="customer-summary-value">
+                                  {customerAddressLines.line1}
+                                </span>
+                              </div>
+                            )}
+                            {customerAddressLines.line2 && (
+                              <div className="customer-summary-line">
+                                <span className="customer-summary-label">
+                                  Bairro/Cidade
+                                </span>
+                                <span className="customer-summary-value">
+                                  {customerAddressLines.line2}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="customer-summary-empty">
+                            Endereço não informado.
+                          </div>
+                        )}
+                        {(activeCustomerAddress.cep ||
+                          activeCustomerAddressLabel ||
+                          isSyncingCustomerAddress) && (
+                          <div className="customer-summary-tags">
+                            {activeCustomerAddress.cep && (
+                              <span className="customer-summary-tag">
+                                CEP {activeCustomerAddress.cep}
+                              </span>
+                            )}
+                            {activeCustomerAddressLabel && (
+                              <span className="customer-summary-tag customer-summary-tag--accent">
+                                {activeCustomerAddressLabel}
+                              </span>
+                            )}
+                            {isSyncingCustomerAddress && (
+                              <span className="customer-summary-tag">
+                                Atualizando CEP...
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
                     {orderType === "delivery" &&
                       missingAddressFields.length > 0 && (
                         <div className="field-error-text">
-                          Endereco incompleto:{" "}
+                          Endereço incompleto:{" "}
                           {missingAddressFields.join(", ")}.
                         </div>
                       )}
@@ -2201,7 +2782,7 @@ export default function NewOrderModal({
 
                       {recentCustomers.length > 0 && (
                         <div className="customer-recent-block">
-                          <div className="field-label">Ultimos clientes</div>
+                          <div className="field-label">Últimos clientes</div>
                           <div className="customer-recent-list">
                             {recentCustomers.map((c) => (
                               <button
@@ -2253,8 +2834,8 @@ export default function NewOrderModal({
                                 {c.name || "(Sem nome)"}
                               </div>
                               <div className="customer-item-meta">
-                                {c.phone && <span>📞 {c.phone}</span>}
-                                {c.cpf && <span> • CPF: {c.cpf}</span>}
+                                {c.phone && <span>Tel: {c.phone}</span>}
+                                {c.cpf && <span>CPF: {c.cpf}</span>}
                               </div>
                             </button>
                           );
@@ -2408,20 +2989,29 @@ export default function NewOrderModal({
                     </div>
 
                     <div className="distance-actions">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline"
-                        onClick={() =>
-                          handleAutoDistanceFromCustomer(selectedCustomer)
-                        }
-                        disabled={
-                          orderType !== "delivery" ||
-                          !selectedCustomer ||
-                          missingAddressFields.length > 0 ||
-                          isCalculatingDistance
-                        }
-                      >
-                        Recalcular distÇ½ncia
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline"
+                          onClick={() =>
+                            handleAutoDistanceFromCustomer(
+                              selectedCustomer && activeCustomerAddress
+                                ? {
+                                    ...selectedCustomer,
+                                    address: activeCustomerAddress,
+                                  }
+                                : selectedCustomer,
+                              deliveryNeighborhoodValue
+                            )
+                          }
+                          disabled={
+                            orderType !== "delivery" ||
+                            !selectedCustomer ||
+                            !activeCustomerAddress ||
+                            missingAddressFields.length > 0 ||
+                            isCalculatingDistance
+                          }
+                        >
+                        Recalcular distância
                       </button>
                     </div>
 
@@ -2430,7 +3020,7 @@ export default function NewOrderModal({
                   )}
                   {maxDistanceExceeded && (
                     <div className="field-error-text">
-                      Distancia acima do maximo configurado (
+                      Distância acima do máximo configurado (
                       {maxDistanceKmNumber} km).
                     </div>
                   )}
@@ -3265,6 +3855,257 @@ export default function NewOrderModal({
           </div>
         </form>
       </div>
-    </div>
+      </div>
+
+      {showCustomerEditModal && selectedCustomer && (
+        <CustomerFormModal
+          customer={selectedCustomer}
+          onClose={() => setShowCustomerEditModal(false)}
+          onSaved={async () => {
+            await refreshCustomers();
+            setShowCustomerEditModal(false);
+          }}
+        />
+      )}
+
+      <Modal
+        isOpen={showAltAddressModal}
+        onClose={() => setShowAltAddressModal(false)}
+        title="Endereços alternativos"
+        className="orderform-altaddress-modal"
+        bodyClassName="orderform-altaddress-body"
+        footer={
+          <div className="modal-footer-actions">
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setShowAltAddressModal(false)}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleSaveAltAddress}
+              disabled={!selectedCustomer}
+            >
+              Salvar endereço
+            </button>
+          </div>
+        }
+      >
+        <div className="alt-address-section">
+          <div className="alt-address-header">
+            <h4>Escolha um endereço</h4>
+            <p>Use o principal ou selecione um alternativo.</p>
+          </div>
+          <div className="alt-address-list">
+            <button
+              type="button"
+              className={
+                "alt-address-item" +
+                (selectedCustomerAddressId === "primary"
+                  ? " alt-address-item--active"
+                  : "")
+              }
+              onClick={() => handleUseAddress("primary")}
+            >
+              <div className="alt-address-item-title">Principal</div>
+              <div className="alt-address-item-meta">
+                {(selectedCustomer?.address?.street || "").trim()}
+                {selectedCustomer?.address?.number
+                  ? `, ${selectedCustomer.address.number}`
+                  : ""}
+              </div>
+              <div className="alt-address-item-meta">
+                {[
+                  selectedCustomer?.address?.neighborhood,
+                  selectedCustomer?.address?.city,
+                  selectedCustomer?.address?.state,
+                ]
+                  .filter(Boolean)
+                  .join(" - ")}
+              </div>
+            </button>
+
+            {customerAltAddresses.length === 0 ? (
+              <div className="empty small">
+                Nenhum endereço alternativo cadastrado.
+              </div>
+            ) : (
+              customerAltAddresses.map((addr) => {
+                const line1 = `${addr.street || ""}${
+                  addr.number ? `, ${addr.number}` : ""
+                }`.trim();
+                const line2 = [
+                  addr.neighborhood,
+                  addr.city,
+                  addr.state,
+                ]
+                  .filter(Boolean)
+                  .join(" - ");
+                return (
+                  <button
+                    key={addr.id}
+                    type="button"
+                    className={
+                      "alt-address-item" +
+                      (String(selectedCustomerAddressId) ===
+                      String(addr.id)
+                        ? " alt-address-item--active"
+                        : "")
+                    }
+                    onClick={() => handleUseAddress(addr.id)}
+                  >
+                    <div className="alt-address-item-title">
+                      {addr.label || "Alternativo"}
+                    </div>
+                    {line1 && (
+                      <div className="alt-address-item-meta">{line1}</div>
+                    )}
+                    {line2 && (
+                      <div className="alt-address-item-meta">{line2}</div>
+                    )}
+                    {addr.cep && (
+                      <div className="alt-address-item-meta">
+                        CEP {addr.cep}
+                      </div>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="alt-address-section">
+          <div className="alt-address-header">
+            <h4>Novo endereço alternativo</h4>
+            <p>Cadastre um endereço para reutilizar nos próximos pedidos.</p>
+          </div>
+
+          <div className="alt-address-grid">
+            <label className="field">
+              <span className="field-label">Apelido</span>
+              <input
+                className="field-input"
+                value={altAddressDraft.label}
+                onChange={(e) =>
+                  handleAltAddressFieldChange("label", e.target.value)
+                }
+                placeholder="Ex: Casa, Trabalho, Mãe"
+              />
+            </label>
+          </div>
+
+          <div className="alt-address-grid alt-address-grid-cep">
+            <label className="field">
+              <span className="field-label">CEP</span>
+              <input
+                className="field-input"
+                value={altAddressDraft.cep}
+                onChange={(e) =>
+                  handleAltAddressFieldChange("cep", e.target.value)
+                }
+                placeholder="Somente números"
+              />
+            </label>
+            <div className="alt-address-cep-action">
+              <button
+                type="button"
+                className="btn btn-sm btn-outline"
+                onClick={handleAltAddressCepLookup}
+              >
+                Buscar CEP
+              </button>
+            </div>
+          </div>
+
+          {altAddressError && (
+            <div className="field-error-text">{altAddressError}</div>
+          )}
+
+          <div className="alt-address-grid alt-address-grid-2">
+            <label className="field">
+              <span className="field-label">Rua</span>
+              <input
+                className="field-input"
+                value={altAddressDraft.street}
+                onChange={(e) =>
+                  handleAltAddressFieldChange("street", e.target.value)
+                }
+              />
+            </label>
+            <label className="field">
+              <span className="field-label">Número</span>
+              <input
+                className="field-input"
+                value={altAddressDraft.number}
+                onChange={(e) =>
+                  handleAltAddressFieldChange("number", e.target.value)
+                }
+              />
+            </label>
+          </div>
+
+          <div className="alt-address-grid alt-address-grid-3">
+            <label className="field">
+              <span className="field-label">Bairro</span>
+              <input
+                className="field-input"
+                value={altAddressDraft.neighborhood}
+                onChange={(e) =>
+                  handleAltAddressFieldChange("neighborhood", e.target.value)
+                }
+              />
+            </label>
+            <label className="field">
+              <span className="field-label">Cidade</span>
+              <input
+                className="field-input"
+                value={altAddressDraft.city}
+                onChange={(e) =>
+                  handleAltAddressFieldChange("city", e.target.value)
+                }
+              />
+            </label>
+            <label className="field">
+              <span className="field-label">Estado</span>
+              <input
+                className="field-input"
+                value={altAddressDraft.state}
+                onChange={(e) =>
+                  handleAltAddressFieldChange("state", e.target.value)
+                }
+              />
+            </label>
+          </div>
+
+          <div className="alt-address-grid alt-address-grid-2">
+            <label className="field">
+              <span className="field-label">Complemento</span>
+              <input
+                className="field-input"
+                value={altAddressDraft.complement}
+                onChange={(e) =>
+                  handleAltAddressFieldChange("complement", e.target.value)
+                }
+              />
+            </label>
+            <label className="field">
+              <span className="field-label">Referência</span>
+              <input
+                className="field-input"
+                value={altAddressDraft.reference}
+                onChange={(e) =>
+                  handleAltAddressFieldChange("reference", e.target.value)
+                }
+                placeholder="Ex: portão azul, ap 32"
+              />
+            </label>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }

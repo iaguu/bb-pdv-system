@@ -116,6 +116,7 @@
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+  flex-wrap: wrap;
 
   padding: 14px 18px;
   border-bottom: 1px dashed rgba(2, 6, 23, 0.12);
@@ -129,6 +130,8 @@
   display: grid;
   gap: 18px;
   padding: 18px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* --------------------------------------------------------------------------
@@ -148,6 +151,7 @@
   border: 1px solid rgba(2, 6, 23, 0.10);
   border-radius: 20px;
   padding: 18px;
+  min-width: 0;
 
   box-shadow:
     0 18px 36px rgba(2, 6, 23, 0.08),
@@ -173,12 +177,12 @@
 
 .customer-form-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
 .customer-form-row-cep {
-  grid-template-columns: 1.2fr 2fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) minmax(0, 1fr);
 }
 
 /* --------------------------------------------------------------------------
@@ -189,6 +193,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .customer-form-card .field-label {
@@ -206,6 +211,8 @@
 .customer-form-card .input {
   height: 40px;
   padding: 0 12px;
+  width: 100%;
+  box-sizing: border-box;
 
   border-radius: 14px;
   border: 1px solid rgba(2, 6, 23, 0.14);
@@ -246,6 +253,17 @@
 .customer-cep-inline {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.customer-cep-inline .input {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.customer-cep-inline .btn {
+  flex: 0 0 auto;
 }
 
 /* --------------------------------------------------------------------------
