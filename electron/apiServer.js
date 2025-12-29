@@ -1634,6 +1634,10 @@ function requirePublicApiKey(req, res, next) {
     return next();
   }
 
+  if (req.baseUrl === '/api' && req.path.startsWith('/webhook-infinitepay')) {
+    return next();
+  }
+
   const headerToken = req.headers['x-api-key'];
   const queryToken = req.query.api_key;
   const token = headerToken || queryToken;
@@ -2953,6 +2957,30 @@ app.post('/api/axionpay/pix', async (req, res) => {
     });
   }
 });
+
+// ============================================================================
+// 3.Z. WEBHOOK INFINITEPAY
+// ============================================================================
+app.post('/api/webhook-infinitepay', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    
+    logInfo('webhook:infinitepay', 'Recebido webhook InfinitePay', {
+      event: payload.event || payload.type || 'unknown',
+      metadata: payload.metadata
+    });
+
+    // TODO: Implementar logica de atualizacao do pedido
+    // const orderId = payload.metadata?.orderId;
+    // if (orderId) { ... }
+
+    return res.json({ success: true });
+  } catch (err) {
+    logApiError(req, 'api:webhook-infinitepay', err);
+    return res.status(500).json({ success: false, error: 'Internal Error' });
+  }
+});
+
 // 4. ENDPOINTS GEN�RICOS EXISTENTES (mantidos)
 // ============================================================================
 
@@ -3226,4 +3254,3 @@ module.exports.orderEvents = orderEvents;
 module.exports.getTrackingBaseUrl = getTrackingBaseUrl;
 module.exports.startApiServer = startApiServer;
 module.exports.getCurrentApiPort = () => currentApiPort;
-
