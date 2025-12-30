@@ -9,9 +9,42 @@ $finance-radius: 10px;
 $finance-pill-radius: 999px;
 $finance-text-main: #111827;
 $finance-text-muted: #6b7280;
-$finance-text-soft: #9ca3af;
+$finance-text-soft: #4b5563; /* Aumentado contraste para acessibilidade (era #9ca3af) */
 $finance-accent: #e63946;
 $finance-accent-soft: rgba(230, 57, 70, 0.06);
+
+// Cores para status e alertas (derivadas de paletas comuns)
+$finance-green-text: #065f46;
+$finance-green-bg: #ecfdf3;
+$finance-green-border: #bbf7d0;
+
+// Cores de UI (botões, inputs, etc.)
+$finance-ui-bg-base: #f9fafb;
+$finance-ui-bg-hover: #f3f4f6;
+$finance-text-light: #f9fafb;
+
+/* ========================================================================== */
+/* HELPERS (MIXINS E PLACEHOLDERS)                                           */
+/* ========================================================================== */
+
+@mixin transition-ease($properties...) {
+  transition-property: #{$properties};
+  transition-duration: 0.15s;
+  transition-timing-function: ease;
+}
+
+%focusable-style {
+  &:focus-visible {
+    outline: none;
+    border-color: $finance-text-main;
+    background: $finance-card-bg;
+    box-shadow: 0 0 0 1px rgba($finance-text-main, 0.1);
+  }
+}
+
+%nowrap-button {
+  white-space: nowrap;
+}
 
 /* ========================================================================== */
 /* HEADER                                                                    */
@@ -55,9 +88,9 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
   border-radius: $finance-pill-radius;
   font-size: 11px;
   font-weight: 500;
-  color: #065f46;
-  background: #ecfdf3;
-  border: 1px solid #bbf7d0;
+  color: $finance-green-text;
+  background: $finance-green-bg;
+  border: 1px solid $finance-green-border;
 }
 
 /* ========================================================================== */
@@ -102,35 +135,25 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
 }
 
 .finance-period-btn {
+  @extend %focusable-style;
   border-radius: $finance-pill-radius;
   border: 1px solid $finance-border;
   padding: 4px 10px;
   font-size: 11px;
   font-weight: 500;
-  background: #f9fafb;
+  background: $finance-ui-bg-base;
   color: $finance-text-muted;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+  @include transition-ease(background, color, border-color, box-shadow);
 
   &:hover {
-    background: #f3f4f6;
-  }
-
-  &:focus-visible {
-    outline: none;
-    border-color: #111827;
-    box-shadow: 0 0 0 1px #11182718;
-    background: #ffffff;
+    background: $finance-ui-bg-hover;
   }
 
   &.finance-period-btn-active {
-    background: #111827;
-    border-color: #111827;
-    color: #f9fafb;
+    background: $finance-text-main;
+    border-color: $finance-text-main;
+    color: $finance-text-light;
   }
 }
 
@@ -141,25 +164,16 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
 }
 
 .finance-status-select {
+  @extend %focusable-style;
   border-radius: $finance-pill-radius;
   border: 1px solid $finance-border;
   padding: 4px 10px;
   font-size: 12px;
-  background: #f9fafb;
+  background: $finance-ui-bg-base;
   color: $finance-text-main;
   min-width: 130px;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-
-  &:focus-visible {
-    outline: none;
-    border-color: #111827;
-    background: #ffffff;
-    box-shadow: 0 0 0 1px #11182718;
-  }
+  @include transition-ease(background, border-color, box-shadow);
 }
 
 /* ========================================================================== */
@@ -172,18 +186,12 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
   gap: 6px;
   justify-content: flex-end;
 
-  .finance-open-btn {
-    white-space: nowrap;
-  }
-
-  .finance-close-btn {
-    white-space: nowrap;
-  }
-
+  .finance-open-btn,
+  .finance-close-btn,
   .finance-export-btn,
   .finance-export-pdf-btn,
   .finance-refresh-btn {
-    white-space: nowrap;
+    @extend %nowrap-button;
   }
 }
 
@@ -265,7 +273,7 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
   padding: 10px 12px;
   border-radius: $finance-radius;
   border: 1px solid $finance-border;
-  background: #f9fafb;
+  background: $finance-ui-bg-base;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -291,7 +299,7 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
   font-size: 11px;
   font-weight: 500;
   color: $finance-text-main;
-  background: #ffffff;
+  background: $finance-card-bg;
   border: 1px solid $finance-border;
 }
 
@@ -368,7 +376,7 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
   padding: 10px 12px;
   border-radius: $finance-radius;
   border: 1px dashed $finance-border;
-  background: #f9fafb;
+  background: $finance-ui-bg-base;
 
   h3 {
     margin: 0 0 4px 0;
@@ -392,7 +400,7 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
   margin-top: 12px;
   border-radius: $finance-radius;
   border: 1px solid $finance-border;
-  background: #ffffff;
+  background: $finance-card-bg;
   overflow: hidden;
   font-size: 12px;
 }
@@ -405,7 +413,7 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
 }
 
 .finance-report-header {
-  background: #f3f4f6;
+  background: $finance-ui-bg-hover;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -418,7 +426,7 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
 }
 
 .finance-report-row {
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid $finance-ui-bg-hover;
 
   span {
     padding: 7px 10px;
@@ -426,7 +434,12 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
   }
 
   &:nth-child(odd) {
-    background: #fcfcfd;
+    background: #fcfcfd; // Manter ou criar variável?
+  }
+
+  /* Melhoria de UX: destaque ao passar o mouse */
+  &:hover {
+    background: $finance-ui-bg-hover;
   }
 }
 
@@ -519,8 +532,8 @@ $finance-accent-soft: rgba(230, 57, 70, 0.06);
   .tabs button.is-active,
   [role="tab"][aria-selected="true"]
 ) {
-  background: #111827;
-  color: #f9fafb;
+  background: $finance-text-main;
+  color: $finance-text-light;
   border-color: rgba(17, 24, 39, 0.30);
   box-shadow: 0 10px 22px rgba(17, 24, 39, 0.18);
 }

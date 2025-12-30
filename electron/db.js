@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { logError, logWarn } = require('./utils/logger');
 const fetchFn = global.fetch
   ? global.fetch
   : (...args) =>
@@ -147,14 +148,11 @@ async function readRawFile(filePath, fallback) {
       return JSON.parse(content);
     } catch (parseErr) {
       const corruptedPath = `${filePath}.corrupted-${Date.now()}`;
-      console.error(`[DataEngine] Invalid JSON at ${filePath}:`, parseErr);
+      logError('db', `Invalid JSON at ${filePath}:`, parseErr);
       try {
         await fs.promises.rename(filePath, corruptedPath);
       } catch (renameErr) {
-        console.error(
-          `[DataEngine] Failed to backup corrupted file ${filePath}:`,
-          renameErr
-        );
+        logError('db', `Failed to backup corrupted file ${filePath}:`, renameErr);
       }
       await fs.promises.writeFile(
         filePath,
@@ -169,7 +167,7 @@ async function readRawFile(filePath, fallback) {
       await fs.promises.writeFile(filePath, JSON.stringify(fallback, null, 2), 'utf8');
       return fallback;
     }
-    console.error(`[DataEngine] Error reading file ${filePath}:`, err);
+    logError('db', `Error reading file ${filePath}:`, err);
     throw err;
   }
 }
@@ -179,7 +177,7 @@ async function writeRawFile(filePath, data) {
   try {
     await fs.promises.writeFile(filePath, json, 'utf8');
   } catch (err) {
-    console.error(`[DataEngine] Error writing file ${filePath}:`, err);
+    logError('db', `Error writing file ${filePath}:`, err);
     throw err;
   }
 }
@@ -242,7 +240,7 @@ async function readSyncQueue() {
     return Array.isArray(parsed) ? parsed : [];
   } catch (err) {
     if (err.code === 'ENOENT') return [];
-    console.error('[sync] Erro lendo fila:', err);
+    logError('db', '[sync] Erro lendo fila:', err);
     return [];
   }
 }
@@ -255,7 +253,7 @@ async function writeSyncQueue(queue) {
       'utf8'
     );
   } catch (err) {
-    console.error('[sync] Erro salvando fila:', err);
+    logError('db', '[sync] Erro salvando fila:', err);
   }
 }
 
@@ -298,7 +296,7 @@ async function pushCollectionToRemote(collection, payload, options = null) {
       signal: controller.signal
     });
     if (!response.ok) {
-      console.error('[sync] Falha ao enviar colecao:', collection, response.status);
+      logError('db', '[sync] Falha ao enviar colecao:', err, {collection, status: response.status});
       if (shouldEnqueue) {
         await enqueueSyncPayload(collection, payload);
       }
@@ -307,9 +305,9 @@ async function pushCollectionToRemote(collection, payload, options = null) {
     return true;
   } catch (err) {
     if (err.name === 'AbortError') {
-      console.error('[sync] Timeout enviando colecao:', collection);
+      logError('db', '[sync] Timeout enviando colecao:', err, {collection});
     } else {
-      console.error('[sync] Erro enviando colecao:', collection, err);
+      logError('db', '[sync] Erro enviando colecao:', err, {collection});
     }
     if (shouldEnqueue) {
       await enqueueSyncPayload(collection, payload);
@@ -394,10 +392,7 @@ async function addItem(collection, item, options = null) {
   }
 
   wrapper.items.push(item);
-  console.log("[DB] Salvando na colecao:", collection);
-  console.log("[DB] Caminho:", filePath);
-  console.log("[DB] Conteudo antes:", wrapper);
-  console.log("[DB] Item novo:", item);
+
 
   await writeRawFile(filePath, wrapper);
 

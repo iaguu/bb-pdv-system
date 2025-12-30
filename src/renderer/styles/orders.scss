@@ -9,7 +9,7 @@ $orders-radius: 10px;
 $orders-pill-radius: 999px;
 $orders-text-main: #111827;
 $orders-text-muted: #6b7280;
-$orders-text-soft: #9ca3af;
+$orders-text-soft: #4b5563; /* Aumentado contraste para acessibilidade (era #9ca3af) */
 $orders-accent: #e63946;
 
 /* ============================================================================
@@ -129,7 +129,7 @@ $orders-accent: #e63946;
   min-height: 40px;
 }
 
-/* Bot?o principal (cobre: button, a, .btn, etc. sem exigir refactor de JSX) */
+/* Botão principal (cobre: button, a, .btn, etc. sem exigir refactor de JSX) */
 .page-toolbar :where(button, a, .btn, .button) {
   border-radius: $orders-pill-radius;
 }
@@ -146,14 +146,14 @@ $orders-accent: #e63946;
   border: 0;
   cursor: pointer;
 
-  /* destaque premium sem ?gritar? */
+  /* destaque premium sem “gritar” */
   background: #111827;
   color: #ffffff;
   box-shadow: none;
   transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
 
   &:hover {
-    transform: translateY(0);
+    transform: translateY(-1px);
     filter: brightness(1.03);
   }
 
@@ -168,7 +168,7 @@ $orders-accent: #e63946;
   }
 }
 
-/* Controles (select/input): altura, borda, focus ring e apar?ncia ?clean? */
+/* Controles (select/input): altura, borda, focus ring e aparência “clean” */
 .page-toolbar :where(select, input[type="text"], input[type="search"], input:not([type])) {
   height: 38px;
   padding: 0 12px;
@@ -186,8 +186,8 @@ $orders-accent: #e63946;
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 106, 0, 0.75);
-    box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.12);
+    border-color: $orders-accent;
+    box-shadow: 0 0 0 3px rgba($orders-accent, 0.15);
   }
 }
 
@@ -224,7 +224,7 @@ $orders-accent: #e63946;
   margin-right: 6px;
 }
 
-/* Campos ?colados? (ex.: label + select/input em linha) ficam alinhados */
+/* Campos “colados” (ex.: label + select/input em linha) ficam alinhados */
 .page-toolbar :where(.field, .filter, .control, .toolbar-field) {
   display: inline-flex;
   align-items: center;
@@ -239,13 +239,13 @@ $orders-accent: #e63946;
   }
 }
 
-/* ?rea da direita (onde fica o bot?o Atualizar) */
+/* Área da direita (onde fica o botão Atualizar) */
 .page-toolbar :where(.toolbar-right, .toolbar-actions) {
   margin-left: auto; /* empurra para a direita */
   padding-left: 12px;
 }
 
-/* Bot?o Atualizar (a??o secund?ria) */
+/* Botão Atualizar (ação secundária) */
 .page-toolbar
   :where(button, .btn, .button):not([class*="new"]):not([class*="novo"]) {
   height: 40px;
@@ -273,7 +273,7 @@ $orders-accent: #e63946;
   }
 }
 
-/* Mobile: bot?o separado dos filtros */
+/* Mobile: botão separado dos filtros */
 @media (max-width: 900px) {
   .page-toolbar :where(.toolbar-right, .toolbar-actions) {
     margin-left: 0;
@@ -281,7 +281,7 @@ $orders-accent: #e63946;
   }
 }
 
-/* Opcional: garante que o bot?o (actions) tenha um pouco de folga embaixo
+/* Opcional: garante que o botão (actions) tenha um pouco de folga embaixo
    sem afetar bot?es em outras partes */
 .page:has(.page-toolbar) .btn.btn-primary {
   margin-bottom: 6px;
@@ -317,6 +317,15 @@ $orders-accent: #e63946;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
+
+  /* Melhoria para telas menores: permite scroll horizontal se necessário */
+  @media (max-width: 600px) {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none; /* Firefox */
+    &::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+  }
 }
 
 .order-status-tab {

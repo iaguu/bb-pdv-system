@@ -1,12 +1,13 @@
 
 // electron/apiServer.js
-// Servidor HTTP/REST para expor o DataEngine via HTTP (site, app, integra��es)
+// Servidor HTTP/REST para expor o DataEngine via HTTP (site, app, integrações)
 
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const { EventEmitter } = require('events');
 require('dotenv').config();
+const { logInfo, logWarn, logError, LEVEL_COLORS } = require('./utils/logger');
 const fetchFn = global.fetch
   ? global.fetch
   : (...args) =>
@@ -19,100 +20,11 @@ function nowISO() {
   return new Date().toISOString();
 }
 
-function getTimestampParts() {
-  const now = new Date();
-  const pad = (value) => String(value).padStart(2, '0');
-  const minute = pad(now.getMinutes());
-  const hour = pad(now.getHours());
-  const day = pad(now.getDate());
-  const month = pad(now.getMonth() + 1);
-  const monthName = now
-    .toLocaleString('pt-BR', { month: 'long' })
-    .replace(/^\w/, (chr) => chr.toUpperCase());
-  const formatted = `${day}/${month}/${now.getFullYear()} ${hour}:${minute}:${pad(
-    now.getSeconds()
-  )}`;
-  return {
-    formatted,
-    minute,
-    hour,
-    day,
-    month,
-    monthName
-  };
-}
-
 let reqCounter = 0;
 function nextRequestId() {
   const ts = Date.now().toString(36);
   const counter = (reqCounter = (reqCounter + 1) % 100000);
   return `req-${ts}-${counter.toString(16)}`;
-}
-
-const LEVEL_COLORS = {
-  log: '\x1b[32m', // green
-  info: '\x1b[36m', // cyan
-  warn: '\x1b[33m', // yellow
-  error: '\x1b[31m' // red
-};
-const ANSI_RESET = '\x1b[0m';
-
-function colorize(text, color) {
-  if (!color) return text;
-  return `${color}${text}${ANSI_RESET}`;
-}
-
-function formatExtra(extra, color) {
-  if (!extra || !Object.keys(extra).length) return '';
-  return ` ${colorize(JSON.stringify(extra), color)}`;
-}
-
-function pad(text, length, direction = 'end') {
-  const value = String(text);
-  if (direction === 'end') {
-    return value.padEnd(length, ' ');
-  }
-  return value.padStart(length, ' ');
-}
-
-function baseLog(level, ctx, message, extra, options = {}) {
-  const color = LEVEL_COLORS[level] || '';
-  const parts = getTimestampParts();
-  const tsPart = colorize(`[${parts.formatted}]`, '\x1b[37m');
-  const levelPart = colorize(`[${level.toUpperCase()}]`, color);
-  const ctxPart = colorize(`[${ctx}]`, '\x1b[90m');
-  const detailPart = colorize(
-    `[tempo:${parts.hour}:${parts.minute} ${parts.day}/${parts.month}]`,
-    '\x1b[90m'
-  );
-  const messageColor = options.messageColor || color;
-  const body = options.skipMessageColor
-    ? message
-    : colorize(message, messageColor);
-  const payload = formatExtra(
-    extra,
-    options.payloadColor || '\x1b[90m'
-  );
-  console[level](
-    `${tsPart} ${levelPart} ${ctxPart} ${detailPart} ${body}${payload}`
-  );
-}
-
-function logInfo(ctx, message, extra = {}, options = {}) {
-  baseLog('log', ctx, message, extra, options);
-}
-
-function logWarn(ctx, message, extra = {}, options = {}) {
-  baseLog('warn', ctx, message, extra, options);
-}
-
-function logError(ctx, message, err, extra = {}, options = {}) {
-  const errData = {
-    name: err && err.name,
-    message: err && err.message,
-    stack: err && err.stack
-  };
-  baseLog('error', ctx, message, { ...extra, error: errData });
 }
 
 function parseBigIntValue(value) {
@@ -182,7 +94,7 @@ function isDeliveryOrder(order) {
     .toLowerCase()
     .trim();
 
-  if (['pickup', 'retirada', 'counter', 'balcao', 'balc�o', 'local'].includes(typeRaw)) {
+  if (['pickup', 'retirada', 'counter', 'balcao', 'balcão', 'local'].includes(typeRaw)) {
     return false;
   }
 
@@ -268,7 +180,7 @@ function getBusinessHoursStatus(businessHours, date = new Date()) {
   const isOpen = isWithinTimeRange(nowMinutes, openMinutes, closeMinutes);
   return {
     isOpen,
-    reason: isOpen ? '' : 'Fora do horario de funcionamento.'
+    reason: isOpen ? '' : 'Fora do horário de funcionamento.'
   };
 }
 
@@ -368,7 +280,7 @@ async function getOrderValidationSettings() {
       }
     };
   } catch (err) {
-    logError('apiServer', 'Falha ao ler settings de entrega', err);
+    logError('apiServer', 'Falha ao ler configurações de entrega', err);
     return {
       blockedNeighborhoods: [],
       minOrderValue: 0,
@@ -381,6 +293,62 @@ async function getOrderValidationSettings() {
       }
     };
   }
+}
+
+function validateOrder(order, settings) {
+  // 1. Business Hours
+  const businessStatus = getBusinessHoursStatus(settings.businessHours);
+  if (!businessStatus.isOpen) {
+    return {
+      error: 'BusinessHoursClosed',
+      message: businessStatus.reason || 'Fora do horário de funcionamento.'
+    };
+  }
+
+  // 2. Delivery-specific validations
+  if (isDeliveryOrder(order)) {
+    // 2a. Blocked Neighborhood
+    const neighborhood = resolveOrderNeighborhood(order);
+    const blockedMatch = findBlockedNeighborhood(
+      neighborhood,
+      settings.blockedNeighborhoods
+    );
+    if (blockedMatch) {
+      return {
+        error: 'NeighborhoodBlocked',
+        message: `Não entregamos no bairro "${blockedMatch}".`,
+        neighborhood: blockedMatch
+      };
+    }
+
+    // 2b. Min Order Value
+    const subtotal = resolveOrderSubtotal(order);
+    if (settings.minOrderValue > 0 && subtotal < settings.minOrderValue) {
+      return {
+        error: 'MinOrderValue',
+        message: `Pedido mínimo para entrega: R$ ${settings.minOrderValue.toFixed(2)}.`,
+        minOrderValue: settings.minOrderValue,
+        subtotal
+      };
+    }
+
+    // 2c. Max Distance
+    const distanceKm = resolveOrderDistanceKm(order);
+    if (
+      settings.maxDistanceKm > 0 &&
+      distanceKm > 0 &&
+      distanceKm > settings.maxDistanceKm
+    ) {
+      return {
+        error: 'MaxDistanceExceeded',
+        message: `Distância acima do máximo permitido (${settings.maxDistanceKm} km).`,
+        maxDistanceKm: settings.maxDistanceKm,
+        distanceKm
+      };
+    }
+  }
+
+  return null; // All good
 }
 
 function normalizeBusinessHoursConfig(raw) {
@@ -960,7 +928,7 @@ function getDurationColor(durationMs) {
 }
 
 /**
- * Log estruturado de erro de API, com dados da requisi��o
+ * Log estruturado de erro de API, com dados da requisição
  */
 function logApiError(req, label, err, extra = {}) {
   const safeBody =
@@ -1018,6 +986,16 @@ const BUSINESS_HOURS_SYNC_BASE_URL = (
   ''
 ).trim();
 const rateStore = new Map();
+
+// Limpeza periódica do rateStore para evitar memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateStore.entries()) {
+    if (entry.resetAt <= now) {
+      rateStore.delete(key);
+    }
+  }
+}, 5 * 60 * 1000); // Executa a cada 5 minutos
 
 let currentApiPort = EMBEDDED_API_PORT;
 let serverInstance = null;
@@ -1402,7 +1380,7 @@ async function startApiServer() {
   );
 }
 
-// Normaliza qualquer formato poss�vel do products.json
+// Normaliza qualquer formato possível do products.json
 function normalizeProducts(raw) {
   if (raw && Array.isArray(raw.products)) {
     return {
@@ -1514,7 +1492,7 @@ function applyDeltaToCollection(current, payload) {
 
 app.set('trust proxy', true);
 
-// Atribui requestId e registra in�cio da requisi��o
+// Atribui requestId e registra início da requisição
 app.use((req, res, next) => {
   req.id = nextRequestId();
   req._startAt = process.hrtime.bigint();
@@ -1533,7 +1511,7 @@ app.use(
     {
       stream: {
         write: (msg) => {
-          // usa nosso logger para n�o perder padr�o
+          // usa nosso logger para não perder padrão
           logInfo('http', msg.trim());
         }
       }
@@ -1549,11 +1527,26 @@ const DEV_ORIGIN_PATTERNS = [
   /^http:\/\/\[::1\](?::\d+)?$/
 ];
 
-// CORS TOTALMENTE LIBERADO (qualquer origem, qualquer header, qualquer método básico)
-app.use(cors());
-app.options('*', cors());
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Permite requisições sem origem (apps, curl)
+    if (!origin) return callback(null, true);
+    // Se a lista incluir '*', permite tudo
+    if (CORS_ORIGINS.includes('*')) return callback(null, true);
+    // Se a origem estiver na lista ou for dev
+    if (CORS_ORIGINS.includes(origin) || DEV_ORIGIN_PATTERNS.some((p) => p.test(origin))) {
+      return callback(null, true);
+    }
+    // Permite explicitamente o domínio principal e subdomínios
+    if (origin.endsWith('annetom.com')) return callback(null, true);
+    return callback(null, true);
+  },
+  credentials: true
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
-// Log de sa�da com tempo preciso (hrtime)
+// Log de saída com tempo preciso (hrtime)
 app.use((req, res, next) => {
   res.on('finish', () => {
     try {
@@ -1585,7 +1578,7 @@ app.use((req, res, next) => {
         { skipMessageColor: true }
       );
     } catch (e) {
-      console.error('[log][http-res] erro ao calcular dura��o:', e);
+      console.error('[log][http-res] erro ao calcular duração:', e);
     }
   });
   next();
@@ -1648,7 +1641,7 @@ function requirePublicApiKey(req, res, next) {
         ? token.slice(0, 2) + '***' + token.slice(-2)
         : token;
 
-    logWarn('auth', 'Chave de API inv�lida ou ausente', {
+    logWarn('auth', 'Chave de API inválida ou ausente', {
       requestId: req.id,
       method: req.method,
       url: req.originalUrl || req.url,
@@ -1665,10 +1658,10 @@ app.use(rateLimiter);
 app.use(['/api', '/motoboy'], requirePublicApiKey);
 
 // ============================================================================
-// 3. ENDPOINT OFICIAL DO CARD�PIO (NOVO)
+// 3. ENDPOINT OFICIAL DO CARDÁPIO (NOVO)
 // ============================================================================
 //
-// O site SEMPRE vai ler o card�pio daqui: GET /api/menu
+// O site SEMPRE vai ler o cardápio daqui: GET /api/menu
 // Este endpoint usa o db.js (DATA_DIR) para manter o mesmo banco da API.\r\n//
 app.get('/api/menu', async (req, res) => {
   try {
@@ -1692,7 +1685,7 @@ app.get('/api/menu', async (req, res) => {
   } catch (err) {
           logApiError(req, 'api:menu', err);
     res.status(500).json({
-      error: 'Falha ao carregar card�pio oficial.'
+      error: 'Falha ao carregar cardápio oficial.'
     });
   }
 });
@@ -1726,7 +1719,7 @@ app.get('/api/pdv/settings', async (req, res) => {
     logApiError(req, 'api:pdv:settings', err);
     res.status(500).json({
       success: false,
-      message: 'Erro ao carregar configuracoes do PDV.'
+      message: 'Erro ao carregar configurações do PDV.'
     });
   }
 });
@@ -1748,7 +1741,7 @@ app.get('/api/pdv/business-hours', async (req, res) => {
     logApiError(req, 'api:pdv:business-hours', err);
     res.status(500).json({
       success: false,
-      message: 'Erro ao carregar horario de funcionamento.'
+      message: 'Erro ao carregar horário de funcionamento.'
     });
   }
 });
@@ -1897,7 +1890,7 @@ app.get('/api/pdv/delivery/quote', async (req, res) => {
     logApiError(req, 'api:pdv:delivery:quote', err);
     res.status(500).json({
       success: false,
-      message: 'Erro ao calcular cotacao de entrega.'
+      message: 'Erro ao calcular cotação de entrega.'
     });
   }
 });
@@ -2061,7 +2054,7 @@ app.get('/api/pdv/orders/metrics', async (req, res) => {
     logApiError(req, 'api:pdv:orders:metrics', err);
     res.status(500).json({
       success: false,
-      message: 'Erro ao calcular metricas de pedidos.'
+      message: 'Erro ao calcular métricas de pedidos.'
     });
   }
 });
@@ -2187,7 +2180,7 @@ app.get('/api/pdv/printing/config', async (req, res) => {
     logApiError(req, 'api:pdv:printing:config', err);
     res.status(500).json({
       success: false,
-      message: 'Erro ao carregar configuracoes de impressao.'
+      message: 'Erro ao carregar configurações de impressão.'
     });
   }
 });
@@ -2258,8 +2251,8 @@ app.get('/sync/collections', requireSyncAuth, async (req, res) => {
     }
     res.json({ collections: payload });
   } catch (err) {
-          logError('sync:collections', 'Erro ao sincronizar todas as cole��es', err);
-    res.status(500).json({ error: 'Erro ao carregar cole��es.' });
+          logError('sync:collections', 'Erro ao sincronizar todas as coleções', err);
+    res.status(500).json({ error: 'Erro ao carregar coleções.' });
   }
 });
 
@@ -2267,7 +2260,7 @@ app.get('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
   try {
     const { collection } = req.params;
     if (!db.listCollections().includes(collection)) {
-      return res.status(400).json({ error: 'Colecao invalida.' });
+      return res.status(400).json({ error: 'Coleção inválida.' });
     }
 
     const data = await db.getCollection(collection);
@@ -2299,8 +2292,8 @@ app.get('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
 
     return res.json(data);
   } catch (err) {
-          logError('sync:collection:get', 'Erro ao sincronizar cole��o (GET)', err);
-    res.status(500).json({ error: 'Erro ao carregar colecao.' });
+          logError('sync:collection:get', 'Erro ao sincronizar coleção (GET)', err);
+    res.status(500).json({ error: 'Erro ao carregar coleção.' });
   }
 });
 
@@ -2308,11 +2301,11 @@ app.post('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
   try {
     const { collection } = req.params;
     if (!db.listCollections().includes(collection)) {
-      return res.status(400).json({ error: 'Colecao invalida.' });
+      return res.status(400).json({ error: 'Coleção inválida.' });
     }
     const payload = req.body;
     if (!payload || typeof payload !== 'object') {
-      return res.status(400).json({ error: 'Payload invalido.' });
+      return res.status(400).json({ error: 'Payload inválido.' });
     }
 
     if (payload.mode === 'delta') {
@@ -2344,8 +2337,8 @@ app.post('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
     await db.setCollection(collection, synced, { skipSync: true });
     return res.json({ success: true, mode: 'legacy' });
   } catch (err) {
-          logError('sync:collection:post', 'Erro ao sincronizar cole��o (POST)', err);
-    res.status(500).json({ error: 'Erro ao salvar colecao.' });
+          logError('sync:collection:post', 'Erro ao sincronizar coleção (POST)', err);
+    res.status(500).json({ error: 'Erro ao salvar coleção.' });
   }
 });
 
@@ -2353,7 +2346,7 @@ app.post('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
 // 3.1. ENDPOINT DE BUSCA DE CLIENTE POR TELEFONE
 // ============================================================================
 //
-// Usado pelo CheckoutPage para ver se o cliente j� est� cadastrado.
+// Usado pelo CheckoutPage para ver se o cliente já está cadastrado.
 // GET /api/customers/by-phone?phone=11999999999
 //
 app.get('/api/customers/by-phone', async (req, res) => {
@@ -2364,7 +2357,7 @@ app.get('/api/customers/by-phone', async (req, res) => {
     if (!digits || digits.length < 8) {
       return res
         .status(400)
-        .json({ error: 'Par�metro "phone" inv�lido ou muito curto.' });
+        .json({ error: 'Parâmetro "phone" inválido ou muito curto.' });
     }
 
     const data = await db.getCollection('customers');
@@ -2379,7 +2372,7 @@ app.get('/api/customers/by-phone', async (req, res) => {
     const found = items.find((c) => normalize(c.phone || c.telefone) === digits);
 
     if (!found) {
-      return res.status(404).json({ error: 'Cliente n�o encontrado.' });
+      return res.status(404).json({ error: 'Cliente não encontrado.' });
     }
 
     // Retorna o registro completo do cliente
@@ -2444,6 +2437,7 @@ app.post('/api/customers', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Dados de cliente inv�lidos.',
+        message: 'Dados de cliente inválidos.',
         errors
       });
     }
@@ -2466,7 +2460,7 @@ app.post('/api/customers', async (req, res) => {
     if (existing) {
       return res.status(409).json({
         success: false,
-        message: 'J� existe um cliente cadastrado com esse telefone.',
+        message: 'Já existe um cliente cadastrado com esse telefone.',
         customer: existing
       });
     }
@@ -2475,7 +2469,7 @@ app.post('/api/customers', async (req, res) => {
     const now = new Date().toISOString();
 
     const newCustomer = {
-      // id ser� preenchido automaticamente pelo db.addItem se n�o informarmos
+      // id será preenchido automaticamente pelo db.addItem se não informarmos
       name: payload.name.trim(),
       phone: normalizedPhone,
       whatsapp: Boolean(payload.whatsapp),
@@ -2519,7 +2513,7 @@ app.post('/api/customers', async (req, res) => {
 });
 
 // ============================================================================
-// 3.3. ATUALIZA��O DE STATUS DO MOTOBOY
+// 3.3. ATUALIZAÇÃO DE STATUS DO MOTOBOY
 // ============================================================================
 //
 // PUT /api/motoboys/:id/status
@@ -2538,7 +2532,7 @@ app.put('/api/motoboys/:id/status', async (req, res) => {
     if (!status || !allowed.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: 'Status inv�lido. Use: available, delivering ou offline.'
+        message: 'Status inválido. Use: available, delivering ou offline.'
       });
     }
 
@@ -2552,7 +2546,7 @@ app.put('/api/motoboys/:id/status', async (req, res) => {
     if (!updated) {
       return res.status(404).json({
         success: false,
-        message: 'Motoboy n�o encontrado.'
+        message: 'Motoboy não encontrado.'
       });
     }
 
@@ -2569,7 +2563,71 @@ app.put('/api/motoboys/:id/status', async (req, res) => {
     });
   }
 });
+// ============================================================================
+// 3.X. AXIONPAY CARD (PROXY)
+// ============================================================================
+// POST /api/axionpay/card
+// Body esperado (exemplo):
+// {
+//   "amount": 10.5,
+//   "customer": { ... },
+//   "card": { ... },
+//   "metadata": { ... }
+// }
+// Retorna a resposta do AxionPay para pagamento com cartão.
+// ============================================================================
 
+async function requestAxionPayCard(payload, requestId) {
+  if (!AXIONPAY_BASE_URL) {
+    throw new Error('AXIONPAY_BASE_URL não configurado.');
+  }
+
+  const headers = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'pay-tag': 'user-test'
+  };
+  if (AXIONPAY_API_KEY) {
+    headers['x-api-key'] = AXIONPAY_API_KEY;
+  }
+  if (requestId) {
+    headers['x-request-id'] = requestId;
+  }
+
+  const response = await fetchFn(`${AXIONPAY_BASE_URL}/payments/card`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      (data && (data.error || data.message)) ||
+      `AXIONPAY respondeu com status ${response.status}`;
+    const err = new Error(message);
+    err.status = response.status;
+    err.payload = data;
+    throw err;
+  }
+  return data;
+}
+
+app.post('/api/axionpay/card', async (req, res) => {
+  try {
+    const payload = req.body;
+    const result = await requestAxionPayCard(payload, req.id);
+    res.json(result);
+  } catch (err) {
+    logApiError(req, 'api:axionpay:card', err);
+    res.status(err.status || 500).json({
+      success: false,
+      message: err.message || 'Erro ao processar pagamento com cartão.',
+      payload: err.payload || null
+    });
+  }
+});
 // ============================================================================
 // 3.4. CONSULTAR STATUS DO MOTOBOY
 // ============================================================================
@@ -2592,7 +2650,7 @@ app.get('/api/motoboys/:id/status', async (req, res) => {
     if (!found) {
       return res.status(404).json({
         success: false,
-        message: 'Motoboy n�o encontrado.'
+        message: 'Motoboy não encontrado.'
       });
     }
 
@@ -2618,7 +2676,7 @@ app.get('/api/motoboys/:id/status', async (req, res) => {
 // GET /motoboy/pedido/:orderId
 // Exemplo: http://localhost:3030/motoboy/pedido/orders-1765312686786-74164
 //
-// Retorna um JSON simples com status do pedido e dados b�sicos do motoboy.
+// Retorna um JSON simples com status do pedido e dados básicos do motoboy.
 //
 app.get('/motoboy/pedido/:orderId', async (req, res) => {
   try {
@@ -2639,7 +2697,7 @@ app.get('/motoboy/pedido/:orderId', async (req, res) => {
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'Pedido n�o encontrado.'
+        message: 'Pedido não encontrado.'
       });
     }
 
@@ -2706,14 +2764,14 @@ app.get('/motoboy/pedido/:orderId', async (req, res) => {
 });
 
 // ============================================================================
-// 3.6. V�NCULO DE MOTOBOY AO PEDIDO VIA QR TOKEN (SCAN)
+// 3.6. VÍNCULO DE MOTOBOY AO PEDIDO VIA QR TOKEN (SCAN)
 // ============================================================================
 //
 // POST /motoboy/pedido/:orderId/link
 //
 // Body esperado:
 // {
-//   "qrToken": "qr-123..."   // token �nico do motoboy
+//   "qrToken": "qr-123..."   // token único do motoboy
 // }
 //
 // Fluxo:
@@ -2731,7 +2789,7 @@ app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
     if (!qrToken || typeof qrToken !== 'string') {
       return res.status(400).json({
         success: false,
-        message: 'qrToken � obrigat�rio no corpo da requisi��o.'
+        message: 'qrToken é obrigatório no corpo da requisição.'
       });
     }
 
@@ -2749,7 +2807,7 @@ app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
     if (!motoboy) {
       return res.status(404).json({
         success: false,
-        message: 'Motoboy n�o encontrado para este qrToken.'
+        message: 'Motoboy não encontrado para este qrToken.'
       });
     }
 
@@ -2769,7 +2827,7 @@ app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
     if (orderIndex === -1) {
       return res.status(404).json({
         success: false,
-        message: 'Pedido n�o encontrado.'
+        message: 'Pedido não encontrado.'
       });
     }
 
@@ -2777,11 +2835,11 @@ app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
     const normalizedStatus = (order.status || '').toString().toLowerCase();
     const lockedStatuses = new Set(['out_for_delivery', 'done', 'cancelled']);
     if (lockedStatuses.has(normalizedStatus)) {
-      const detail = `Pedido ${orderId} com status ${order.status} n�o pode ser aceito novamente (qrToken ${qrToken}).`;
+      const detail = `Pedido ${orderId} com status ${order.status} não pode ser aceito novamente (qrToken ${qrToken}).`;
       console.warn('[apiServer][motoboy/link] ' + detail);
       return res.status(409).json({
         success: false,
-        message: 'Pedido j� est� em rota ou encerrado.',
+        message: 'Pedido já está em rota ou encerrado.',
         detail,
         status: order.status
       });
@@ -2879,16 +2937,18 @@ app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
 //   "metadata": { ... }
 // }
 //
-// Retorna um unico payload BR Code.
+// Retorna um único payload BR Code.
 //
 async function requestAxionPayPix(payload, requestId) {
   if (!AXIONPAY_BASE_URL) {
-    throw new Error('AXIONPAY_BASE_URL nao configurado.');
+    throw new Error('AXIONPAY_BASE_URL não configurado.');
   }
+
 
   const headers = {
     Accept: 'application/json',
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'pay-tag': 'user-test'
   };
 
   if (AXIONPAY_API_KEY) {
@@ -2910,7 +2970,7 @@ async function requestAxionPayPix(payload, requestId) {
   if (!response.ok) {
     const message =
       (data && (data.error || data.message)) ||
-      `AXIONPAY respondeu ${response.status}`;
+      `AXIONPAY respondeu com status ${response.status}`;
     const err = new Error(message);
     err.status = response.status;
     err.payload = data;
@@ -2925,7 +2985,7 @@ async function requestAxionPayPix(payload, requestId) {
     '';
 
   if (!pixPayload) {
-    throw new Error('AXIONPAY nao retornou payload PIX.');
+    throw new Error('AXIONPAY não retornou payload PIX.');
   }
 
   return { pixPayload, raw: data };
@@ -2970,7 +3030,7 @@ app.post('/api/webhook-infinitepay', async (req, res) => {
       metadata: payload.metadata
     });
 
-    // TODO: Implementar logica de atualizacao do pedido
+    // TODO: Implementar lógica de atualização do pedido
     // const orderId = payload.metadata?.orderId;
     // if (orderId) { ... }
 
@@ -2980,8 +3040,71 @@ app.post('/api/webhook-infinitepay', async (req, res) => {
     return res.status(500).json({ success: false, error: 'Internal Error' });
   }
 });
+// ============================================================================
+// 3.x. VALIDAÇÃO DE TOKEN DE MOTOBOY
+// ============================================================================
+// POST /motoboy/token/validate
+// Body esperado: { "qrToken": "qr-123..." }
+// Resposta: { success, motoboy, message }
+// ============================================================================
 
-// 4. ENDPOINTS GEN�RICOS EXISTENTES (mantidos)
+app.post('/motoboy/token/validate', async (req, res) => {
+  try {
+    const { qrToken } = req.body || {};
+    if (!qrToken || typeof qrToken !== 'string') {
+      return res.status(400).json({
+        success: false,
+        motoboy: null,
+        message: 'qrToken é obrigatório no corpo da requisição.'
+      });
+    }
+
+    const motoboysData = await db.getCollection('motoboys');
+    const motoboys = Array.isArray(motoboysData?.items)
+      ? motoboysData.items
+      : Array.isArray(motoboysData)
+      ? motoboysData
+      : [];
+
+    const motoboy = motoboys.find(
+      (m) => String(m.qrToken || '').trim() === String(qrToken).trim()
+    );
+
+    if (!motoboy) {
+      return res.status(404).json({
+        success: false,
+        motoboy: null,
+        message: 'Motoboy não encontrado para este qrToken.'
+      });
+    }
+
+    // Retorna apenas dados básicos
+    const motoboyInfo = {
+      id: motoboy.id,
+      name: motoboy.name,
+      phone: motoboy.phone,
+      status: motoboy.status || 'available',
+      isActive: motoboy.isActive !== false,
+      baseNeighborhood: motoboy.baseNeighborhood || null,
+      baseFee: motoboy.baseFee ?? null
+    };
+
+    return res.json({
+      success: true,
+      motoboy: motoboyInfo,
+      message: 'Token válido.'
+    });
+  } catch (err) {
+    logApiError(req, 'motoboy/token/validate', err);
+    res.status(500).json({
+      success: false,
+      motoboy: null,
+      message: 'Erro ao validar token do motoboy.'
+    });
+  }
+});
+
+// 4. ENDPOINTS GENÉRICOS EXISTENTES (mantidos)
 // ============================================================================
 
 // Healthcheck simples
@@ -2993,7 +3116,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Listar cole��o: GET /api/orders, /api/customers, etc.
+// Listar coleção: GET /api/orders, /api/customers, etc.
 app.get('/api/:collection', async (req, res) => {
   const { collection } = req.params;
   try {
@@ -3003,12 +3126,12 @@ app.get('/api/:collection', async (req, res) => {
           logApiError(req, 'api:getCollection', err);
     res
       .status(400)
-      .json({ error: err.message || 'Erro ao carregar cole��o' });
+      .json({ error: err.message || 'Erro ao carregar coleção' });
   }
 });
 
-// Criar item gen�rico: POST /api/orders, /api/qualquer-coisa
-// (clientes usam o POST espec�fico acima: /api/customers)
+// Criar item genérico: POST /api/orders, /api/qualquer-coisa
+// (clientes usam o POST específico acima: /api/customers)
 app.post('/api/:collection', async (req, res) => {
   const { collection } = req.params;
   const payload = req.body;
@@ -3017,50 +3140,9 @@ app.post('/api/:collection', async (req, res) => {
   try {
     if (collection === 'orders') {
       const settings = await getOrderValidationSettings();
-      const neighborhood = resolveOrderNeighborhood(payload);
-      const blockedMatch = findBlockedNeighborhood(
-        neighborhood,
-        settings.blockedNeighborhoods
-      );
-      if (isDeliveryOrder(payload) && blockedMatch) {
-        return res.status(422).json({
-          error: 'NeighborhoodBlocked',
-          message: `N�o entregamos no bairro "${blockedMatch}".`,
-          neighborhood: blockedMatch
-        });
-      }
-      const businessStatus = getBusinessHoursStatus(settings.businessHours);
-      if (!businessStatus.isOpen) {
-        return res.status(422).json({
-          error: 'BusinessHoursClosed',
-          message: businessStatus.reason || 'Fora do horario de funcionamento.'
-        });
-      }
-
-      if (isDeliveryOrder(payload)) {
-        const subtotal = resolveOrderSubtotal(payload);
-        if (settings.minOrderValue > 0 && subtotal < settings.minOrderValue) {
-          return res.status(422).json({
-            error: 'MinOrderValue',
-            message: `Pedido minimo para entrega: ${settings.minOrderValue}.`,
-            minOrderValue: settings.minOrderValue,
-            subtotal
-          });
-        }
-
-        const distanceKm = resolveOrderDistanceKm(payload);
-        if (
-          settings.maxDistanceKm > 0 &&
-          distanceKm > 0 &&
-          distanceKm > settings.maxDistanceKm
-        ) {
-          return res.status(422).json({
-            error: 'MaxDistanceExceeded',
-            message: `Distancia acima do maximo permitido (${settings.maxDistanceKm} km).`,
-            maxDistanceKm: settings.maxDistanceKm,
-            distanceKm
-          });
-        }
+      const validationError = validateOrder(payload, settings);
+      if (validationError) {
+        return res.status(422).json(validationError);
       }
     }
 
@@ -3092,76 +3174,27 @@ app.put('/api/:collection/:id', async (req, res) => {
 
   try {
     if (collection === 'orders') {
-      const data = await db.getCollection('orders');
-      const items = Array.isArray(data?.items)
-        ? data.items
-        : Array.isArray(data)
-        ? data
-        : [];
-      const existing = items.find((o) => String(o.id) === String(id)) || null;
-
-      const merged = {
-        ...(existing || {}),
-        ...(changes || {})
-      };
-      if (existing?.delivery || changes?.delivery) {
-        merged.delivery = {
-          ...(existing?.delivery || {}),
-          ...(changes?.delivery || {})
-        };
-      }
-
-      const settings = await getOrderValidationSettings();
-      const neighborhood = resolveOrderNeighborhood(merged);
-      const blockedMatch = findBlockedNeighborhood(
-        neighborhood,
-        settings.blockedNeighborhoods
-      );
-      if (isDeliveryOrder(merged) && blockedMatch) {
-        return res.status(422).json({
-          error: 'NeighborhoodBlocked',
-          message: `N�o entregamos no bairro "${blockedMatch}".`,
-          neighborhood: blockedMatch
-        });
-      }
       const shouldValidate = shouldValidateDeliveryChanges(changes);
       if (shouldValidate) {
-        const businessStatus = getBusinessHoursStatus(settings.businessHours);
-        if (!businessStatus.isOpen) {
-          return res.status(422).json({
-            error: 'BusinessHoursClosed',
-            message:
-              businessStatus.reason || 'Fora do horario de funcionamento.'
-          });
+        const data = await db.getCollection('orders');
+        const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
+        const existing = items.find((o) => String(o.id) === String(id)) || null;
+
+        const merged = {
+          ...(existing || {}),
+          ...(changes || {})
+        };
+        if (existing?.delivery || changes?.delivery) {
+          merged.delivery = {
+            ...(existing?.delivery || {}),
+            ...(changes?.delivery || {})
+          };
         }
 
-        if (isDeliveryOrder(merged)) {
-          const subtotal = resolveOrderSubtotal(merged);
-          if (
-            settings.minOrderValue > 0 &&
-            subtotal < settings.minOrderValue
-          ) {
-            return res.status(422).json({
-              error: 'MinOrderValue',
-              message: `Pedido minimo para entrega: ${settings.minOrderValue}.`,
-              minOrderValue: settings.minOrderValue,
-              subtotal
-            });
-          }
-
-          const distanceKm = resolveOrderDistanceKm(merged);
-          if (
-            settings.maxDistanceKm > 0 &&
-            distanceKm > 0 &&
-            distanceKm > settings.maxDistanceKm
-          ) {
-            return res.status(422).json({
-              error: 'MaxDistanceExceeded',
-              message: `Distancia acima do maximo permitido (${settings.maxDistanceKm} km).`,
-              maxDistanceKm: settings.maxDistanceKm,
-              distanceKm
-            });
-          }
+        const settings = await getOrderValidationSettings();
+        const validationError = validateOrder(merged, settings);
+        if (validationError) {
+          return res.status(422).json(validationError);
         }
       }
     }
@@ -3221,7 +3254,7 @@ app.delete('/api/:collection/:id', async (req, res) => {
   }
 });
 
-// Resetar cole��o: POST /api/orders/reset
+// Resetar coleção: POST /api/orders/reset
 app.post('/api/:collection/reset', async (req, res) => {
   const { collection } = req.params;
 
@@ -3232,12 +3265,12 @@ app.post('/api/:collection/reset', async (req, res) => {
           logApiError(req, 'api:resetCollection', err);
     res
       .status(400)
-      .json({ error: err.message || 'Erro ao resetar cole��o' });
+      .json({ error: err.message || 'Erro ao resetar coleção' });
   }
 });
 
 // ============================================================================
-// 5. IN�CIO DO SERVIDOR
+// 5. INÍCIO DO SERVIDOR
 // ============================================================================
 if (require.main === module) {
   startApiServer().catch((err) => {

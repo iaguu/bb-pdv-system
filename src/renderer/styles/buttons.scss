@@ -1,3 +1,5 @@
+@import './mixins.scss';
+
 /* ============================================================================
    BOTÕES GERAIS
    - Padroniza .btn (primary, outline, secondary, danger, ghost) e tamanhos
@@ -12,30 +14,26 @@
 
   height: 40px;
   padding: 0 14px;
-  border-radius: 12px;
+  border-radius: var(--r-12, 12px);
 
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.1px;
 
-  border: 1px solid rgba(17, 24, 39, 0.12);
-  background: #ffffff;
-  color: rgba(17, 24, 39, 0.9);
+  border: 1px solid var(--border, rgba(17, 24, 39, 0.12));
+  background: var(--surface, #ffffff);
+  color: var(--text, rgba(17, 24, 39, 0.9));
 
-  box-shadow: 0 6px 16px rgba(17, 24, 39, 0.06);
-  transition:
-    transform 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    filter 160ms ease;
+  box-shadow: var(--shadow-1, 0 6px 16px rgba(17, 24, 39, 0.06));
+  @include transition-ease(transform, border-color, box-shadow, filter);
 
   cursor: pointer;
 }
 
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  border-color: rgba(17, 24, 39, 0.18);
-  box-shadow: 0 10px 26px rgba(17, 24, 39, 0.10);
+  border-color: var(--border-strong, rgba(17, 24, 39, 0.18));
+  box-shadow: var(--shadow-2, 0 10px 26px rgba(17, 24, 39, 0.1));
   filter: brightness(1.01);
 }
 
@@ -51,7 +49,7 @@
 
 .btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.20);
+  box-shadow: 0 0 0 3px var(--focus, rgba(59, 130, 246, 0.2));
 }
 
 /* Tamanhos */
@@ -59,57 +57,61 @@
 .btn-ghost--small {
   height: 32px;
   padding: 0 10px;
-  border-radius: 10px;
+  border-radius: var(--r-10, 10px);
   font-size: 12px;
 }
 
 .btn-lg {
   height: 46px;
   padding: 0 18px;
-  border-radius: 14px;
+  border-radius: var(--r-14, 14px);
   font-size: 14px;
 }
 
 /* Variantes */
 .btn-primary {
+  --btn-primary-grad-start: #ff8a2a;
+  --btn-primary-grad-end: #ff6a00;
+  --btn-primary-shadow: rgba(255, 106, 0, 0.28);
+
   border: none;
-  color: #ffffff;
-  background: linear-gradient(180deg, #ff8a2a 0%, #ff6a00 100%);
-  box-shadow: 0 12px 28px rgba(255, 106, 0, 0.28);
+  color: var(--surface, #ffffff);
+  background: linear-gradient(180deg, var(--btn-primary-grad-start) 0%, var(--btn-primary-grad-end) 100%);
+  box-shadow: 0 12px 28px var(--btn-primary-shadow);
 }
 
 .btn-outline {
-  background: #ffffff;
-  border-color: rgba(17, 24, 39, 0.16);
-  color: rgba(17, 24, 39, 0.9);
+  background: var(--surface, #ffffff);
+  border-color: var(--border-strong, rgba(17, 24, 39, 0.16));
+  color: var(--text, rgba(17, 24, 39, 0.9));
 }
 
 .btn-secondary {
-  background: #ecfdf3;
-  border-color: #bbf7d0;
-  color: #166534;
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: var(--green-ink, #15803d);
 }
 
 .btn-danger {
-  background: #fef2f2;
-  border-color: #fecdd3;
-  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--red-ink, #b91c1c);
 }
 
 .btn-danger-soft {
-  background: rgba(248, 113, 113, 0.12);
-  border-color: rgba(248, 113, 113, 0.28);
-  color: #991b1b;
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.28);
+  color: var(--red-ink, #991b1b);
 }
 
 .btn-ghost {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
-  color: rgba(17, 24, 39, 0.8);
+  color: var(--muted, rgba(17, 24, 39, 0.8));
 }
 
 .btn-ghost:hover:not(:disabled) {
-  border-color: rgba(17, 24, 39, 0.12);
-  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.08);
+  border-color: var(--border, rgba(17, 24, 39, 0.12));
+  box-shadow: var(--shadow-1, 0 8px 18px rgba(17, 24, 39, 0.08));
 }
