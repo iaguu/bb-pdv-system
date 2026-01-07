@@ -145,8 +145,14 @@ export const getOrderTotal = (order) => {
   );
 
   const total =
-    Number(order?.totals?.finalTotal ?? order?.total) ||
-    subtotal + deliveryFee - discountAmount;
+    Number(
+      order?.totals?.finalTotal ??
+        order?.total ??
+        order?.grandTotal ??
+        order?.amount ??
+        order?.valorTotal ??
+        order?.amountTotal
+    ) || subtotal + deliveryFee - discountAmount;
 
   return total;
 };

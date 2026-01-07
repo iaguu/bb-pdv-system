@@ -33,6 +33,14 @@ const SOURCE_MAP = {
   phone: "Telefone",
 };
 
+const PAYMENT_LABELS = {
+  money: "Dinheiro",
+  pix: "Pix",
+  credit: "Crédito",
+  debit: "Débito",
+  ifood: "iFood",
+};
+
 const MOTOBOY_STATUS_MAP = {
   waiting_qr: "Aguardando motoboy",
   out_for_delivery: "Em rota",
@@ -84,6 +92,16 @@ const OrderRow = ({ order, onClick, isNew }) => {
   const sourceLabel =
     SOURCE_MAP[sourceKey] || SOURCE_MAP.local || "Balcao / Local";
   const isWebSource = sourceKey === "website" || sourceKey === "web";
+
+  const paymentKey = (
+    order?.payment?.method ||
+    order?.paymentMethod ||
+    ""
+  )
+    .toString()
+    .toLowerCase();
+  const paymentLabel =
+    PAYMENT_LABELS[paymentKey] || (paymentKey ? paymentKey : "");
 
   const total =
     totals?.finalTotal ?? totals?.total ?? order?.total ?? 0;
@@ -171,7 +189,7 @@ const OrderRow = ({ order, onClick, isNew }) => {
     .join(" ");
 
   return (
-    <div className={classes} onClick={onClick}>
+    <button type="button" className={classes} onClick={onClick}>
       <div className="order-row-left">
         <div className="order-row-top">
           <span className="order-row-id">{orderCode}</span>
@@ -195,6 +213,13 @@ const OrderRow = ({ order, onClick, isNew }) => {
             <span className="order-row-chip-label">Origem:</span>
             <span className="order-row-source">{sourceLabel}</span>
           </span>
+
+          {paymentLabel && (
+            <span className="order-row-chip order-row-chip--payment">
+              <span className="order-row-chip-label">Pagamento:</span>
+              <span className="order-row-payment">{paymentLabel}</span>
+            </span>
+          )}
 
           {motoboyName && (
             <span className="order-row-chip order-row-chip--motoboy">
@@ -228,13 +253,16 @@ const OrderRow = ({ order, onClick, isNew }) => {
           <span className="order-row-web-badge">WEB</span>
         )}
         {timeLabel && (
-          <div className="order-row-time">{timeLabel}</div>
+          <div className="order-row-time" title={timeLabel}>
+            {timeLabel}
+          </div>
         )}
         {elapsedLabel && (
           <div
             className={
               "order-row-elapsed" + (isLate ? " order-row-elapsed--late" : "")
             }
+            title={elapsedLabel}
           >
             {elapsedLabel}
           </div>
@@ -247,7 +275,7 @@ const OrderRow = ({ order, onClick, isNew }) => {
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 

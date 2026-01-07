@@ -3,31 +3,34 @@
   "version": "1.0.0",
   "description": "AXION PDV - Sistema de Ponto de Venda Desktop (Electron + React)",
   "author": "Iago Barreto",
-  "main": "electron/main.js",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev": "concurrently \"vite\" \"set ENV_FILE=.env.development&& electron .\"",
     "dev:renderer": "vite",
-    "dev:electron": "electron .",
+    "dev:electron": "set ENV_FILE=.env.development&& electron .",
     "build": "vite build",
     "clean:dist": "node -e \"require('fs').rmSync('dist',{ recursive: true, force: true }); require('fs').rmSync('dist-electron',{ recursive: true, force: true })\"",
     "build:prod": "npm run clean:dist && npm run build",
     "preview": "vite preview",
-    "start": "electron .",
+    "start": "set ENV_FILE=.env.production&& electron .",
     "test:api": "node electron/tests/apiServer.validation.test.js",
     "test:db": "node electron/tests/db.engine.test.js",
     "test:motoboy": "node electron/tests/motoboy.link.test.js",
-    "test": "npm run test:api && npm run test:db && npm run test:motoboy",
+    "test:sync": "node electron/tests/sync.queue.test.js",
+    "test:sync:lastpush": "node electron/tests/sync.lastpush.test.js",
+    "test:sync:local": "node electron/tests/sync.local-first.test.js",
+    "test:vitals": "node electron/tests/vitals.flow.test.js",
+    "test": "npm run test:api && npm run test:db && npm run test:motoboy && npm run test:sync && npm run test:sync:lastpush && npm run test:sync:local && npm run test:vitals",
     "electron:build": "npm run clean:dist && npm run build && electron-builder"
   },
   "dependencies": {
-    "body-parser": "^2.2.1",
     "concurrently": "^9.0.0",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
+    "dotenv": "^16.4.5",
     "electron-store": "^8.2.0",
-    "express": "^4.22.1",
-    "morgan": "^1.10.1",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "morgan": "^1.10.0",
     "node-fetch": "^3.3.2",
     "qrcode": "^1.5.4",
     "react": "^18.3.0",
@@ -66,7 +69,7 @@
     },
     "extraResources": [
       {
-        "from": ".env",
+        "from": ".env.production",
         "to": ".env"
       }
     ]

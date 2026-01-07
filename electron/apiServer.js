@@ -988,7 +988,7 @@ const BUSINESS_HOURS_SYNC_BASE_URL = (
 const rateStore = new Map();
 
 // Limpeza periódica do rateStore para evitar memory leaks
-setInterval(() => {
+const rateStoreCleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of rateStore.entries()) {
     if (entry.resetAt <= now) {
@@ -996,6 +996,9 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000); // Executa a cada 5 minutos
+if (typeof rateStoreCleanupTimer.unref === "function") {
+  rateStoreCleanupTimer.unref();
+}
 
 let currentApiPort = EMBEDDED_API_PORT;
 let serverInstance = null;

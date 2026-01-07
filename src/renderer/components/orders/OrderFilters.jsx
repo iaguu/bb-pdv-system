@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ORDER_STATUS_PRESETS } from "../../utils/orderUtils";
 
 const SOURCE_OPTIONS = [
@@ -13,6 +13,7 @@ const OrderFilters = ({ value = {}, onChange, searchInputRef }) => {
   const currentStatus = value.status || "open";
   const currentSource = value.source || "all";
   const currentSearch = value.search || "";
+  const [localSearch, setLocalSearch] = useState(currentSearch);
 
   const handleChange = (field, fieldValue) => {
     if (!onChange) return;
@@ -21,6 +22,19 @@ const OrderFilters = ({ value = {}, onChange, searchInputRef }) => {
       [field]: fieldValue,
     });
   };
+
+  useEffect(() => {
+    setLocalSearch(currentSearch);
+  }, [currentSearch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch !== currentSearch) {
+        handleChange("search", localSearch);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [localSearch, currentSearch]);
 
   return (
     <div className="order-filters">
@@ -70,10 +84,19 @@ const OrderFilters = ({ value = {}, onChange, searchInputRef }) => {
             className="order-filters-input"
             type="search"
             placeholder="Ex: 123 ou Joao"
-            value={currentSearch}
-            onChange={(e) => handleChange("search", e.target.value)}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
             ref={searchInputRef}
           />
+          {localSearch && (
+            <button
+              type="button"
+              className="order-filters-clear"
+              onClick={() => setLocalSearch("")}
+            >
+              Limpar
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -23,6 +23,8 @@ const OrdersPage = () => {
   const [formInitialOrder, setFormInitialOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const searchInputRef = useRef(null);
   const lateOrdersRef = useRef(new Set());
   const hasLoadedRef = useRef(false);
@@ -413,6 +415,7 @@ const OrdersPage = () => {
         return;
       }
 
+      setLoadError("");
       const initialLoad = !hasLoadedRef.current;
       if (initialLoad) {
         setIsLoading(true);
@@ -431,9 +434,11 @@ const OrdersPage = () => {
       );
 
       setOrders(normalizedOrders);
+      setLastUpdatedAt(new Date().toISOString());
       hasLoadedRef.current = true;
     } catch (err) {
       console.error("[OrdersPage] Erro ao carregar pedidos:", err);
+      setLoadError("Não foi possível carregar os pedidos.");
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -988,6 +993,24 @@ const OrdersPage = () => {
     return () => window.removeEventListener("app:shortcut", handler);
   }, [activeModal, loadOrders, handleCloseModal, handleNewOrderClick]);
 
+  useEffect(() => {
+    const handleSlashFocus = (event) => {
+      if (event.key !== "/") return;
+      const target = event.target;
+      const tag = target?.tagName;
+      const isField =
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        target?.isContentEditable;
+      if (isField) return;
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    };
+
+    window.addEventListener("keydown", handleSlashFocus);
+    return () => window.removeEventListener("keydown", handleSlashFocus);
+  }, []);
+
   return (
     <Page
       title="Pedidos"
@@ -998,7 +1021,15 @@ const OrdersPage = () => {
         </button>
       }
     >
+      {loadError && (
+        <div className="order-list-refresh">{loadError}</div>
+      )}
 
+      {lastUpdatedAt && (
+        <div className="order-list-refresh">
+          Atualizado em {new Date(lastUpdatedAt).toLocaleTimeString("pt-BR")}
+        </div>
+      )}
 
       {/* Toolbar: filtros + botão atualizar */}
       <div className="page-toolbar orders-toolbar">

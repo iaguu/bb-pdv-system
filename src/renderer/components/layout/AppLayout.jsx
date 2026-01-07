@@ -374,8 +374,12 @@ const AppLayout = ({ children }) => {
               >
                 {syncStatus.online ? "Online" : "Offline"}
               </span>
-              <span>Ultimo pull: {formatSyncTime(syncStatus.lastPullAt)}</span>
-              <span>Ultimo push: {formatSyncTime(syncStatus.lastPushAt)}</span>
+              <span>
+                Última atualização (pull): {formatSyncTime(syncStatus.lastPullAt)}
+              </span>
+              <span>
+                Último envio (push): {formatSyncTime(syncStatus.lastPushAt)}
+              </span>
               {typeof syncStatus.queueRemaining === "number" &&
                 syncStatus.queueRemaining > 0 && (
                   <span>Fila: {syncStatus.queueRemaining}</span>

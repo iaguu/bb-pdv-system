@@ -16,6 +16,13 @@ import MotoboyFormModal from "../components/people/MotoboyFormModal";
 import MotoboyQrModal from "../components/people/MotoboyQrModal";
 import MotoboyTipModal from "../components/people/MotoboyTipModal";
 import EmptyState from "../components/common/EmptyState";
+import {
+  addMotoboyTip,
+  generateMotoboyQr,
+  getMotoboys,
+  saveMotoboy,
+  toggleMotoboyActive,
+} from "../api/motoboys";
 import { formatCurrencyBR } from "../utils/orderUtils";
 import { emitToast } from "../utils/toast";
 
@@ -176,8 +183,7 @@ const PeoplePage = () => {
   const loadMotoboys = async () => {
     try {
       setLoadingMotoboys(true);
-      const data = await window.dataEngine.get("motoboys");
-      const items = Array.isArray(data?.items) ? data.items : [];
+      const items = await getMotoboys();
       setMotoboys(items);
     } catch (err) {
       console.error("Erro ao carregar motoboys:", err);
@@ -549,33 +555,13 @@ const PeoplePage = () => {
 
   const handleSaveMotoboy = async (draft) => {
     try {
-      if (!window.dataEngine) {
-        throw new Error("API local (window.dataEngine) não disponível.");
-      }
-
-      const current = await window.dataEngine.get("motoboys");
-      const items = Array.isArray(current?.items)
-        ? current.items
-        : Array.isArray(current)
-        ? current
-        : [];
-
-      const id = draft?.id || `motoboy_${Date.now()}`;
-      const payload = { ...draft, id };
-
-      const updated = items.some((m) => String(m.id) === String(id))
-        ? items.map((m) =>
-            String(m.id) === String(id) ? { ...m, ...payload } : m
-          )
-        : [...items, payload];
-
-      await window.dataEngine.set("motoboys", { items: updated });
-      setMotoboys(updated);
+      await saveMotoboy(draft);
       emitToast({
         type: "success",
         message: "Motoboy salvo com sucesso.",
       });
       closeModal();
+      loadMotoboys();
     } catch (err) {
       console.error("Erro ao salvar motoboy:", err);
       emitToast({
@@ -587,24 +573,14 @@ const PeoplePage = () => {
 
   const handleToggleMotoboyActive = async (motoboyId, nextActive) => {
     try {
-      if (!window.dataEngine) {
-        throw new Error("API local (window.dataEngine) não disponível.");
-      }
-
-      const updated = motoboys.map((m) =>
-        String(m.id) === String(motoboyId)
-          ? { ...m, active: nextActive }
-          : m
-      );
-
-      await window.dataEngine.set("motoboys", { items: updated });
-      setMotoboys(updated);
+      await toggleMotoboyActive(motoboyId, nextActive);
       emitToast({
         type: "success",
         message: nextActive
           ? "Motoboy ativado com sucesso."
           : "Motoboy desativado.",
       });
+      loadMotoboys();
     } catch (err) {
       console.error("Erro ao atualizar status do motoboy:", err);
       emitToast({
@@ -617,30 +593,14 @@ const PeoplePage = () => {
 
   const handleGenerateMotoboyQr = async (motoboy) => {
     try {
-      if (!window.dataEngine) {
-        throw new Error("API local (window.dataEngine) não disponível.");
-      }
       if (!motoboy) return;
-
-      const token =
-        motoboy.qrToken ||
-        `qr_${motoboy.id || Date.now()}_${Math.random()
-          .toString(16)
-          .slice(2, 8)}`;
-
-      const updated = motoboys.map((m) =>
-        String(m.id) === String(motoboy.id)
-          ? { ...m, qrToken: token }
-          : m
-      );
-
-      await window.dataEngine.set("motoboys", { items: updated });
-      setMotoboys(updated);
+      const token = await generateMotoboyQr(motoboy);
       emitToast({
         type: "success",
         message: "QR do motoboy gerado com sucesso.",
       });
       setQrModalMotoboy({ ...motoboy, qrToken: token });
+      loadMotoboys();
     } catch (err) {
       console.error("Erro ao gerar QR do motoboy:", err);
       emitToast({
@@ -661,41 +621,15 @@ const PeoplePage = () => {
 
   const handleAddMotoboyTip = async (motoboyId, tipDraft) => {
     try {
-      if (!window.dataEngine) {
-        throw new Error("API local (window.dataEngine) não disponível.");
-      }
-
-      const updated = motoboys.map((m) => {
-        if (String(m.id) !== String(motoboyId)) return m;
-
-        const tips = Array.isArray(m.tips) ? [...m.tips] : [];
-        const tip = {
-          id: tipDraft.id || `tip_${Date.now()}`,
-          amount: tipDraft.amount,
-          note: tipDraft.note || "",
-          at: tipDraft.at || new Date().toISOString(),
-        };
-        tips.unshift(tip);
-
-        const tipsTotal =
-          typeof m.tipsTotal === "number"
-            ? m.tipsTotal + tip.amount
-            : tips.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
-
-        return {
-          ...m,
-          tips,
-          tipsTotal,
-        };
-      });
-
-      await window.dataEngine.set("motoboys", { items: updated });
-      setMotoboys(updated);
+      const motoboy = motoboys.find((m) => String(m.id) === String(motoboyId));
+      if (!motoboy) return;
+      await addMotoboyTip(motoboy, tipDraft);
       emitToast({
         type: "success",
         message: "Gorjeta registrada com sucesso.",
       });
       setTipModalMotoboy(null);
+      loadMotoboys();
     } catch (err) {
       console.error("Erro ao salvar gorjeta:", err);
       emitToast({

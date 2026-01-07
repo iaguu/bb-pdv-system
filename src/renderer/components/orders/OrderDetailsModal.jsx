@@ -36,6 +36,27 @@ const PAYMENT_LABELS = {
   ifood: "iFood",
 };
 
+const SOURCE_LABELS = {
+  website: "Site",
+  web: "Site",
+  local: "Balcão / Local",
+  balcao: "Balcão / Local",
+  "balcão": "Balcão / Local",
+  counter: "Balcão / Local",
+  desktop: "Balcão / Local",
+  delivery: "Delivery",
+  ifood: "iFood",
+  whatsapp: "WhatsApp",
+  phone: "Telefone",
+};
+
+const MOTOBOY_STATUS_MAP = {
+  waiting_qr: "Aguardando motoboy",
+  out_for_delivery: "Em rota",
+  delivering: "Em rota",
+  done: "Entrega finalizada",
+};
+
 function normalizeCustomer(order) {
   const snap = order?.customerSnapshot || order?.customer || {};
   return {
@@ -56,16 +77,52 @@ function normalizeCustomer(order) {
   };
 }
 
+function normalizeAddressParts(addr = {}) {
+  return {
+    street: addr.street || addr.rua || "",
+    number: addr.number || addr.numero || "",
+    neighborhood: addr.neighborhood || addr.bairro || "",
+    city: addr.city || addr.cidade || "",
+    state: addr.state || addr.uf || "",
+    cep: addr.cep || addr.CEP || "",
+    reference: addr.reference || addr.referencia || "",
+    complement: addr.complement || addr.complemento || "",
+  };
+}
+
 function formatAddress(addr = {}) {
+  const normalized = normalizeAddressParts(addr);
   const parts = [];
-  if (addr.street) {
-    parts.push(addr.number ? `${addr.street}, ${addr.number}` : addr.street);
+  if (normalized.street) {
+    parts.push(
+      normalized.number
+        ? `${normalized.street}, ${normalized.number}`
+        : normalized.street
+    );
   }
-  if (addr.neighborhood) parts.push(addr.neighborhood);
-  if (addr.city) parts.push(addr.city);
-  if (addr.state) parts.push(addr.state);
-  if (addr.cep) parts.push(`CEP ${addr.cep}`);
+  if (normalized.neighborhood) parts.push(normalized.neighborhood);
+  if (normalized.city) parts.push(normalized.city);
+  if (normalized.state) parts.push(normalized.state);
+  if (normalized.cep) parts.push(`CEP ${normalized.cep}`);
   return parts.filter(Boolean).join(" - ") || "Sem endereço";
+}
+
+function buildMapsUrl(addr = {}) {
+  const normalized = normalizeAddressParts(addr);
+  const parts = [
+    normalized.street &&
+      (normalized.number
+        ? `${normalized.street}, ${normalized.number}`
+        : normalized.street),
+    normalized.neighborhood,
+    normalized.city,
+    normalized.state,
+    normalized.cep ? `CEP ${normalized.cep}` : "",
+  ].filter(Boolean);
+  if (parts.length === 0) return "";
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    parts.join(" - ")
+  )}`;
 }
 
 function normalizeItems(rawItems = []) {
@@ -157,6 +214,8 @@ const OrderDetailsModal = ({
     order.paymentLabel ||
     order.payment?.label ||
     "Não definido";
+  const paymentStatus =
+    order?.payment?.status || order?.paymentStatus || "to_define";
 
   const paymentNotes = order.payment?.notes || order.paymentNotes || "";
   const changeFor =
@@ -184,6 +243,23 @@ const OrderDetailsModal = ({
   const grandTotal = subtotal + deliveryFee - discount;
 
   const normalizedStatus = normalizeStatus(order.status || "open");
+  const sourceKey = (order?.source || "local").toString().toLowerCase();
+  const sourceLabel = SOURCE_LABELS[sourceKey] || SOURCE_LABELS.local;
+  const mapsUrl = buildMapsUrl(customer.address);
+  const motoboyName =
+    order?.motoboyName || order?.delivery?.motoboyName || null;
+  const motoboyStatusKey = (
+    order?.motoboyStatus ||
+    order?.delivery?.motoboyStatus ||
+    ""
+  )
+    .toString()
+    .toLowerCase()
+    .trim();
+  const motoboyStatus =
+    MOTOBOY_STATUS_MAP[motoboyStatusKey] || motoboyStatusKey || "";
+  const orderNotes = order.orderNotes || order.notes || "";
+  const kitchenNotes = order.kitchenNotes || "";
 
   const handleStatusClick = (key) => {
     if (onChangeStatus) onChangeStatus(orderId, key);
@@ -192,6 +268,16 @@ const OrderDetailsModal = ({
   const handlePaymentChange = (evt) => {
     const value = evt.target.value;
     if (onChangePayment) onChangePayment(orderId, value);
+  };
+
+  const handleCopyPhone = async () => {
+    const phone = customer.phone || "";
+    if (!phone) return;
+    try {
+      await navigator.clipboard.writeText(phone);
+    } catch (err) {
+      window.prompt("Copie o telefone:", phone);
+    }
   };
 
   const paymentTagClass =
@@ -225,6 +311,15 @@ const OrderDetailsModal = ({
                 <span className="order-kv__value">
                   {customer.phone || "Não informado"}
                 </span>
+                {customer.phone && (
+                  <button
+                    type="button"
+                    className="order-section__link"
+                    onClick={handleCopyPhone}
+                  >
+                    Copiar
+                  </button>
+                )}
               </div>
             </div>
 
@@ -234,6 +329,20 @@ const OrderDetailsModal = ({
                 <span className="order-kv__value">
                   {formatAddress(customer.address)}
                 </span>
+                {mapsUrl && (
+                  <a
+                    className="order-section__link"
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Abrir mapa
+                  </a>
+                )}
+              </div>
+              <div>
+                <span className="order-kv__label">Origem</span>
+                <span className="order-kv__value">{sourceLabel}</span>
               </div>
               {(customer.address?.reference || customer.address?.complement) && (
                 <div>
@@ -255,6 +364,12 @@ const OrderDetailsModal = ({
                 <span className="order-kv__label">Forma atual</span>
                 <span className={`tag ${paymentTagClass}`}>
                   {paymentLabel}
+                </span>
+              </div>
+              <div className="order-kv__stack">
+                <span className="order-kv__label">Status</span>
+                <span className="order-kv__value">
+                  {paymentStatus || "to_define"}
                 </span>
               </div>
               <div className="order-kv__inline order-kv__inline--select">
@@ -368,6 +483,40 @@ const OrderDetailsModal = ({
             </div>
           </section>
 
+          {(orderNotes || kitchenNotes) && (
+            <section className="order-section">
+              <h3 className="order-section__title">Observações</h3>
+              {orderNotes && (
+                <div className="order-kv">
+                  <span className="order-kv__label">Pedido</span>
+                  <span className="order-kv__value">{orderNotes}</span>
+                </div>
+              )}
+              {kitchenNotes && (
+                <div className="order-kv">
+                  <span className="order-kv__label">Cozinha</span>
+                  <span className="order-kv__value">{kitchenNotes}</span>
+                </div>
+              )}
+            </section>
+          )}
+
+          {motoboyName && (
+            <section className="order-section">
+              <h3 className="order-section__title">Motoboy</h3>
+              <div className="order-kv">
+                <span className="order-kv__label">Nome</span>
+                <span className="order-kv__value">{motoboyName}</span>
+              </div>
+              {motoboyStatus && (
+                <div className="order-kv">
+                  <span className="order-kv__label">Status</span>
+                  <span className="order-kv__value">{motoboyStatus}</span>
+                </div>
+              )}
+            </section>
+          )}
+
           <section className="order-section">
             <h3 className="order-section__title">Resumo</h3>
             <div className="order-summary">
@@ -406,17 +555,31 @@ const OrderDetailsModal = ({
                 </Button>
               )}
               {typeof onPrintKitchen === "function" && (
-                <Button variant="outline" onClick={onPrintKitchen}>
+                <Button
+                  variant="outline"
+                  onClick={() => onPrintKitchen(order)}
+                >
                   Imprimir cozinha
                 </Button>
               )}
               {typeof onPrintCounter === "function" && (
-                <Button variant="outline" onClick={onPrintCounter}>
+                <Button
+                  variant="outline"
+                  onClick={() => onPrintCounter(order)}
+                >
                   Imprimir balcão
                 </Button>
               )}
               {typeof onDelete === "function" && (
-                <Button variant="outline" onClick={() => onDelete(order)}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const confirmed = window.confirm(
+                      "Deseja realmente excluir este pedido? Esta ação não pode ser desfeita."
+                    );
+                    if (confirmed) onDelete(order);
+                  }}
+                >
                   Excluir
                 </Button>
               )}

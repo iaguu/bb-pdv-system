@@ -84,3 +84,5 @@ desktop.ini
 coverage/
 logs/
 *.log
+/dist-electron
+/dist-electron

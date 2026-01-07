@@ -78,7 +78,12 @@ const OrderList = ({
           o.customer?.name ||
           o.customerName ||
           "";
-        const haystack = `${idStr} ${customerName}`.toLowerCase();
+        const customerPhone =
+          o.customerSnapshot?.phone ||
+          o.customer?.phone ||
+          o.customerPhone ||
+          "";
+        const haystack = `${idStr} ${customerName} ${customerPhone}`.toLowerCase();
 
         if (!haystack.includes(lowerSearch)) {
           return false;
@@ -169,6 +174,9 @@ const OrderList = ({
 
   return (
     <div className="order-list">
+      <div className="order-list-summary">
+        {totalCount} {totalCount === 1 ? "pedido" : "pedidos"}
+      </div>
       {isRefreshing && (
         <div className="order-list-refresh">Atualizando pedidos...</div>
       )}

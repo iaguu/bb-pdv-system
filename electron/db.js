@@ -46,7 +46,15 @@ const SYNC_COLLECTIONS = new Set([
 ]);
 
 const APPDATA_SCOPE = process.env.APPDATA_SCOPE || 'BB-PEDIDOS';
+const DEFAULT_SYNC_BASE_URL = 'https://pdv.axionenterprise.cloud/annetom';
 const PACKAGED_DATA_DIR = path.join(__dirname, 'data');
+const SYNC_LAST_PUSH_FILENAME = 'sync-last-push.json';
+
+function normalizeBaseUrl(value) {
+  if (!value) return '';
+  const trimmed = value.replace(/\/+$/, '');
+  return trimmed.replace(/\/api$/i, '');
+}
 
 function resolveStoredDataDir() {
   if (process.env.DATA_DIR && process.env.DATA_DIR.trim()) {
@@ -198,8 +206,13 @@ function ensureItemsWrapper(data) {
 }
 
 function getSyncBaseUrl() {
-  const base = process.env.SYNC_BASE_URL || "https://api.annetom.com";
-  return base.replace(/\/+$/, "");
+  const base =
+    process.env.SYNC_BASE_URL ||
+    process.env.AT_API_BASE_URL ||
+    process.env.PDV_API_BASE_URL ||
+    DEFAULT_SYNC_BASE_URL ||
+    '';
+  return normalizeBaseUrl(base);
 }
 
 function shouldSync(options) {
@@ -231,6 +244,25 @@ function getSyncQueuePath() {
   const dataDir = getDataDir();
   ensureDirExists(dataDir);
   return path.join(dataDir, 'sync-queue.json');
+}
+
+function getSyncLastPushPath() {
+  const dataDir = getDataDir();
+  ensureDirExists(dataDir);
+  return path.join(dataDir, SYNC_LAST_PUSH_FILENAME);
+}
+
+async function saveLastPushAt(isoString) {
+  if (!isoString) return;
+  try {
+    await fs.promises.writeFile(
+      getSyncLastPushPath(),
+      JSON.stringify({ lastPushAt: isoString }, null, 2),
+      'utf8'
+    );
+  } catch (err) {
+    logWarn('db', '[sync] Erro salvando lastPushAt:', err);
+  }
 }
 
 async function readSyncQueue() {
@@ -296,12 +328,18 @@ async function pushCollectionToRemote(collection, payload, options = null) {
       signal: controller.signal
     });
     if (!response.ok) {
-      logError('db', '[sync] Falha ao enviar colecao:', err, {collection, status: response.status});
+      const err = new Error(`HTTP ${response.status}`);
+      logError('db', '[sync] Falha ao enviar colecao:', err, {
+        collection,
+        status: response.status,
+        statusText: response.statusText,
+      });
       if (shouldEnqueue) {
         await enqueueSyncPayload(collection, payload);
       }
       return false;
     }
+    await saveLastPushAt(getNowIso());
     return true;
   } catch (err) {
     if (err.name === 'AbortError') {
@@ -332,18 +370,27 @@ async function flushSyncQueue() {
   }
 
   let flushed = 0;
+  let failed = false;
   while (queue.length > 0) {
     const entry = queue[0];
     const ok = await pushCollectionToRemote(entry.collection, entry.payload, {
       skipEnqueue: true,
     });
-    if (!ok) break;
+    if (!ok) {
+      failed = true;
+      break;
+    }
     queue.shift();
     flushed += 1;
   }
 
   await writeSyncQueue(queue);
-  return { success: true, flushed, remaining: queue.length };
+  return {
+    success: !failed,
+    flushed,
+    remaining: queue.length,
+    error: failed ? 'push_failed' : null
+  };
 }
 
 // --------- API PRINCIPAL DO DATAENGINE ---------
@@ -497,12 +544,6 @@ module.exports = {
   removeItem,
   resetCollection,
   listCollections,
+  getSyncBaseUrl,
   flushSyncQueue
 };
-
-
-
-
-
-
-

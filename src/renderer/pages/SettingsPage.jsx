@@ -259,6 +259,14 @@ const API_ENDPOINT_GROUPS = [
         desc: "Config atual de impressoras.",
       },
       {
+        method: "POST",
+        path: "/api/pdv/commissions",
+        auth: "api-key",
+        desc: "Recebe comissao diaria gerada pela loja.",
+        sampleBody:
+          "{\"date\":\"2026-01-03\",\"totalSales\":1200,\"commission\":14.4,\"rate\":0.012}",
+      },
+      {
         method: "GET",
         path: "/api/orders/stream",
         auth: "api-key",
@@ -421,6 +429,15 @@ const API_ENDPOINT_GROUPS = [
 ];
 
 const API_METHODS = ["GET", "POST", "PUT", "DELETE"];
+
+const SETTINGS_NAV_LINKS = [
+  { href: "#settings-general", label: "Dados gerais" },
+  { href: "#settings-integrations", label: "Integracoes" },
+  { href: "#settings-tools", label: "Ferramentas" },
+  { href: "#settings-delivery", label: "Entrega" },
+  { href: "#settings-hours", label: "Horario" },
+  { href: "#settings-printing", label: "Impressao" },
+];
 
 const normalizeSettingsData = (data) => {
   if (!data) return null;
@@ -751,6 +768,29 @@ const SettingsPage = () => {
   });
   const ordersStreamRef = useRef(null);
   const [healthSnapshotResult, setHealthSnapshotResult] = useState(null);
+
+  const toolActions = [
+    {
+      label: "Backup / restaurar settings",
+      onClick: () => setShowToolsBackup(true),
+    },
+    {
+      label: "Simular entrega",
+      onClick: () => setShowToolsDeliveryQuote(true),
+    },
+    {
+      label: "Alertas de estoque",
+      onClick: () => setShowToolsStockAlerts(true),
+    },
+    {
+      label: "Monitor de pedidos (SSE)",
+      onClick: () => setShowToolsOrdersStream(true),
+    },
+    {
+      label: "Snapshot de health",
+      onClick: () => setShowToolsHealthSnapshot(true),
+    },
+  ];
   const [healthSnapshotLoading, setHealthSnapshotLoading] = useState(false);
   const [healthSnapshotError, setHealthSnapshotError] = useState("");
 
@@ -1639,10 +1679,16 @@ const SettingsPage = () => {
     }
     try {
       setImportApplying(true);
+      const nowIso = new Date().toISOString();
+      const payload = {
+        ...importPreview,
+        createdAt: importPreview.createdAt || nowIso,
+        updatedAt: nowIso,
+      };
       await window.dataEngine.set("settings", {
-        items: [importPreview],
+        items: [payload],
       });
-      setSettings(importPreview);
+      setSettings(payload);
       setPrintMessage("Backup aplicado com sucesso.");
       setTimeout(() => setPrintMessage(""), 3000);
       setImportPayload("");
@@ -1901,9 +1947,12 @@ const SettingsPage = () => {
     try {
       setSaving(true);
       setError(null);
+      const nowIso = new Date().toISOString();
 
       const payload = {
         ...settings,
+        createdAt: settings.createdAt || nowIso,
+        updatedAt: nowIso,
         api: {
           base_url: publicApiConfig.apiBaseUrl || "",
           api_key: publicApiConfig.publicApiToken || "",
@@ -2149,12 +2198,11 @@ const SettingsPage = () => {
       <div className="settings-nav">
         <span className="settings-nav-label">Atalhos</span>
         <div className="settings-nav-links">
-          <a className="settings-nav-link" href="#settings-general">Dados gerais</a>
-          <a className="settings-nav-link" href="#settings-integrations">Integracoes</a>
-          <a className="settings-nav-link" href="#settings-tools">Ferramentas</a>
-          <a className="settings-nav-link" href="#settings-delivery">Entrega</a>
-          <a className="settings-nav-link" href="#settings-hours">Horario</a>
-          <a className="settings-nav-link" href="#settings-printing">Impressao</a>
+          {SETTINGS_NAV_LINKS.map((link) => (
+            <a key={link.href} className="settings-nav-link" href={link.href}>
+              {link.label}
+            </a>
+          ))}
         </div>
       </div>
 
@@ -2341,7 +2389,7 @@ const SettingsPage = () => {
                   color: syncStatus.online ? "#065f46" : "#b91c1c",
                 }}
               >
-                Status: {syncStatus.online ? "Online" : "Offline"} | Ultimo pull: {formatSyncTime(syncStatus.lastPullAt)} | Ultimo push: {formatSyncTime(syncStatus.lastPushAt)} | Fila: {syncStatus.queueRemaining ?? 0}
+                Status: {syncStatus.online ? "Online" : "Offline"} | Última atualização (pull): {formatSyncTime(syncStatus.lastPullAt)} | Último envio (push): {formatSyncTime(syncStatus.lastPushAt)} | Fila: {syncStatus.queueRemaining ?? 0}
                 {syncStatus.lastPullError
                   ? ` | Erro pull: ${syncStatus.lastPullError}`
                   : ""}
@@ -2355,56 +2403,21 @@ const SettingsPage = () => {
           {/* Ferramentas */}
           <div className="settings-section" id="settings-tools">
             <div className="settings-section-title">Ferramentas</div>
-            <div className="field-helper" style={{ marginBottom: 8 }}>
+            <div className="field-helper settings-section-helper">
               Atalhos para diagnostico rapido e operacao de integracoes.
             </div>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 10,
-              }}
-            >
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setShowToolsBackup(true)}
-              >
-                Backup / restaurar settings
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setShowToolsDeliveryQuote(true)}
-              >
-                Simular entrega
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setShowToolsStockAlerts(true)}
-              >
-                Alertas de estoque
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setShowToolsOrdersStream(true)}
-              >
-                Monitor de pedidos (SSE)
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setShowToolsHealthSnapshot(true)}
-              >
-                Snapshot de health
-              </Button>
+            <div className="settings-tools-actions">
+              {toolActions.map((action) => (
+                <Button
+                  key={action.label}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={action.onClick}
+                >
+                  {action.label}
+                </Button>
+              ))}
             </div>
           </div>
 

@@ -12,12 +12,12 @@ const fetchFn = global.fetch
   : (...args) =>
       import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
-const SYNC_BASE_URL = (
-  process.env.SYNC_BASE_URL || "https://api.annetom.com"
-).replace(/\/+$/, "");
-const SYNC_PULL_INTERVAL_MS = Number(process.env.SYNC_PULL_INTERVAL_MS || 30000);
+const SYNC_PULL_INTERVAL_MS = Number(
+  process.env.SYNC_PULL_INTERVAL_MS || 3000
+); // 3s fixo para polling de pedidos/entregas
 const SYNC_STATE_FILENAME = "sync-state.json";
 const SYNC_SETTINGS_FILENAME = "sync-settings.json";
+const SYNC_LAST_PUSH_FILENAME = "sync-last-push.json";
 const SYNC_ITEM_COLLECTIONS = new Set([
   "products",
   "customers",
@@ -32,6 +32,7 @@ const BOOTSTRAP_COLLECTIONS = new Set([
   "orders",
   "motoboys",
   "cashSessions",
+  "settings",
 ]);
 
 let syncTimer = null;
@@ -58,6 +59,14 @@ const NEW_ORDER_NOTIFY_COOLDOWN_MS = Number(
   process.env.NEW_ORDER_NOTIFY_COOLDOWN_MS || 2000
 );
 
+function getSyncBaseUrl() {
+  return db.getSyncBaseUrl();
+}
+
+function hasSyncBaseUrl() {
+  return Boolean(getSyncBaseUrl());
+}
+
 function getSyncStatePath() {
   const dataDir = db.getDataDir();
   if (!fs.existsSync(dataDir)) {
@@ -72,6 +81,33 @@ function getSyncSettingsPath() {
     fs.mkdirSync(dataDir, { recursive: true });
   }
   return path.join(dataDir, SYNC_SETTINGS_FILENAME);
+}
+
+function getSyncLastPushPath() {
+  const dataDir = db.getDataDir();
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  return path.join(dataDir, SYNC_LAST_PUSH_FILENAME);
+}
+
+function refreshLastPushAtFromDisk() {
+  try {
+    const raw = fs.readFileSync(getSyncLastPushPath(), "utf8");
+    const parsed = JSON.parse(raw);
+    const lastPushAt = parsed && parsed.lastPushAt;
+    if (!lastPushAt) return;
+    const nextTs = Date.parse(lastPushAt);
+    const currentTs = Date.parse(syncStatus.lastPushAt || "");
+    if (Number.isNaN(nextTs)) return;
+    if (Number.isNaN(currentTs) || nextTs > currentTs) {
+      syncStatus.lastPushAt = lastPushAt;
+    }
+  } catch (err) {
+    if (err.code !== "ENOENT") {
+      console.error("[sync] Erro lendo lastPushAt:", err);
+    }
+  }
 }
 
 async function loadSyncSettings() {
@@ -132,7 +168,7 @@ async function saveSyncState() {
 }
 
 function updateSyncOnline() {
-  if (!SYNC_BASE_URL) {
+  if (!hasSyncBaseUrl()) {
     syncStatus.online = false;
     return;
   }
@@ -223,7 +259,14 @@ async function fetchJsonWithTimeout(url, options = {}) {
       signal: controller.signal,
     });
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      let bodyText = "";
+      try {
+        bodyText = await response.text();
+      } catch (err) {
+        bodyText = "";
+      }
+      const detail = bodyText ? `: ${bodyText}` : "";
+      throw new Error(`HTTP ${response.status}${detail}`);
     }
     return response.json();
   } finally {
@@ -237,6 +280,14 @@ function collectionHasItems(data) {
   if (Array.isArray(data.products)) return data.products.length > 0;
   if (Array.isArray(data)) return data.length > 0;
   return Object.keys(data).length > 0;
+}
+
+function normalizeSyncPayload(payload) {
+  if (!payload || typeof payload !== "object") return payload;
+  if (payload.success === true && payload.data) {
+    return payload.data;
+  }
+  return payload;
 }
 
 function normalizeWrapper(data) {
@@ -258,9 +309,21 @@ function normalizeWrapper(data) {
 function isIncomingNewer(incoming, current) {
   const incomingTs = Date.parse(incoming.updatedAt || incoming.createdAt || "");
   const currentTs = Date.parse(current.updatedAt || current.createdAt || "");
-  if (Number.isNaN(incomingTs)) return true;
+  if (Number.isNaN(incomingTs) && Number.isNaN(currentTs)) return false;
+  if (Number.isNaN(incomingTs)) return false;
   if (Number.isNaN(currentTs)) return true;
   return incomingTs >= currentTs;
+}
+
+function buildDeltaFromWrapper(wrapper) {
+  if (!wrapper) return { items: [], meta: { deleted: [] } };
+  return {
+    items: Array.isArray(wrapper.items) ? wrapper.items : [],
+    meta:
+      wrapper.meta && typeof wrapper.meta === "object"
+        ? wrapper.meta
+        : { deleted: [] },
+  };
 }
 
 async function applyDeltaToLocal(collection, delta) {
@@ -292,8 +355,10 @@ async function applyDeltaToLocal(collection, delta) {
         current.updatedAt || current.createdAt || ""
       );
       const deletedTs = Date.parse(entry.deletedAt || "");
-      if (Number.isNaN(deletedTs) || Number.isNaN(currentTs) || deletedTs >= currentTs) {
-        wrapper.items.splice(index, 1);
+      if (!Number.isNaN(deletedTs) && !Number.isNaN(currentTs)) {
+        if (deletedTs >= currentTs) {
+          wrapper.items.splice(index, 1);
+        }
       }
     }
   }
@@ -316,7 +381,11 @@ async function applyDeltaToLocal(collection, delta) {
 }
 
 async function pushFullCollection(name, data) {
-  const url = `${SYNC_BASE_URL}/sync/collection/${encodeURIComponent(name)}`;
+  const baseUrl = getSyncBaseUrl();
+  if (!baseUrl) {
+    throw new Error("SYNC_BASE_URL not set");
+  }
+  const url = `${baseUrl}/sync/collection/${encodeURIComponent(name)}`;
   return fetchJsonWithTimeout(url, {
     method: "POST",
     headers: {
@@ -328,7 +397,8 @@ async function pushFullCollection(name, data) {
 }
 
 async function pullCollectionsFromRemote() {
-  if (!SYNC_BASE_URL) {
+  const baseUrl = getSyncBaseUrl();
+  if (!baseUrl) {
     return { success: false, error: "SYNC_BASE_URL not set" };
   }
   if (syncInProgress) {
@@ -348,7 +418,8 @@ async function pullCollectionsFromRemote() {
     for (const name of collections) {
       const isItemCollection = SYNC_ITEM_COLLECTIONS.has(name);
       const since = syncState.lastSyncByCollection[name];
-      let url = `${SYNC_BASE_URL}/sync/collection/${encodeURIComponent(name)}`;
+      const isInitialSync = !since;
+      let url = `${baseUrl}/sync/collection/${encodeURIComponent(name)}`;
       if (since && isItemCollection) {
         url += `?since=${encodeURIComponent(since)}`;
       }
@@ -357,39 +428,69 @@ async function pullCollectionsFromRemote() {
         method: "GET",
         headers: getSyncHeaders(),
       });
+      const payloadData = normalizeSyncPayload(payload);
 
-      if (payload && payload.delta === true && isItemCollection) {
+      if (payloadData && payloadData.delta === true && isItemCollection) {
         const newOrdersFromSync = [];
+        const updatedOrdersFromSync = [];
         if (name === "orders") {
           const local = await db.getCollection(name);
           const wrapper =
             normalizeWrapper(local) || { items: [], meta: { deleted: [] } };
           const localIds = new Set(wrapper.items.map((item) => String(item.id)));
-          for (const item of payload.items || []) {
-            if (!localIds.has(String(item.id))) {
+          for (const item of payloadData.items || []) {
+            const itemId = String(item.id);
+            if (!localIds.has(itemId)) {
               if (item.source === "website") {
                 newWebsiteOrders += 1;
               }
               newOrdersFromSync.push(item);
+            } else {
+              updatedOrdersFromSync.push(item);
             }
           }
         }
-        await applyDeltaToLocal(name, payload);
-        if (name === "orders" && newOrdersFromSync.length > 0) {
-          newOrdersFromSync.forEach((order) => syncEvents.emit("new-order", order));
+        await applyDeltaToLocal(name, payloadData);
+        if (name === "orders") {
+          if (newOrdersFromSync.length > 0) {
+            newOrdersFromSync.forEach((order) =>
+              syncEvents.emit("new-order", order)
+            );
+          }
+          if (updatedOrdersFromSync.length > 0) {
+            updatedOrdersFromSync.forEach((order) =>
+              syncEvents.emit("updated-order", order)
+            );
+          }
         }
-      } else if (isItemCollection && !since) {
+      } else if (isItemCollection) {
         const local = await db.getCollection(name);
-        const remoteHasData = collectionHasItems(payload);
-        const localHasData = collectionHasItems(local);
+        const localWrapper = normalizeWrapper(local);
+        const remoteWrapper = normalizeWrapper(payloadData);
+        const localHasData = collectionHasItems(localWrapper || local);
+        const remoteHasData = collectionHasItems(remoteWrapper || payloadData);
 
-        if (!remoteHasData && localHasData && BOOTSTRAP_COLLECTIONS.has(name)) {
+        if (remoteWrapper && localWrapper) {
+          if (remoteHasData) {
+            if (localHasData) {
+              await applyDeltaToLocal(name, buildDeltaFromWrapper(remoteWrapper));
+              if (isInitialSync) {
+                const merged = await db.getCollection(name);
+                await pushFullCollection(name, merged);
+              }
+            } else {
+              await db.setCollection(name, remoteWrapper, { skipSync: true });
+            }
+          } else if (localHasData && BOOTSTRAP_COLLECTIONS.has(name)) {
+            await pushFullCollection(name, localWrapper);
+          }
+        } else if (!remoteHasData && localHasData && BOOTSTRAP_COLLECTIONS.has(name)) {
           await pushFullCollection(name, local);
         } else {
-          await db.setCollection(name, payload, { skipSync: true });
+          await db.setCollection(name, payloadData, { skipSync: true });
         }
       } else {
-        await db.setCollection(name, payload, { skipSync: true });
+        await db.setCollection(name, payloadData, { skipSync: true });
       }
 
       syncState.lastSyncByCollection[name] = nowIso;
@@ -426,15 +527,16 @@ async function pullCollectionsFromRemote() {
 }
 
 async function runSyncCycle() {
-  const pullResult = await pullCollectionsFromRemote();
   const flushResult = await db.flushSyncQueue();
+  const pullResult = await pullCollectionsFromRemote();
 
   if (flushResult && flushResult.flushed > 0) {
     syncStatus.lastPushAt = new Date().toISOString();
-    syncStatus.lastPushError = null;
   }
   if (flushResult && flushResult.success === false) {
-    syncStatus.lastPushError = "queue_flush_failed";
+    syncStatus.lastPushError = flushResult.error || "queue_flush_failed";
+  } else if (flushResult && flushResult.remaining === 0) {
+    syncStatus.lastPushError = null;
   }
 
   if (flushResult && typeof flushResult.remaining === "number") {
@@ -446,15 +548,32 @@ async function runSyncCycle() {
 }
 
 function startSyncPull() {
-  if (!SYNC_BASE_URL) return;
+  if (!hasSyncBaseUrl()) return;
   void runSyncCycle();
   syncTimer = setInterval(() => {
     void runSyncCycle();
   }, SYNC_PULL_INTERVAL_MS);
 }
 
+function stopSyncPull() {
+  if (syncTimer) {
+    clearInterval(syncTimer);
+    syncTimer = null;
+  }
+}
+
 function getSyncStatus() {
+  refreshLastPushAtFromDisk();
   return syncStatus;
+}
+
+function getNotificationStatus() {
+  return notificationsEnabled;
+}
+
+function setNotificationStatus(value) {
+  notificationsEnabled = Boolean(value);
+  return notificationsEnabled;
 }
 
 module.exports = {
@@ -464,5 +583,8 @@ module.exports = {
   getSyncStatus,
   loadSyncSettings,
   saveSyncSettings,
-  notificationsEnabled,
+  stopSyncPull,
+  hasSyncBaseUrl,
+  getNotificationStatus,
+  setNotificationStatus
 };

@@ -34,6 +34,20 @@ async function lookupCepByAddress({ street, city, state }) {
   };
 }
 
+async function retryLookup(lookupFn, { retries = 2, delayMs = 800 } = {}) {
+  let lastError = null;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await lookupFn();
+    } catch (err) {
+      lastError = err;
+      if (attempt >= retries) break;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
+
 function normalizeNeighborhoodKey(value) {
   if (!value) return "";
   return value
@@ -57,14 +71,24 @@ function findBlockedNeighborhood(neighborhood, blockedList) {
 
 const ORDER_DRAFT_STORAGE_KEY = "orderDraftV1";
 
+function normalizeAddressParts(address, neighborhoodOverride) {
+  const addr = address || {};
+  return {
+    cep: addr.cep || addr.CEP || "",
+    street: addr.street || addr.rua || "",
+    number: addr.number || addr.numero || "",
+    neighborhood: neighborhoodOverride || addr.neighborhood || addr.bairro || "",
+    city: addr.city || addr.cidade || "",
+    state: addr.state || addr.uf || "",
+  };
+}
+
 function getMissingAddressFields(address, neighborhoodOverride) {
   const missing = [];
-  const addr = address || {};
+  const addr = normalizeAddressParts(address, neighborhoodOverride);
   if (!addr.street) missing.push("Rua");
   if (!addr.number) missing.push("Número");
-  const neighborhood =
-    neighborhoodOverride || addr.neighborhood || addr.bairro || "";
-  if (!neighborhood) missing.push("Bairro");
+  if (!addr.neighborhood) missing.push("Bairro");
   if (!addr.city) missing.push("Cidade");
   if (!addr.state) missing.push("Estado");
   return missing;
@@ -1446,15 +1470,17 @@ export default function NewOrderModal({
     if (!activeCustomerAddress) {
       return { line1: "", line2: "" };
     }
-    const addr = activeCustomerAddress || {};
+    const addr = normalizeAddressParts(
+      activeCustomerAddress,
+      deliveryNeighborhoodValue
+    );
     let line1 = "";
     if (addr.street) {
       line1 = addr.street;
       if (addr.number) line1 += `, ${addr.number}`;
     }
 
-    const neighborhood =
-      deliveryNeighborhoodValue || addr.neighborhood || addr.bairro || "";
+    const neighborhood = addr.neighborhood;
     let line2 = "";
     if (neighborhood) line2 = neighborhood;
     if (addr.city) line2 += (line2 ? " - " : "") + addr.city;
@@ -1691,7 +1717,7 @@ export default function NewOrderModal({
       return;
     }
 
-    const addr = customer.address || {};
+    const addr = normalizeAddressParts(customer.address, neighborhoodValue);
     const missing = getMissingAddressFields(addr, neighborhoodValue);
     if (missing.length > 0) {
       setDistanceError(
@@ -1707,8 +1733,7 @@ export default function NewOrderModal({
       parts.push(line1);
     }
 
-    const neighborhood =
-      neighborhoodValue || addr.neighborhood || addr.bairro;
+    const neighborhood = addr.neighborhood;
     if (neighborhood) parts.push(neighborhood);
     if (addr.city) parts.push(addr.city);
     if (addr.state) parts.push(addr.state);
@@ -1750,7 +1775,7 @@ export default function NewOrderModal({
   useEffect(() => {
     if (customerMode !== "registered") return;
     if (!selectedCustomer || !activeCustomerAddress) return;
-    const addr = activeCustomerAddress || {};
+    const addr = normalizeAddressParts(activeCustomerAddress);
     const cepDigits = digitsOnly(addr.cep || "");
     const hasCep = cepDigits.length === 8;
     const missingCityState = !addr.city || !addr.state;
@@ -1778,13 +1803,17 @@ export default function NewOrderModal({
     const syncAddress = async () => {
       setIsSyncingCustomerAddress(true);
       try {
-        const lookupData = canLookupByCep
-          ? await lookupCep(cepDigits)
-          : await lookupCepByAddress({
-              street: addr.street,
-              city: addr.city,
-              state: addr.state,
-            });
+        const lookupData = await retryLookup(
+          () =>
+            canLookupByCep
+              ? lookupCep(cepDigits)
+              : lookupCepByAddress({
+                  street: addr.street,
+                  city: addr.city,
+                  state: addr.state,
+                }),
+          { retries: 2, delayMs: 800 }
+        );
 
         const patch = {
           cep: addr.cep || lookupData.cep,
@@ -1795,7 +1824,7 @@ export default function NewOrderModal({
         };
 
         const updatedAddress = {
-          ...addr,
+          ...activeCustomerAddress,
           ...patch,
         };
 
@@ -2388,19 +2417,16 @@ export default function NewOrderModal({
       customerPhone = selectedCustomer.phone || "";
       customerCpf = selectedCustomer.cpf || "";
       if (activeCustomerAddress) {
-        const addr = activeCustomerAddress;
-        const neighborhoodValue =
-          (
-            deliveryAddressNeighborhood ||
-            addr.neighborhood ||
-            addr.bairro ||
-            ""
-          ).trim();
+        const addr = normalizeAddressParts(
+          activeCustomerAddress,
+          deliveryAddressNeighborhood
+        );
+        const neighborhoodValue = (addr.neighborhood || "").trim();
         customerAddress = {
           cep: addr.cep || "",
           street: addr.street || "",
           number: addr.number || "",
-          complement: addr.complement || "",
+          complement: activeCustomerAddress.complement || "",
           neighborhood: neighborhoodValue,
           city: addr.city || "",
           state: addr.state || "",
@@ -2775,6 +2801,18 @@ export default function NewOrderModal({
                         </button>
                         <button
                           type="button"
+                          className="btn btn-sm btn-ghost"
+                          onClick={() => {
+                            setSelectedCustomerId(null);
+                            setSelectedCustomerAddressId("primary");
+                            setCustomerSearch("");
+                            setShowCustomerSearch(true);
+                          }}
+                        >
+                          Limpar
+                        </button>
+                        <button
+                          type="button"
                           className="btn btn-sm btn-outline"
                           onClick={() => setShowCustomerEditModal(true)}
                         >
@@ -2843,6 +2881,12 @@ export default function NewOrderModal({
                                 Atualizando CEP...
                               </span>
                             )}
+                            {orderType === "delivery" &&
+                              missingAddressFields.length > 0 && (
+                                <span className="customer-summary-tag customer-summary-tag--warn">
+                                  Endereço incompleto
+                                </span>
+                              )}
                           </div>
                         )}
                       </div>
@@ -4033,13 +4077,14 @@ export default function NewOrderModal({
               </div>
             ) : (
               customerAltAddresses.map((addr) => {
-                const line1 = `${addr.street || ""}${
-                  addr.number ? `, ${addr.number}` : ""
+                const normalized = normalizeAddressParts(addr);
+                const line1 = `${normalized.street || ""}${
+                  normalized.number ? `, ${normalized.number}` : ""
                 }`.trim();
                 const line2 = [
-                  addr.neighborhood,
-                  addr.city,
-                  addr.state,
+                  normalized.neighborhood,
+                  normalized.city,
+                  normalized.state,
                 ]
                   .filter(Boolean)
                   .join(" - ");

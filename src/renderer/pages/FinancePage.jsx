@@ -12,15 +12,17 @@ import CashSessionRow from "../components/finance/CashSessionRow";
 import EmptyState from "../components/common/EmptyState";
 import OpenCashSessionModal from "../components/finance/OpenCashSessionModal";
 import CloseCashSessionModal from "../components/finance/CloseCashSessionModal";
+import { formatCurrencyBR, getOrderTotal } from "../utils/orderUtils";
 import { emitToast } from "../utils/toast";
 
-const COMMISSION_RATE = 0.012; // 1,5%
+const COMMISSION_RATE = 0.012; // 1,2%
+const COMMISSION_COLLECTION = "commissions";
 
-const formatCurrency = (value) =>
-  (Number(value) || 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+const normalizeCollectionItems = (data) => {
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data)) return data;
+  return [];
+};
 
 const parseMoneyInput = (raw) => {
   if (raw === null || raw === undefined) return 0;
@@ -99,14 +101,6 @@ const getOrderDate = (order) => {
   if (!raw) return null;
   const d = new Date(raw);
   return Number.isNaN(d.getTime()) ? null : d;
-};
-
-const getOrderTotal = (order) => {
-  if (typeof order.total === "number") return order.total;
-  if (typeof order.grandTotal === "number") return order.grandTotal;
-  if (typeof order.amount === "number") return order.amount;
-  if (typeof order.valorTotal === "number") return order.valorTotal;
-  return Number(order.total || 0);
 };
 
 const getOrderPaymentMethod = (order) => {
@@ -390,6 +384,7 @@ const FinancePage = () => {
   const cashSessionsRef = useRef([]);
   const ordersRef = useRef([]);
   const lastAutoClosureDateRef = useRef(null);
+  const commissionSyncRef = useRef(false);
 
   useEffect(() => {
     cashSessionsRef.current = cashSessions;
@@ -602,6 +597,129 @@ const FinancePage = () => {
       "30d": buildRangeStats(30),
     };
   }, [orders]);
+
+  const buildTodayCommissionRecord = useCallback(() => {
+    const now = new Date();
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+
+    const ordersInRange = orders.filter((o) => {
+      const d = getOrderDate(o);
+      return d && d >= start && d <= now;
+    });
+
+    const statsForRange = computeOrderStats(ordersInRange);
+    const commissionRaw = statsForRange.total * COMMISSION_RATE;
+    const commission = Math.round(commissionRaw * 100) / 100;
+    const dateKey = now.toISOString().slice(0, 10);
+
+    return {
+      id: `commission-${dateKey}`,
+      date: dateKey,
+      periodStart: start.toISOString(),
+      periodEnd: now.toISOString(),
+      rate: COMMISSION_RATE,
+      totalSales: statsForRange.total,
+      commission,
+      ordersCount: statsForRange.count,
+      source: "pdv",
+      updatedAt: now.toISOString(),
+    };
+  }, [orders]);
+
+  const upsertCommissionRecord = useCallback(async (record) => {
+    if (!window.dataEngine) return null;
+    const current = await window.dataEngine.get(COMMISSION_COLLECTION);
+    const items = normalizeCollectionItems(current);
+    const index = items.findIndex((item) => item.id === record.id);
+    const next = [...items];
+    if (index >= 0) {
+      next[index] = { ...items[index], ...record };
+    } else {
+      next.push({ ...record, createdAt: record.createdAt || record.updatedAt });
+    }
+    await window.dataEngine.set(COMMISSION_COLLECTION, { items: next });
+    return next[index >= 0 ? index : next.length - 1];
+  }, []);
+
+  const syncCommissionToApi = useCallback(async () => {
+    if (commissionSyncRef.current) return;
+    commissionSyncRef.current = true;
+
+    try {
+      const record = buildTodayCommissionRecord();
+      const stored = await upsertCommissionRecord(record);
+      const lastSentTotal = stored?.lastSentTotalSales;
+      const lastSentCommission = stored?.lastSentCommission;
+      const wasSent =
+        stored?.lastSendStatus === "success" &&
+        lastSentTotal === record.totalSales &&
+        lastSentCommission === record.commission;
+
+      if (wasSent) return;
+
+      let apiConfig = null;
+      if (window.electronAPI?.getPublicApiConfig) {
+        try {
+          apiConfig = await window.electronAPI.getPublicApiConfig();
+        } catch (err) {
+          apiConfig = null;
+        }
+      }
+
+      const baseUrl = (apiConfig?.apiBaseUrl || "").replace(/\/+$/, "");
+      const apiToken = apiConfig?.publicApiToken || "";
+
+      if (!baseUrl) {
+        await upsertCommissionRecord({
+          ...record,
+          lastSendStatus: "skipped",
+          lastSendError: "Base URL nao configurada.",
+          lastSentAt: null,
+        });
+        return;
+      }
+
+      const response = await fetch(`${baseUrl}/api/pdv/commissions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiToken ? { "x-api-key": apiToken } : {}),
+        },
+        body: JSON.stringify(record),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        await upsertCommissionRecord({
+          ...record,
+          lastSendStatus: "error",
+          lastSendError: text || "Falha ao enviar comissao.",
+          lastSentAt: null,
+        });
+        return;
+      }
+
+      await upsertCommissionRecord({
+        ...record,
+        lastSendStatus: "success",
+        lastSendError: "",
+        lastSentAt: new Date().toISOString(),
+        lastSentTotalSales: record.totalSales,
+        lastSentCommission: record.commission,
+      });
+    } finally {
+      commissionSyncRef.current = false;
+    }
+  }, [buildTodayCommissionRecord, upsertCommissionRecord]);
+
+  useEffect(() => {
+    if (!orders.length) {
+      void syncCommissionToApi();
+      return;
+    }
+    void syncCommissionToApi();
+  }, [orders, syncCommissionToApi]);
 
   // -----------------------------
   // Fechamento automático à meia-noite
@@ -1219,7 +1337,7 @@ const FinancePage = () => {
                     Vendas em caixa
                   </div>
                   <div className="finance-card-value">
-                    {formatCurrency(stats.totalSales)}
+                    {formatCurrencyBR(stats.totalSales)}
                   </div>
                   <p className="finance-card-helper">
                     Soma das vendas registradas nas sessões.
@@ -1231,7 +1349,7 @@ const FinancePage = () => {
                     Diferença acumulada
                   </div>
                   <div className="finance-card-value">
-                    {formatCurrency(stats.totalDifference)}
+                    {formatCurrencyBR(stats.totalDifference)}
                   </div>
                   <p className="finance-card-helper">
                     Soma de sobras e faltas no período.
@@ -1243,7 +1361,7 @@ const FinancePage = () => {
                     Média por sessão fechada
                   </div>
                   <div className="finance-card-value">
-                    {formatCurrency(stats.avgPerSession)}
+                    {formatCurrencyBR(stats.avgPerSession)}
                   </div>
                   <p className="finance-card-helper">
                     Vendas divididas pelas sessões fechadas.
@@ -1280,7 +1398,7 @@ const FinancePage = () => {
                     <div className="finance-last-closure-item">
                       <span className="label">Vendas</span>
                       <strong>
-                        {formatCurrency(
+                        {formatCurrencyBR(
                           getSessionSales(lastClosedSession)
                         )}
                       </strong>
@@ -1290,7 +1408,7 @@ const FinancePage = () => {
                         Diferença do caixa
                       </span>
                       <strong>
-                        {formatCurrency(
+                        {formatCurrencyBR(
                           getSessionDifference(lastClosedSession)
                         )}
                       </strong>
@@ -1300,7 +1418,7 @@ const FinancePage = () => {
                         Saldo de fechamento
                       </span>
                       <strong>
-                        {formatCurrency(
+                        {formatCurrencyBR(
                           getSessionClosing(lastClosedSession)
                         )}
                       </strong>
@@ -1332,7 +1450,7 @@ const FinancePage = () => {
                         Faturamento (pedidos)
                       </div>
                       <div className="finance-card-value">
-                        {formatCurrency(orderStats.total)}
+                        {formatCurrencyBR(orderStats.total)}
                       </div>
                     </div>
                     <div className="finance-card">
@@ -1340,7 +1458,7 @@ const FinancePage = () => {
                         Recebido
                       </div>
                       <div className="finance-card-value">
-                        {formatCurrency(orderStats.paidTotal)}
+                        {formatCurrencyBR(orderStats.paidTotal)}
                       </div>
                     </div>
                     <div className="finance-card">
@@ -1348,7 +1466,7 @@ const FinancePage = () => {
                         Em aberto
                       </div>
                       <div className="finance-card-value">
-                        {formatCurrency(orderStats.unpaidTotal)}
+                        {formatCurrencyBR(orderStats.unpaidTotal)}
                       </div>
                     </div>
                   </div>
@@ -1389,7 +1507,7 @@ const FinancePage = () => {
                     Faturamento total (sessões)
                   </div>
                   <div className="finance-card-value">
-                    {formatCurrency(stats.totalSales)}
+                    {formatCurrencyBR(stats.totalSales)}
                   </div>
                   <p className="finance-card-helper">
                     Soma das vendas em todas as sessões filtradas.
@@ -1401,7 +1519,7 @@ const FinancePage = () => {
                     Faturamento total (pedidos)
                   </div>
                   <div className="finance-card-value">
-                    {formatCurrency(orderStats.total)}
+                    {formatCurrencyBR(orderStats.total)}
                   </div>
                   <p className="finance-card-helper">
                     Baseado nos pedidos do período.
@@ -1413,7 +1531,7 @@ const FinancePage = () => {
                     Saldo de abertura acumulado
                   </div>
                   <div className="finance-card-value">
-                    {formatCurrency(stats.openingSum)}
+                    {formatCurrencyBR(stats.openingSum)}
                   </div>
                 </div>
 
@@ -1422,7 +1540,7 @@ const FinancePage = () => {
                     Saldo de fechamento acumulado
                   </div>
                   <div className="finance-card-value">
-                    {formatCurrency(stats.closingSum)}
+                    {formatCurrencyBR(stats.closingSum)}
                   </div>
                 </div>
               </div>
@@ -1440,12 +1558,12 @@ const FinancePage = () => {
                       Hoje (1 dia)
                     </div>
                     <div className="finance-card-value">
-                      {formatCurrency(
+                      {formatCurrencyBR(
                         commissionStats["1d"].commission
                       )}
                     </div>
                     <p className="finance-card-helper">
-                      Sobre {formatCurrency(
+                      Sobre {formatCurrencyBR(
                         commissionStats["1d"].totalSales
                       )} em vendas.
                     </p>
@@ -1456,12 +1574,12 @@ const FinancePage = () => {
                       Últimos 7 dias
                     </div>
                     <div className="finance-card-value">
-                      {formatCurrency(
+                      {formatCurrencyBR(
                         commissionStats["7d"].commission
                       )}
                     </div>
                     <p className="finance-card-helper">
-                      Sobre {formatCurrency(
+                      Sobre {formatCurrencyBR(
                         commissionStats["7d"].totalSales
                       )} em vendas.
                     </p>
@@ -1472,12 +1590,12 @@ const FinancePage = () => {
                       Últimos 15 dias
                     </div>
                     <div className="finance-card-value">
-                      {formatCurrency(
+                      {formatCurrencyBR(
                         commissionStats["15d"].commission
                       )}
                     </div>
                     <p className="finance-card-helper">
-                      Sobre {formatCurrency(
+                      Sobre {formatCurrencyBR(
                         commissionStats["15d"].totalSales
                       )} em vendas.
                     </p>
@@ -1488,12 +1606,12 @@ const FinancePage = () => {
                       Últimos 30 dias
                     </div>
                     <div className="finance-card-value">
-                      {formatCurrency(
+                      {formatCurrencyBR(
                         commissionStats["30d"].commission
                       )}
                     </div>
                     <p className="finance-card-helper">
-                      Sobre {formatCurrency(
+                      Sobre {formatCurrencyBR(
                         commissionStats["30d"].totalSales
                       )} em vendas.
                     </p>
@@ -1542,8 +1660,8 @@ const FinancePage = () => {
                         <span>{dateStr}</span>
                         <span>{status}</span>
                         <span>{operator}</span>
-                        <span>{formatCurrency(sales)}</span>
-                        <span>{formatCurrency(diff)}</span>
+                        <span>{formatCurrencyBR(sales)}</span>
+                        <span>{formatCurrencyBR(diff)}</span>
                       </div>
                     );
                   })}

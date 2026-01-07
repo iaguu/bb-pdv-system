@@ -86,8 +86,14 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
       street: editingData?.address?.street || "",
       number: editingData?.address?.number || "",
       neighborhood: editingData?.address?.neighborhood || "",
-      city: editingData?.address?.city || "",
-      state: editingData?.address?.state || "",
+      city:
+        editingData?.address?.city ||
+        editingData?.address?.cidade ||
+        "",
+      state:
+        editingData?.address?.state ||
+        editingData?.address?.uf ||
+        "",
       complement: editingData?.address?.complement || "",
       reference: editingData?.address?.reference || "",
     },
@@ -142,8 +148,14 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
         street: editingData.address?.street || "",
         number: editingData.address?.number || "",
         neighborhood: editingData.address?.neighborhood || "",
-        city: editingData.address?.city || "",
-        state: editingData.address?.state || "",
+        city:
+          editingData.address?.city ||
+          editingData.address?.cidade ||
+          "",
+        state:
+          editingData.address?.state ||
+          editingData.address?.uf ||
+          "",
         complement: editingData.address?.complement || "",
         reference: editingData.address?.reference || "",
       },

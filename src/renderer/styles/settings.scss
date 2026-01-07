@@ -95,7 +95,7 @@ $settings-text-soft: #9ca3af;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  box-shadow: none;
 }
 
 .settings-section-title {
@@ -107,6 +107,16 @@ $settings-text-soft: #9ca3af;
 /* Grid interno de campos (lado esquerdo) */
 .settings-grid {
   margin-top: 4px;
+}
+
+.settings-section-helper {
+  margin-bottom: 8px;
+}
+
+.settings-tools-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
 }
 
 /* Reaproveita .form-grid se existir em outras telas */

@@ -10,10 +10,30 @@ const db = require("./db"); // ajuste o path se necessário
 const apiServer = require("./apiServer");
 const sync = require("./sync");
 const { orderEvents, getTrackingBaseUrl } = apiServer;
+const isDev = !app.isPackaged;
 const packagedEnvPath = path.join(process.resourcesPath || "", ".env");
 const devEnvPath = path.join(__dirname, "..", ".env");
-if (fs.existsSync(packagedEnvPath)) dotenv.config({ path: packagedEnvPath });
-else if (fs.existsSync(devEnvPath)) dotenv.config({ path: devEnvPath });
+const devEnvOverridePath = path.join(__dirname, "..", ".env.development");
+const prodEnvOverridePath = path.join(__dirname, "..", ".env.production");
+const envFile = process.env.ENV_FILE || "";
+const envCandidates = [];
+if (envFile) {
+  if (path.isAbsolute(envFile)) {
+    envCandidates.push(envFile);
+  } else {
+    envCandidates.push(path.join(process.resourcesPath || "", envFile));
+    envCandidates.push(path.join(__dirname, "..", envFile));
+  }
+} else if (isDev) {
+  envCandidates.push(devEnvOverridePath);
+} else {
+  envCandidates.push(prodEnvOverridePath);
+}
+envCandidates.push(packagedEnvPath, devEnvPath);
+const resolvedEnvPath = envCandidates.find((candidate) =>
+  candidate && fs.existsSync(candidate)
+);
+if (resolvedEnvPath) dotenv.config({ path: resolvedEnvPath, override: true });
 else dotenv.config();
 const fetch = require("node-fetch");
 // Helper fetch no processo main (Node/Electron)
@@ -22,10 +42,23 @@ const fetchFn = global.fetch
   ? global.fetch
   : (...args) =>
       import("node-fetch").then(({ default: fetch }) => fetch(...args));
+const trimTrailingSlash = (value) =>
+  typeof value === "string" ? value.replace(/\/+$/, "") : "";
+const trimApiSuffix = (value) => {
+  const trimmed = trimTrailingSlash(value);
+  return trimmed ? trimmed.replace(/\/api$/i, "") : "";
+};
+const envPublicApiBase =
+  trimApiSuffix(process.env.PUBLIC_API_BASE_URL) ||
+  trimApiSuffix(process.env.PDV_API_BASE_URL);
+const syncBaseClean = trimApiSuffix(process.env.SYNC_BASE_URL);
+const DEFAULT_PUBLIC_API_BASE_URL =
+  envPublicApiBase ||
+  syncBaseClean ||
+  "https://pdv.axionenterprise.cloud/annetom";
 const UPDATE_CHECK_URL = process.env.UPDATE_CHECK_URL || "";
 const UPDATE_CHECK_TIMEOUT_MS = Number(process.env.UPDATE_CHECK_TIMEOUT_MS || 6000);
 
-const isDev = !app.isPackaged;
 let mainWindow;
 let mainWindowReady = false;
 const pendingNewOrders = [];
@@ -397,7 +430,7 @@ ipcMain.handle("app:getInfo", async () => {
 
 ipcMain.handle("app:getPublicApiConfig", async () => {
   return {
-    apiBaseUrl: process.env.SYNC_BASE_URL || "",
+    apiBaseUrl: DEFAULT_PUBLIC_API_BASE_URL,
     publicApiToken: process.env.PUBLIC_API_TOKEN || "",
   };
 });
@@ -2398,12 +2431,12 @@ ipcMain.handle("print:test", async (event, { role } = {}) => {
 // IPC: Sincronização manual (pull)
 // -------------------------------------
 ipcMain.handle("sync:pull", async () => {
-  if (!SYNC_BASE_URL) {
+  if (!sync.hasSyncBaseUrl()) {
     return { success: false, error: "SYNC_BASE_URL nao configurado." };
   }
 
   try {
-    const result = await runSyncCycle();
+    const result = await sync.runSyncCycle();
     return { success: true, ...result };
   } catch (err) {
     console.error("[sync] Erro no pull manual:", err);
@@ -2412,17 +2445,17 @@ ipcMain.handle("sync:pull", async () => {
 });
 
 ipcMain.handle("sync:status", async () => {
-  return { ...syncStatus };
+  return sync.getSyncStatus();
 });
 
 ipcMain.handle("sync:notifications:get", async () => {
-  return { enabled: notificationsEnabled };
+  return { enabled: sync.getNotificationStatus() };
 });
 
 ipcMain.handle("sync:notifications:set", async (_event, enabled) => {
-  notificationsEnabled = Boolean(enabled);
-  await saveSyncSettings();
-  return { enabled: notificationsEnabled };
+  const updated = sync.setNotificationStatus(enabled);
+  await sync.saveSyncSettings();
+  return { enabled: updated };
 });
 
 // -------------------------------------
@@ -2469,8 +2502,8 @@ ipcMain.handle("cash:export-report-pdf", async (_event, reportPayload) => {
 // -------------------------------------
 app.whenReady().then(() => {
   createMainWindow();
-  void loadSyncSettings();
-  startSyncPull();
+  void sync.loadSyncSettings();
+  sync.startSyncPull();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -2480,10 +2513,7 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  if (syncTimer) {
-    clearInterval(syncTimer);
-    syncTimer = null;
-  }
+  sync.stopSyncPull();
   if (process.platform !== "darwin") {
     app.quit();
   }
