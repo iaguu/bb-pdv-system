@@ -69,9 +69,9 @@ const OrdersPage = () => {
 
     const minMinutes =
       typeof order.deliveryMinMinutes === "number"
-         order.deliveryMinMinutes
+        ? order.deliveryMinMinutes
         : 0;
-    const threshold = minMinutes > 0  minMinutes : 40;
+    const threshold = minMinutes > 0 ? minMinutes : 40;
 
     const diffMinutes = Math.round(
       (Date.now() - created.getTime()) / 60000
@@ -94,19 +94,19 @@ const OrdersPage = () => {
       draft.customerSnapshot && typeof draft.customerSnapshot === "object";
 
     const rawSubtotal =
-      draft.subtotal 
-      (hasTotals  draft.totals.subtotal : 0) 
+      draft.subtotal ??
+      (hasTotals ? draft.totals.subtotal : 0) ??
       0;
 
     const rawDeliveryFee =
-      draft.deliveryFee 
-      draft.delivery.fee 
-      (hasTotals  draft.totals.deliveryFee : 0) 
+      draft.deliveryFee ??
+      draft.delivery?.fee ??
+      (hasTotals ? draft.totals.deliveryFee : 0) ??
       0;
 
     const rawDiscount =
       typeof draft.discount === "object"
-         draft.discount.amount
+        ? draft.discount.amount
         : draft.discount;
 
     const subtotal = Number(rawSubtotal || 0);
@@ -114,7 +114,7 @@ const OrdersPage = () => {
     const discount = Number(rawDiscount || 0);
 
     const finalTotal =
-      Number(draft.total  (hasTotals  draft.totals.finalTotal : 0)) ||
+      Number(draft.total ?? (hasTotals ? draft.totals.finalTotal : 0)) ||
       subtotal + deliveryFee - discount;
 
     const typeRaw = (draft.type || draft.orderType || "delivery")
@@ -138,7 +138,7 @@ const OrdersPage = () => {
       "";
     const paymentMethod =
       typeof paymentMethodRaw === "string"
-         paymentMethodRaw.toLowerCase()
+        ? paymentMethodRaw.toLowerCase()
         : "";
 
     const payment = {
@@ -188,19 +188,19 @@ const OrdersPage = () => {
 
     const motoboyBaseFee =
       typeof draft.motoboyBaseFee === "number"
-         draft.motoboyBaseFee
+        ? draft.motoboyBaseFee
         : typeof draft.delivery.motoboyBaseFee === "number"
-         draft.delivery.motoboyBaseFee
+        ? draft.delivery.motoboyBaseFee
         : typeof motoboySnapshot.baseFee === "number"
-         motoboySnapshot.baseFee
+        ? motoboySnapshot.baseFee
         : null;
 
     const motoboyStatus =
       draft.motoboyStatus ||
       draft.delivery.motoboyStatus ||
       (type === "delivery"
-         motoboyId
-           "assigned"
+        ? motoboyId
+          ? "assigned"
           : "waiting_qr"
         : null);
 
@@ -220,11 +220,11 @@ const OrdersPage = () => {
 
     const customerSnapshot =
       hasCustomerSnapshot
-         draft.customerSnapshot
+        ? draft.customerSnapshot
         : (draft.customerName ||
             draft.customerPhone ||
             draft.customerCpf)
-         {
+        ? {
             id: draft.customerId || null,
             name: draft.customerName || "Cliente",
             phone: draft.customerPhone || "",
@@ -233,12 +233,12 @@ const OrdersPage = () => {
           }
         : null;
 
-    const items = Array.isArray(draft.items)  draft.items : [];
+    const items = Array.isArray(draft.items) ? draft.items : [];
     const normalizedItems = items.map((it, idx) => {
-      const quantity = Number(it.quantity  it.qty  1);
-      const unitPrice = Number(it.unitPrice  it.price  0);
+      const quantity = Number(it.quantity ?? it.qty ?? 1);
+      const unitPrice = Number(it.unitPrice ?? it.price ?? 0);
       const lineTotal =
-        Number(it.lineTotal  it.total) || unitPrice * quantity;
+        Number(it.lineTotal ?? it.total) || unitPrice * quantity;
 
       const flavor1Name = it.name || it.flavor1Name || "Item";
       const flavor2Name = it.halfDescription || it.flavor2Name || "";
@@ -246,12 +246,12 @@ const OrdersPage = () => {
       const size = it.size || it.sizeLabel || "";
       const kind =
         it.kind ||
-        (size || it.productName || it.productId  "pizza" : "drink");
-      const extras = (Array.isArray(it.extras)  it.extras : []).map(
+        (size || it.productName || it.productId ? "pizza" : "drink");
+      const extras = (Array.isArray(it.extras) ? it.extras : []).map(
         (extra) => ({
           ...extra,
           unitPrice:
-            Number(extra.unitPrice  extra.price  extra.value  0) || 0,
+            Number(extra.unitPrice ?? extra.price ?? extra.value ?? 0) || 0,
         })
       );
 
@@ -274,8 +274,8 @@ const OrdersPage = () => {
         flavor1Name,
         flavor2Name,
         flavor3Name,
-        twoFlavors: it.twoFlavors  Boolean(flavor2Name),
-        threeFlavors: it.threeFlavors  Boolean(flavor3Name),
+        twoFlavors: it.twoFlavors ?? Boolean(flavor2Name),
+        threeFlavors: it.threeFlavors ?? Boolean(flavor3Name),
         extras,
         kitchenNotes:
           it.kitchenNotes || it.obs || it.observacao || "",
@@ -288,12 +288,12 @@ const OrdersPage = () => {
     const summary =
       draft.summary ||
       (normalizedItems.length
-         normalizedItems
+        ? normalizedItems
             .slice(0, 2)
             .map(
               (it) =>
                 `${it.quantity}x ${
-                  it.size  it.size + " " : ""
+                  it.size ? it.size + " " : ""
                 }${it.name}`
             )
             .join(" • ")
@@ -359,7 +359,7 @@ const OrdersPage = () => {
     );
     const totalOrdersToday = todayOrders.length;
     const avgTicket =
-      totalOrdersToday > 0  totalRevenueToday / totalOrdersToday : 0;
+      totalOrdersToday > 0 ? totalRevenueToday / totalOrdersToday : 0;
 
     const bySource = todayOrders.reduce(
       (acc, o) => {
@@ -447,7 +447,7 @@ const OrdersPage = () => {
       }
       const data = await window.dataEngine.get("orders");
 
-      const items = Array.isArray(data.items)  data.items : [];
+      const items = Array.isArray(data.items) ? data.items : [];
 
       // Soft delete: filtra pedidos marcados como deleted
       const visibleItems = items.filter((o) => !o.deleted);
@@ -534,7 +534,8 @@ const OrdersPage = () => {
 
       // Salva no DataEngine e tenta obter o registro salvo (com ID)
       const saved = await window.dataEngine.addItem("orders", payload);
-      const orderForPrint = saved && typeof saved === "object"  saved : payload;
+      const orderForPrint =
+        saved && typeof saved === "object" ? saved : payload;
 
       // Imprime automaticamente o pedido completo ao criar
       await handlePrintOrder(orderForPrint, "full");
@@ -575,7 +576,7 @@ const OrdersPage = () => {
         id: orderId,
         _id: formInitialOrder._id,
         history: Array.isArray(formInitialOrder.history)
-           formInitialOrder.history
+          ? formInitialOrder.history
           : [],
       };
 
@@ -585,16 +586,16 @@ const OrdersPage = () => {
         );
         setOrders((prev) =>
           prev.map((o) =>
-            o.id === orderId || o._id === orderId  updatedOrder : o
+            o.id === orderId || o._id === orderId ? updatedOrder : o
           )
         );
       } else if (typeof window.dataEngine.updateItem === "function") {
         await window.dataEngine.updateItem("orders", orderId, updatedOrder);
       } else if (typeof window.dataEngine.set === "function") {
         const current = await window.dataEngine.get("orders");
-        const items = Array.isArray(current.items)  current.items : [];
+        const items = Array.isArray(current.items) ? current.items : [];
         const updatedItems = items.map((o) =>
-          o.id === orderId || o._id === orderId  updatedOrder : o
+          o.id === orderId || o._id === orderId ? updatedOrder : o
         );
         await window.dataEngine.set("orders", { items: updatedItems });
       } else {
@@ -648,11 +649,11 @@ const OrdersPage = () => {
       setOrders((prev) =>
         prev.map((o) =>
           o.id === orderId || o._id === orderId
-             {
+            ? {
                 ...o,
                 status: newStatus,
                 history: [
-                  ...(Array.isArray(o.history)  o.history : []),
+                  ...(Array.isArray(o.history) ? o.history : []),
                   {
                     status: newStatus,
                     at: new Date().toISOString(),
@@ -664,11 +665,11 @@ const OrdersPage = () => {
       );
       setSelectedOrder((prev) =>
         prev && (prev.id === orderId || prev._id === orderId)
-           {
+          ? {
               ...prev,
               status: newStatus,
               history: [
-                ...(Array.isArray(prev.history)  prev.history : []),
+                ...(Array.isArray(prev.history) ? prev.history : []),
                 {
                   status: newStatus,
                   at: new Date().toISOString(),
@@ -689,7 +690,7 @@ const OrdersPage = () => {
         status: newStatus,
         history: [
           ...(Array.isArray(currentOrder.history)
-             currentOrder.history
+            ? currentOrder.history
             : []),
           { status: newStatus, at: new Date().toISOString() },
         ],
@@ -712,10 +713,10 @@ const OrdersPage = () => {
 
       if (!updatedViaUpdateItem && typeof window.dataEngine.set === "function") {
         const current = await window.dataEngine.get("orders");
-        const items = Array.isArray(current.items)  current.items : [];
+        const items = Array.isArray(current.items) ? current.items : [];
         const updatedItems = items.map((o) =>
           o.id === orderId || o._id === orderId
-             { ...o, ...updatePayload }
+            ? { ...o, ...updatePayload }
             : o
         );
         await window.dataEngine.set("orders", { items: updatedItems });
@@ -758,7 +759,7 @@ const OrdersPage = () => {
         });
         printResult =
           engineResult && typeof engineResult === "object"
-             engineResult
+            ? engineResult
             : { success: Boolean(engineResult) };
       } else {
         console.warn(
@@ -794,7 +795,7 @@ const OrdersPage = () => {
   useEffect(() => {
     const listener =
       typeof window.orderEvents.onNewOrder === "function"
-         window.orderEvents.onNewOrder((order) => {
+        ? window.orderEvents.onNewOrder((order) => {
             if (!order) return;
 
             const normalizedId = order.id || order._id;
@@ -830,7 +831,7 @@ const OrdersPage = () => {
           })
         : null;
 
-    return typeof listener === "function"  listener : undefined;
+    return typeof listener === "function" ? listener : undefined;
   }, [handlePrintOrder]);
 
   useEffect(() => {
@@ -870,7 +871,7 @@ const OrdersPage = () => {
       });
     });
 
-    return typeof listener === "function"  listener : undefined;
+    return typeof listener === "function" ? listener : undefined;
   }, [normalizeOrderRecord]);
 
   // ========= DUPLICAR PEDIDO =========
@@ -943,7 +944,7 @@ const OrdersPage = () => {
 
       if (!removed && typeof window.dataEngine.set === "function") {
         const current = await window.dataEngine.get("orders");
-        const items = Array.isArray(current.items)  current.items : [];
+        const items = Array.isArray(current.items) ? current.items : [];
         const updated = items.filter((o) => {
           if (orderId) {
             return o.id !== orderId && o._id !== orderId;
@@ -1183,12 +1184,12 @@ const OrdersPage = () => {
               onClick={loadOrders}
               disabled={isLoading || isRefreshing}
             >
-              {isLoading || isRefreshing  "Atualizando..." : "Atualizar"}
+              {isLoading || isRefreshing ? "Atualizando..." : "Atualizar"}
             </button>
           </div>
         </div>
 
-        {isLoading && orders.length === 0  (
+        {isLoading && orders.length === 0 ? (
           <div className="order-list">
             {[0, 1, 2, 3].map((idx) => (
               <div

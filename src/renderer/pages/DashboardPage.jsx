@@ -162,28 +162,28 @@ const DashboardPage = () => {
       // TOTAL
       const fromTotals =
         order.totals && typeof order.totals.finalTotal === "number"
-           order.totals.finalTotal
+          ? order.totals.finalTotal
           : null;
 
       const fromNewTotal =
-        typeof order.total === "number"  order.total : null;
+        typeof order.total === "number" ? order.total : null;
 
       const subtotalNew =
-        typeof order.subtotal === "number"  order.subtotal : 0;
+        typeof order.subtotal === "number" ? order.subtotal : 0;
       const deliveryNew =
         typeof order.deliveryFee === "number"
-           order.deliveryFee
+          ? order.deliveryFee
           : 0;
       const discountNew =
-        typeof order.discount.amount === "number"
-           order.discount.amount
+        order.discount && typeof order.discount.amount === "number"
+          ? order.discount.amount
           : 0;
 
       const computedFallback =
         subtotalNew + deliveryNew - discountNew;
 
       const orderTotal =
-        fromTotals  fromNewTotal  computedFallback  0;
+        fromTotals ?? fromNewTotal ?? computedFallback ?? 0;
 
       revenue += orderTotal;
 
@@ -235,12 +235,12 @@ const DashboardPage = () => {
       const deliveryFromTotals =
         order.totals &&
         typeof order.totals.deliveryFee === "number"
-           order.totals.deliveryFee
+          ? order.totals.deliveryFee
           : null;
 
       const deliveryValue =
         typeof order.deliveryFee === "number"
-           order.deliveryFee
+          ? order.deliveryFee
           : deliveryFromTotals || 0;
 
       deliveryFees += deliveryValue;
@@ -248,12 +248,12 @@ const DashboardPage = () => {
       // DESCONTOS
       const discountFromTotals =
         order.totals && typeof order.totals.discount === "number"
-           order.totals.discount
+          ? order.totals.discount
           : null;
 
       const discountValue =
-        typeof order.discount.amount === "number"
-           order.discount.amount
+        order.discount && typeof order.discount.amount === "number"
+          ? order.discount.amount
           : discountFromTotals || 0;
 
       discountsTotal += discountValue;
@@ -271,7 +271,7 @@ const DashboardPage = () => {
         order.counterLabel ||
         "";
 
-      const key = id  String(id) : name  `name:${name}` : null;
+      const key = id ? String(id) : name ? `name:${name}` : null;
       if (key) {
         customersSet.add(key);
       }
@@ -299,7 +299,7 @@ const DashboardPage = () => {
     });
 
     const avgTicket =
-      ordersCount > 0  revenue / ordersCount : 0;
+      ordersCount > 0 ? revenue / ordersCount : 0;
 
     return {
       ordersCount,
@@ -343,13 +343,11 @@ const DashboardPage = () => {
       const h = d.getHours();
 
       const totalSimple = Number(
-        order.totals.finalTotal 
-          order.total 
-          0
+        order.totals?.finalTotal ?? order.total ?? 0
       );
 
       revenueByWeekday[wd] += Number.isNaN(totalSimple)
-         0
+        ? 0
         : totalSimple;
       countByWeekday[wd] += 1;
       countByHour[h] += 1;
@@ -396,7 +394,7 @@ const DashboardPage = () => {
 
     const peakHourLabel =
       peakCount > 0
-         `${String(peakHourIndex).padStart(2, "0")}h–${String(
+        ? `${String(peakHourIndex).padStart(2, "0")}h–${String(
             (peakHourIndex + 1) % 24
           ).padStart(2, "0")}h`
         : "Sem pico definido";
@@ -438,7 +436,7 @@ const DashboardPage = () => {
 
     const dominantChannelLabel =
       maxChannelCount > 0
-         channelLabelsMap[dominantChannelKey]
+        ? channelLabelsMap[dominantChannelKey]
         : "Nenhum canal se destaca";
 
     const hasChannelData = Object.values(stats.bySource).some(
@@ -538,7 +536,7 @@ const DashboardPage = () => {
     const rows = filteredOrders.map((order) => {
       const d = getOrderDate(order);
       const dateStr = d
-         d.toLocaleString("pt-BR", {
+        ? d.toLocaleString("pt-BR", {
             dateStyle: "short",
             timeStyle: "short",
           })
@@ -556,27 +554,24 @@ const DashboardPage = () => {
 
       const fromTotals =
         order.totals && typeof order.totals.finalTotal === "number"
-           order.totals.finalTotal
+          ? order.totals.finalTotal
           : null;
       const fromNewTotal =
-        typeof order.total === "number"  order.total : null;
+        typeof order.total === "number" ? order.total : null;
       const subtotalNew =
-        typeof order.subtotal === "number"  order.subtotal : 0;
+        typeof order.subtotal === "number" ? order.subtotal : 0;
       const deliveryNew =
         typeof order.deliveryFee === "number"
-           order.deliveryFee
+          ? order.deliveryFee
           : 0;
       const discountNew =
-        typeof order.discount.amount === "number"
-           order.discount.amount
+        order.discount && typeof order.discount.amount === "number"
+          ? order.discount.amount
           : 0;
       const computedFallback =
         subtotalNew + deliveryNew - discountNew;
       const orderTotal =
-        fromTotals 
-        fromNewTotal 
-        computedFallback 
-        0;
+        fromTotals ?? fromNewTotal ?? computedFallback ?? 0;
 
       const source =
         order.source ||

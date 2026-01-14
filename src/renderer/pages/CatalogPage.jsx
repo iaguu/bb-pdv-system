@@ -39,7 +39,7 @@ const FilterChips = ({ options, value, onChange }) => {
         <button
           key={opt.value}
           type="button"
-          className={"chip" + (value === opt.value  " chip-active" : "")}
+          className={"chip" + (value === opt.value ? " chip-active" : "")}
           onClick={() => onChange && onChange(opt.value)}
         >
           {opt.label}
