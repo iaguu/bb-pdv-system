@@ -1,6 +1,6 @@
-/* ============================================================================
+﻿/* ============================================================================
    FINANCE PAGE
-   Caixa & Financeiro – Sessões, relatórios e comissões
+   Caixa & Financeiro â€“ SessÃµes, relatÃ³rios e comissÃµes
    ============================================================================ */
 
 $finance-card-bg: #ffffff;
@@ -18,7 +18,7 @@ $finance-green-text: #065f46;
 $finance-green-bg: #ecfdf3;
 $finance-green-border: #bbf7d0;
 
-// Cores de UI (botões, inputs, etc.)
+// Cores de UI (botÃµes, inputs, etc.)
 $finance-ui-bg-base: #f9fafb;
 $finance-ui-bg-hover: #f3f4f6;
 $finance-text-light: #f9fafb;
@@ -94,7 +94,7 @@ $finance-text-light: #f9fafb;
 }
 
 /* ========================================================================== */
-/* HEADER RIGHT: FILTROS + AÇÕES                                             */
+/* HEADER RIGHT: FILTROS + AÃ‡Ã•ES                                             */
 /* ========================================================================== */
 
 .finance-header-right {
@@ -177,7 +177,7 @@ $finance-text-light: #f9fafb;
 }
 
 /* ========================================================================== */
-/* AÇÕES PRINCIPAIS (BOTÕES)                                                 */
+/* AÃ‡Ã•ES PRINCIPAIS (BOTÃ•ES)                                                 */
 /* ========================================================================== */
 
 .finance-actions {
@@ -196,7 +196,7 @@ $finance-text-light: #f9fafb;
 }
 
 /* ========================================================================== */
-/* CONTEÚDO POR ABA                                                          */
+/* CONTEÃšDO POR ABA                                                          */
 /* ========================================================================== */
 
 .finance-tab-content {
@@ -265,7 +265,7 @@ $finance-text-light: #f9fafb;
 }
 
 /* ========================================================================== */
-/* ÚLTIMO FECHAMENTO                                                         */
+/* ÃšLTIMO FECHAMENTO                                                         */
 /* ========================================================================== */
 
 .finance-last-closure {
@@ -359,7 +359,7 @@ $finance-text-light: #f9fafb;
   color: $finance-text-muted;
 }
 
-/* Lista de sessões de caixa */
+/* Lista de sessÃµes de caixa */
 .cash-list {
   margin-top: 10px;
   display: flex;
@@ -368,7 +368,7 @@ $finance-text-light: #f9fafb;
 }
 
 /* ========================================================================== */
-/* COMISSÃO DO SISTEMA                                                       */
+/* COMISSÃƒO DO SISTEMA                                                       */
 /* ========================================================================== */
 
 .finance-commission-panel {
@@ -393,7 +393,7 @@ $finance-text-light: #f9fafb;
 }
 
 /* ========================================================================== */
-/* TABELA RESUMO DE SESSÕES (ABA RELATÓRIOS)                                 */
+/* TABELA RESUMO DE SESSÃ•ES (ABA RELATÃ“RIOS)                                 */
 /* ========================================================================== */
 
 .finance-report-table {
@@ -434,7 +434,7 @@ $finance-text-light: #f9fafb;
   }
 
   &:nth-child(odd) {
-    background: #fcfcfd; // Manter ou criar variável?
+    background: #fcfcfd; // Manter ou criar variÃ¡vel
   }
 
   /* Melhoria de UX: destaque ao passar o mouse */
@@ -443,7 +443,7 @@ $finance-text-light: #f9fafb;
   }
 }
 
-/* Responsividade para tabela de relatórios */
+/* Responsividade para tabela de relatÃ³rios */
 @media (max-width: 900px) {
   .finance-report-header,
   .finance-report-row {
@@ -470,9 +470,9 @@ $finance-text-light: #f9fafb;
   }
 }
 /* ============================================================================
-   PATCH — Page header + Tabs (Sessões de caixa / Relatórios) + micro-spacing
-   - Escopado para esta página via :has(.finance-header)
-   - Não exige mudanças no JSX
+   PATCH â€” Page header + Tabs (SessÃµes de caixa / RelatÃ³rios) + micro-spacing
+   - Escopado para esta pÃ¡gina via :has(.finance-header)
+   - NÃ£o exige mudanÃ§as no JSX
    ============================================================================ */
 
 /* Title/subtitle do componente <Page /> (melhora hierarquia e respiro) */
@@ -490,7 +490,7 @@ $finance-text-light: #f9fafb;
   margin-bottom: 14px;
 }
 
-/* Tabs do componente <Tabs /> (pills premium, sem ficar “quadradão”) */
+/* Tabs do componente <Tabs /> (pills premium, sem ficar â€œquadradÃ£oâ€) */
 .page:has(.finance-header) :where(.tabs, .tabs-root, .tabs-container, [role="tablist"]) {
   display: inline-flex;
   align-items: center;
@@ -503,7 +503,7 @@ $finance-text-light: #f9fafb;
   margin: 6px 0 14px 0;
 }
 
-/* Botões/abas */
+/* BotÃµes/abas */
 .page:has(.finance-header) :where(.tabs button, .tabs .tab, .tabs .tabs-item, [role="tab"]) {
   appearance: none;
   border: 1px solid transparent;
@@ -538,7 +538,7 @@ $finance-text-light: #f9fafb;
   box-shadow: 0 10px 22px rgba(17, 24, 39, 0.18);
 }
 
-/* Header interno da página (corrige o “colado” do h2/subtitle à esquerda) */
+/* Header interno da pÃ¡gina (corrige o â€œcoladoâ€ do h2/subtitle Ã  esquerda) */
 .finance-header-left {
   gap: 8px;
 }
@@ -552,7 +552,7 @@ $finance-text-light: #f9fafb;
   line-height: 1.45;
 }
 
-/* Ajuste fino para o agrupamento “Sessões de caixa | Relatórios” caso o Tabs renderize links */
+/* Ajuste fino para o agrupamento â€œSessÃµes de caixa | RelatÃ³riosâ€ caso o Tabs renderize links */
 .page:has(.finance-header) :where(.tabs a) {
   text-decoration: none;
 }
@@ -565,3 +565,4 @@ $finance-text-light: #f9fafb;
     justify-content: flex-start;
   }
 }
+

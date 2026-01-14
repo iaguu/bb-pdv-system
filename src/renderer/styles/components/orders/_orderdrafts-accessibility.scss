@@ -1,0 +1,392 @@
+﻿// Estilos avanÃ§ados para acessibilidade e UX
+// Melhorias de Acessibilidade: Screen readers, keyboard navigation, high contrast
+
+.order-drafts-list {
+  // Skip link para screen readers
+  .order-drafts-list__skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #000;
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    border-radius: 4px;
+    z-index: 1000;
+    
+    &:focus {
+      top: 0;
+    }
+  }
+
+  // High contrast mode
+  @media (prefers-contrast: high) {
+    .order-draft-item {
+      border: 2px solid #000;
+      background: #fff;
+      color: #000;
+      
+      &:hover, &:focus {
+        border-color: #0066cc;
+        background: #f0f8ff;
+      }
+      
+      &--active {
+        border-color: #0066cc;
+        background: #e6f3ff;
+      }
+    }
+  }
+
+  // Reduced motion
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  // Focus indicators melhorados
+  .order-draft-item:focus-visible {
+    outline: 3px solid #0066cc;
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  .order-drafts-list__btn:focus-visible {
+    outline: 2px solid #0066cc;
+    outline-offset: 2px;
+  }
+
+  // Screen reader only content
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  // Live regions para anÃºncios dinÃ¢micos
+  .order-drafts-list__live-region {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  // Aria labels melhorados
+  .order-draft-item {
+    &[aria-busy="true"] {
+      position: relative;
+      
+      &::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 10px;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ccc;
+        border-top: 2px solid #0066cc;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+    }
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  // Voice mode indicator
+  .order-drafts-list__voice-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #ff4444;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    z-index: 1000;
+    animation: pulse 2s infinite;
+    
+    &.listening {
+      background: #44ff44;
+    }
+  }
+
+  // Bulk mode accessibility
+  .order-draft-item__bulk-checkbox {
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+      
+      &:focus-visible {
+        outline: 2px solid #0066cc;
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  // Context menu accessibility
+  .order-drafts-list__context-menu {
+    role: menu;
+    
+    button {
+      role: menuitem;
+      width: 100%;
+      text-align: left;
+      padding: 8px 16px;
+      border: none;
+      background: white;
+      
+      &:focus-visible {
+        background: #f0f8ff;
+        outline: 2px solid #0066cc;
+      }
+    }
+  }
+
+  // Preview modal accessibility
+  .order-drafts-list__preview-modal {
+    role: dialog;
+    aria-modal: true;
+    aria-labelledby: preview-title;
+    
+    .order-drafts-list__preview-content {
+      h3#preview-title {
+        margin-top: 0;
+      }
+    }
+  }
+
+  // Keyboard navigation hints
+  .order-drafts-list__keyboard-hints {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    z-index: 1000;
+    
+    kbd {
+      background: #333;
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid #666;
+      font-family: monospace;
+    }
+  }
+
+  // Drag and drop accessibility
+  .order-draft-item--dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    
+    .sr-only {
+      content: "Arrastando rascunho";
+    }
+  }
+
+  .order-draft-item--drop-target {
+    border: 2px dashed #0066cc;
+    background: #f0f8ff;
+  }
+
+  // Voice commands help
+  .order-drafts-list__voice-help {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    max-width: 400px;
+    
+    h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    ul {
+      list-style: none;
+      padding: 0;
+      
+      li {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        strong {
+          color: #0066cc;
+        }
+      }
+    }
+  }
+
+  // Auto-save status accessibility
+  .order-drafts-list__auto-save {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    
+    &[aria-live="polite"] {
+      position: absolute;
+      left: -10000px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+    
+    &.saving {
+      animation: pulse 1s infinite;
+    }
+    
+    &.saved {
+      color: #44ff44;
+    }
+  }
+
+  // Suggestions accessibility
+  .order-drafts-list__suggestions {
+    role: listbox;
+    
+    .order-drafts-list__suggestion {
+      role: option;
+      padding: 8px 12px;
+      cursor: pointer;
+      
+      &:focus-visible {
+        background: #f0f8ff;
+        outline: 2px solid #0066cc;
+      }
+      
+      &[aria-selected="true"] {
+        background: #e6f3ff;
+      }
+    }
+  }
+
+  // Error states accessibility
+  .order-drafts-list__error {
+    background: #ffe6e6;
+    border: 2px solid #ff0000;
+    padding: 12px;
+    border-radius: 8px;
+    color: #cc0000;
+    
+    &[role="alert"] {
+      animation: shake 0.5s;
+    }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  // Loading states accessibility
+  .order-drafts-list__loading {
+    &[aria-busy="true"] {
+      position: relative;
+      
+      &::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 32px;
+        height: 32px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #0066cc;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        transform: translate(-50%, -50%);
+      }
+    }
+  }
+
+  // Touch accessibility
+  @media (pointer: coarse) {
+    .order-draft-item {
+      min-height: 60px;
+      padding: 16px;
+      
+      .order-draft-item__action-btn {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 18px;
+      }
+    }
+  }
+
+  // Print styles
+  @media print {
+    .order-drafts-list__header,
+    .order-drafts-list__search-wrapper,
+    .order-drafts-list__bulk-toolbar,
+    .order-drafts-list__global-actions,
+    .order-draft-item__actions {
+      display: none !important;
+    }
+    
+    .order-draft-item {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
+}
+
+// Dark mode com acessibilidade
+@media (prefers-color-scheme: dark) {
+  .order-drafts-list {
+    .order-draft-item {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #333;
+      
+      &:focus-visible {
+        outline-color: #66b3ff;
+      }
+      
+      &--active {
+        background: #003366;
+        border-color: #66b3ff;
+      }
+    }
+    
+    .order-drafts-list__voice-indicator {
+      background: #cc0000;
+      
+      &.listening {
+        background: #00cc00;
+      }
+    }
+    
+    .order-drafts-list__keyboard-hints {
+      background: rgba(255, 255, 255, 0.9);
+      color: #000;
+    }
+  }
+}
+

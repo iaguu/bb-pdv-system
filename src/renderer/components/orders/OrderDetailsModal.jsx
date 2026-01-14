@@ -58,21 +58,21 @@ const MOTOBOY_STATUS_MAP = {
 };
 
 function normalizeCustomer(order) {
-  const snap = order?.customerSnapshot || order?.customer || {};
+  const snap = order.customerSnapshot || order.customer || {};
   return {
-    name: snap.name || order?.customerName || "Cliente",
-    phone: snap.phone || order?.customerPhone || order?.phone || "",
+    name: snap.name || order.customerName || "Cliente",
+    phone: snap.phone || order.customerPhone || order.phone || "",
     address:
-      order?.delivery?.address ||
+      order.delivery.address ||
       snap.address || {
-        street: order?.street,
-        number: order?.number,
-        neighborhood: order?.neighborhood,
-        city: order?.city,
-        state: order?.state,
-        cep: order?.cep,
-        reference: order?.reference,
-        complement: order?.complement,
+        street: order.street,
+        number: order.number,
+        neighborhood: order.neighborhood,
+        city: order.city,
+        state: order.state,
+        cep: order.cep,
+        reference: order.reference,
+        complement: order.complement,
       },
   };
 }
@@ -96,7 +96,7 @@ function formatAddress(addr = {}) {
   if (normalized.street) {
     parts.push(
       normalized.number
-        ? `${normalized.street}, ${normalized.number}`
+         `${normalized.street}, ${normalized.number}`
         : normalized.street
     );
   }
@@ -112,30 +112,30 @@ function buildMapsUrl(addr = {}) {
   const parts = [
     normalized.street &&
       (normalized.number
-        ? `${normalized.street}, ${normalized.number}`
+         `${normalized.street}, ${normalized.number}`
         : normalized.street),
     normalized.neighborhood,
     normalized.city,
     normalized.state,
-    normalized.cep ? `CEP ${normalized.cep}` : "",
+    normalized.cep  `CEP ${normalized.cep}` : "",
   ].filter(Boolean);
   if (parts.length === 0) return "";
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+  return `https://www.google.com/maps/search/api=1&query=${encodeURIComponent(
     parts.join(" - ")
   )}`;
 }
 
 function normalizeItems(rawItems = []) {
   return rawItems.map((it, idx) => {
-    const quantity = Number(it.quantity ?? it.qty ?? 1) || 1;
+    const quantity = Number(it.quantity  it.qty  1) || 1;
     const unit =
-      it.unitPrice ??
-      it.price ??
+      it.unitPrice 
+      it.price 
       (it.total || it.lineTotal
-        ? Number(it.total || it.lineTotal) / quantity
+         Number(it.total || it.lineTotal) / quantity
         : 0);
     const total =
-      Number(it.total ?? it.lineTotal ?? it.line_total ?? 0) ||
+      Number(it.total  it.lineTotal  it.line_total  0) ||
       Number(unit || 0) * quantity;
 
     const flavor1Raw =
@@ -145,7 +145,7 @@ function normalizeItems(rawItems = []) {
       it.description ||
       it.flavor1Name ||
       it.productName ||
-      it.product?.name ||
+      it.product.name ||
       it.label ||
       "";
     const flavor2 = it.halfDescription || it.flavor2Name || "";
@@ -156,20 +156,20 @@ function normalizeItems(rawItems = []) {
     const titleBase = flavor1 || "Item sem nome";
     const title =
       flavor2 || flavor3
-        ? [titleBase, flavor2, flavor3].filter(Boolean).join(" / ")
+         [titleBase, flavor2, flavor3].filter(Boolean).join(" / ")
         : titleBase;
 
     const sizeLabel = it.sizeLabel || it.size || it.sizeName || "";
 
-    const extras = Array.isArray(it.extras) ? it.extras : [];
+    const extras = Array.isArray(it.extras)  it.extras : [];
 
     const notes = it.kitchenNotes || it.obs || it.observacao || "";
 
     const details = [
-      sizeLabel ? `Tamanho: ${sizeLabel}` : "",
+      sizeLabel  `Tamanho: ${sizeLabel}` : "",
       it.details || "",
       it.description || "",
-      notes ? `Obs: ${notes}` : "",
+      notes  `Obs: ${notes}` : "",
     ]
       .filter(Boolean)
       .join(" · ");
@@ -184,7 +184,7 @@ function normalizeItems(rawItems = []) {
       total,
       sizeLabel,
       multiFlavor: Boolean(flavor2 || flavor3),
-      kind: it.kind || (it.productName ? "drink" : "pizza"),
+      kind: it.kind || (it.productName  "drink" : "pizza"),
     };
   });
 }
@@ -208,20 +208,20 @@ const OrderDetailsModal = ({
 
   const customer = normalizeCustomer(order);
   const orderId = order.id || order._id;
-  const paymentMethod = (order?.payment?.method || order?.paymentMethod || "").toLowerCase();
+  const paymentMethod = (order.payment.method || order.paymentMethod || "").toLowerCase();
   const paymentLabel =
     PAYMENT_LABELS[paymentMethod] ||
     order.paymentLabel ||
-    order.payment?.label ||
+    order.payment.label ||
     "Não definido";
   const paymentStatus =
-    order?.payment?.status || order?.paymentStatus || "to_define";
+    order.payment.status || order.paymentStatus || "to_define";
 
-  const paymentNotes = order.payment?.notes || order.paymentNotes || "";
+  const paymentNotes = order.payment.notes || order.paymentNotes || "";
   const changeFor =
-    order.payment?.changeFor ??
-    order.changeFor ??
-    order.payment?.troco ??
+    order.payment.changeFor 
+    order.changeFor 
+    order.payment.troco 
     null;
 
   const items = normalizeItems(order.items || []);
@@ -232,25 +232,25 @@ const OrderDetailsModal = ({
   );
 
   const deliveryFee = Number(
-    order.delivery?.fee ??
-      order.deliveryFee ??
-      order.totals?.deliveryFee ??
+    order.delivery.fee 
+      order.deliveryFee 
+      order.totals.deliveryFee 
       0
   );
 
-  const discount = Number(order.totals?.discount ?? order.discount ?? 0);
+  const discount = Number(order.totals.discount  order.discount  0);
 
   const grandTotal = subtotal + deliveryFee - discount;
 
   const normalizedStatus = normalizeStatus(order.status || "open");
-  const sourceKey = (order?.source || "local").toString().toLowerCase();
+  const sourceKey = (order.source || "local").toString().toLowerCase();
   const sourceLabel = SOURCE_LABELS[sourceKey] || SOURCE_LABELS.local;
   const mapsUrl = buildMapsUrl(customer.address);
   const motoboyName =
-    order?.motoboyName || order?.delivery?.motoboyName || null;
+    order.motoboyName || order.delivery.motoboyName || null;
   const motoboyStatusKey = (
-    order?.motoboyStatus ||
-    order?.delivery?.motoboyStatus ||
+    order.motoboyStatus ||
+    order.delivery.motoboyStatus ||
     ""
   )
     .toString()
@@ -287,7 +287,7 @@ const OrderDetailsModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Pedido #${order.shortId || order.id || order._id || "?"}`}
+      title={`Pedido #${order.shortId || order.id || order._id || ""}`}
       className="order-details-modal"
     >
       <div className="order-details__body">
@@ -344,11 +344,11 @@ const OrderDetailsModal = ({
                 <span className="order-kv__label">Origem</span>
                 <span className="order-kv__value">{sourceLabel}</span>
               </div>
-              {(customer.address?.reference || customer.address?.complement) && (
+              {(customer.address.reference || customer.address.complement) && (
                 <div>
                   <span className="order-kv__label">Ref. / Compl.</span>
                   <span className="order-kv__value">
-                    {[customer.address?.reference, customer.address?.complement]
+                    {[customer.address.reference, customer.address.complement]
                       .filter(Boolean)
                       .join(" • ")}
                   </span>
@@ -392,7 +392,7 @@ const OrderDetailsModal = ({
               <div>
                 <span className="order-kv__label">Troco para</span>
                 <span className="order-kv__value">
-                  {changeFor ? formatCurrency(changeFor) : "Não informado"}
+                  {changeFor  formatCurrency(changeFor) : "Não informado"}
                 </span>
               </div>
               <div>
@@ -441,7 +441,7 @@ const OrderDetailsModal = ({
                         {item.extras.map((ex, i) => (
                           <span key={i} className="chip chip--extra">
                             {ex.label || ex.name}{" "}
-                            {ex.price ? `+ ${formatCurrency(ex.price)}` : ""}
+                            {ex.price  `+ ${formatCurrency(ex.price)}` : ""}
                           </span>
                         ))}
                       </div>
@@ -467,7 +467,7 @@ const OrderDetailsModal = ({
                   type="button"
                   className={
                     "status-chip " +
-                    (normalizedStatus === s.key ? "status-chip--active" : "") +
+                    (normalizedStatus === s.key  "status-chip--active" : "") +
                     " status-chip--" +
                     s.tone
                   }
@@ -575,7 +575,7 @@ const OrderDetailsModal = ({
                   variant="outline"
                   onClick={() => {
                     const confirmed = window.confirm(
-                      "Deseja realmente excluir este pedido? Esta ação não pode ser desfeita."
+                      "Deseja realmente excluir este pedido Esta ação não pode ser desfeita."
                     );
                     if (confirmed) onDelete(order);
                   }}

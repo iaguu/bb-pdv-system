@@ -78,7 +78,7 @@
 
   padding: 20px 20px 8px;
 
-  background: #ffffff;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
 }
 
 /* cada coluna com scroll */
@@ -142,11 +142,12 @@
 --------------------------------------------------------------------------- */
 
 .order-section {
-  background: #ffffff;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 18px;
   transition: border-color var(--med) var(--ease);
+  box-shadow: 0 12px 26px rgba(2, 6, 23, 0.06);
 }
 
 .order-details__column .order-section + .order-section {
@@ -171,7 +172,7 @@
 }
 
 .order-section__title {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 950;
   letter-spacing: 0.2px;
   color: var(--ink);
@@ -605,7 +606,7 @@
 --------------------------------------------------------------------------- */
 
 .order-summary {
-  background: #ffffff;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid rgba(2, 6, 23, 0.10);
   border-radius: 12px;
   padding: 12px;
@@ -665,6 +666,7 @@
 .order-actions {
   display: grid;
   gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
 .status-chip__dot {
@@ -704,7 +706,7 @@
   display: flex;
   justify-content: flex-end;
 
-  background: #ffffff;
+  background: #f8fafc;
   border-top: 1px solid rgba(2, 6, 23, 0.10);
 }
 
@@ -767,4 +769,5 @@
     flex: 1 1 auto;
   }
 }
+
 

@@ -1,19 +1,21 @@
-
+﻿
 /* ======================================================================
    Component imports (subpastas)
    ====================================================================== */
 
-@import "./components/alerts/alerts";
-@import "./components/cep/cep";
-@import "./components/chips/chips";
-@import "./components/clients/client";
-@import "./components/config/config";
-@import "./components/forms/forms";
-@import "./components/finance/finance";
-@import "./components/orders/neworder";
-@import "./components/orders/order";
-@import "./components/orders/orders";
-@import "./components/orders/orderdetails";
-@import "./components/pizza/pizza";
-@import "./components/products/products";
-@import "./components/people/people";
+@use "./components/alerts/alerts" as *;
+@use "./components/cep/cep" as *;
+@use "./components/chips/chips" as *;
+@use "./components/clients/client" as *;
+@use "./components/config/config" as *;
+@use "./components/forms/forms" as *;
+@use "./components/finance/finance" as *;
+@use "./components/orders/neworder" as *;
+@use "./components/orders/order" as *;
+@use "./components/orders/orders" as *;
+@use "./components/orders/orderdetails" as *;
+@use "./components/pizza/pizza" as *;
+@use "./components/products/products" as *;
+@use "./components/people/people" as *;
+
+

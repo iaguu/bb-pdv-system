@@ -67,9 +67,9 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
       setForm((f) => ({
         ...f,
         cep: addr.cep,
-        street: auto ? f.street || addr.street : addr.street || f.street,
+        street: auto  f.street || addr.street : addr.street || f.street,
         neighborhood: auto
-          ? f.neighborhood || addr.neighborhood
+           f.neighborhood || addr.neighborhood
           : addr.neighborhood || f.neighborhood,
         city: addr.city,
         state: addr.state,
@@ -225,7 +225,7 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
                 onClick={handleCepSearch}
                 disabled={cepLoading}
               >
-                {cepLoading ? "Buscando..." : "Buscar CEP"}
+                {cepLoading  "Buscando..." : "Buscar CEP"}
               </button>
             </div>
           </div>

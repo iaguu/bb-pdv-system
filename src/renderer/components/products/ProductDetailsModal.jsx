@@ -22,7 +22,7 @@ export default function ProductDetailsModal({ product, onClose, onSave }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!editing.name?.trim()) {
+    if (!editing.name.trim()) {
       emitToast({
         type: "warning",
         message: "Informe o nome do produto.",
@@ -72,7 +72,7 @@ export default function ProductDetailsModal({ product, onClose, onSave }) {
             />
           </div>
 
-          {editing.type === "pizza" ? (
+          {editing.type === "pizza"  (
             <div
               style={{
                 display: "grid",
@@ -86,7 +86,7 @@ export default function ProductDetailsModal({ product, onClose, onSave }) {
                 <input
                   className="field-input"
                   type="number"
-                  value={editing.priceBroto ?? 0}
+                  value={editing.priceBroto  0}
                   onChange={(e) =>
                     handleChange("priceBroto", Number(e.target.value) || 0)
                   }
@@ -97,7 +97,7 @@ export default function ProductDetailsModal({ product, onClose, onSave }) {
                 <input
                   className="field-input"
                   type="number"
-                  value={editing.priceGrande ?? 0}
+                  value={editing.priceGrande  0}
                   onChange={(e) =>
                     handleChange("priceGrande", Number(e.target.value) || 0)
                   }
@@ -110,7 +110,7 @@ export default function ProductDetailsModal({ product, onClose, onSave }) {
               <input
                 className="field-input"
                 type="number"
-                value={editing.price ?? 0}
+                value={editing.price  0}
                 onChange={(e) => handleChange("price", Number(e.target.value) || 0)}
               />
             </div>

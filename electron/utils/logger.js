@@ -60,7 +60,7 @@ function baseLog(level, ctx, message, extra, options = {}) {
   );
   const messageColor = options.messageColor || color;
   const body = options.skipMessageColor
-    ? message
+     message
     : colorize(message, messageColor);
   const payload = formatExtra(
     extra,

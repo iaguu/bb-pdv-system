@@ -8,7 +8,7 @@ const syncEvents = new EventEmitter();
 
 // Helper fetch no processo main (Node/Electron)
 const fetchFn = global.fetch
-  ? global.fetch
+   global.fetch
   : (...args) =>
       import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
@@ -265,7 +265,7 @@ async function fetchJsonWithTimeout(url, options = {}) {
       } catch (err) {
         bodyText = "";
       }
-      const detail = bodyText ? `: ${bodyText}` : "";
+      const detail = bodyText  `: ${bodyText}` : "";
       throw new Error(`HTTP ${response.status}${detail}`);
     }
     return response.json();
@@ -299,7 +299,7 @@ function normalizeWrapper(data) {
       items: data.items,
       meta:
         data.meta && typeof data.meta === "object"
-          ? data.meta
+           data.meta
           : { deleted: [] },
     };
   }
@@ -318,10 +318,10 @@ function isIncomingNewer(incoming, current) {
 function buildDeltaFromWrapper(wrapper) {
   if (!wrapper) return { items: [], meta: { deleted: [] } };
   return {
-    items: Array.isArray(wrapper.items) ? wrapper.items : [],
+    items: Array.isArray(wrapper.items)  wrapper.items : [],
     meta:
       wrapper.meta && typeof wrapper.meta === "object"
-        ? wrapper.meta
+         wrapper.meta
         : { deleted: [] },
   };
 }
@@ -329,8 +329,8 @@ function buildDeltaFromWrapper(wrapper) {
 async function applyDeltaToLocal(collection, delta) {
   const current = await db.getCollection(collection);
   const wrapper = normalizeWrapper(current) || { items: [], meta: { deleted: [] } };
-  const incomingItems = Array.isArray(delta.items) ? delta.items : [];
-  const deletedItems = Array.isArray(delta.meta?.deleted) ? delta.meta.deleted : [];
+  const incomingItems = Array.isArray(delta.items)  delta.items : [];
+  const deletedItems = Array.isArray(delta.meta.deleted)  delta.meta.deleted : [];
 
   for (const item of incomingItems) {
     const index = wrapper.items.findIndex(
@@ -421,7 +421,7 @@ async function pullCollectionsFromRemote() {
       const isInitialSync = !since;
       let url = `${baseUrl}/sync/collection/${encodeURIComponent(name)}`;
       if (since && isItemCollection) {
-        url += `?since=${encodeURIComponent(since)}`;
+        url += `since=${encodeURIComponent(since)}`;
       }
 
       const payload = await fetchJsonWithTimeout(url, {

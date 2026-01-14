@@ -27,7 +27,7 @@ const MotoboyFormModal = ({ isOpen, onClose, motoboy, onSave }) => {
       name: motoboy.name || "",
       phone: motoboy.phone || "",
       document: motoboy.document || "",
-      active: motoboy.active ?? true,
+      active: motoboy.active  true,
     });
   }, [motoboy]);
 
@@ -49,7 +49,7 @@ const MotoboyFormModal = ({ isOpen, onClose, motoboy, onSave }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={form.id ? "Editar motoboy" : "Novo motoboy"}
+      title={form.id  "Editar motoboy" : "Novo motoboy"}
       className="motoboy-form-modal"
     >
       <div className="form-section">

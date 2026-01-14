@@ -224,7 +224,7 @@ const API_ENDPOINT_GROUPS = [
       },
       {
         method: "GET",
-        path: "/api/pdv/delivery/quote?distanceKm=3&subtotal=80&neighborhood=Santana",
+        path: "/api/pdv/delivery/quotedistanceKm=3&subtotal=80&neighborhood=Santana",
         auth: "api-key",
         desc: "Simulacao de entrega.",
       },
@@ -242,7 +242,7 @@ const API_ENDPOINT_GROUPS = [
       },
       {
         method: "GET",
-        path: "/api/pdv/orders/metrics?from=2025-01-01&to=2025-12-31",
+        path: "/api/pdv/orders/metricsfrom=2025-01-01&to=2025-12-31",
         auth: "api-key",
         desc: "Metricas resumidas de pedidos.",
       },
@@ -280,7 +280,7 @@ const API_ENDPOINT_GROUPS = [
     endpoints: [
       {
         method: "GET",
-        path: "/api/customers/by-phone?phone=11999999999",
+        path: "/api/customers/by-phonephone=11999999999",
         auth: "api-key",
         desc: "Busca cliente por telefone.",
       },
@@ -459,7 +459,7 @@ const normalizeSettingsData = (data) => {
 
 const sanitizeImportedSettings = (raw, envConfig = {}) => {
   const base = buildDefaultSettings();
-  const input = raw && typeof raw === "object" ? raw : {};
+  const input = raw && typeof raw === "object"  raw : {};
   const next = { ...base, ...input };
 
   if (!next.id) next.id = "default";
@@ -468,30 +468,30 @@ const sanitizeImportedSettings = (raw, envConfig = {}) => {
   if (!next.tema) next.tema = base.tema;
 
   next.printing = {
-    kitchenPrinterName: input.printing?.kitchenPrinterName || "",
-    counterPrinterName: input.printing?.counterPrinterName || "",
+    kitchenPrinterName: input.printing.kitchenPrinterName || "",
+    counterPrinterName: input.printing.counterPrinterName || "",
     silentMode:
-      input.printing?.silentMode !== undefined
-        ? !!input.printing.silentMode
+      input.printing.silentMode !== undefined
+         !!input.printing.silentMode
         : true,
-    autoPrintWebsiteOrders: !!input.printing?.autoPrintWebsiteOrders,
+    autoPrintWebsiteOrders: !!input.printing.autoPrintWebsiteOrders,
   };
 
-  const openTime = input.businessHours?.openTime || "11:00";
-  const closeTime = input.businessHours?.closeTime || "23:00";
-  const closedWeekdays = Array.isArray(input.businessHours?.closedWeekdays)
-    ? input.businessHours.closedWeekdays
+  const openTime = input.businessHours.openTime || "11:00";
+  const closeTime = input.businessHours.closeTime || "23:00";
+  const closedWeekdays = Array.isArray(input.businessHours.closedWeekdays)
+     input.businessHours.closedWeekdays
     : [];
   const baseSchedule = buildWeeklySchedule({
     openTime,
     closeTime,
     closedWeekdays,
   });
-  const rawSchedule = Array.isArray(input.businessHours?.weeklySchedule)
-    ? input.businessHours.weeklySchedule
+  const rawSchedule = Array.isArray(input.businessHours.weeklySchedule)
+     input.businessHours.weeklySchedule
     : null;
   const weeklySchedule = rawSchedule
-    ? baseSchedule.map((entry) => {
+     baseSchedule.map((entry) => {
         const match = rawSchedule.find(
           (day) => Number(day.day) === entry.day
         );
@@ -509,7 +509,7 @@ const sanitizeImportedSettings = (raw, envConfig = {}) => {
     .map((entry) => entry.day);
 
   next.businessHours = {
-    enabled: !!input.businessHours?.enabled,
+    enabled: !!input.businessHours.enabled,
     openTime,
     closeTime,
     closedWeekdays: normalizedClosedWeekdays,
@@ -520,7 +520,7 @@ const sanitizeImportedSettings = (raw, envConfig = {}) => {
     next.delivery = buildDefaultDeliveryConfig();
   } else {
     const blocked = Array.isArray(input.delivery.blockedNeighborhoods)
-      ? input.delivery.blockedNeighborhoods
+       input.delivery.blockedNeighborhoods
           .map((b) => (b || "").toString().trim())
           .filter(Boolean)
       : [];
@@ -532,24 +532,24 @@ const sanitizeImportedSettings = (raw, envConfig = {}) => {
       blockedNeighborhoods: blocked,
       minOrderValue:
         typeof input.delivery.minOrderValue === "number"
-          ? input.delivery.minOrderValue
+           input.delivery.minOrderValue
           : Number(input.delivery.minOrderValue || 0),
       maxDistanceKm:
         typeof input.delivery.maxDistanceKm === "number"
-          ? input.delivery.maxDistanceKm
+           input.delivery.maxDistanceKm
           : Number(input.delivery.maxDistanceKm || 0),
       etaMinutesDefault:
         typeof input.delivery.etaMinutesDefault === "number"
-          ? input.delivery.etaMinutesDefault
+           input.delivery.etaMinutesDefault
           : Number(input.delivery.etaMinutesDefault || 45),
       peakFee: {
         enabled: !!peakFee.enabled,
-        days: Array.isArray(peakFee.days) ? peakFee.days : [],
+        days: Array.isArray(peakFee.days)  peakFee.days : [],
         startTime: peakFee.startTime || "18:00",
         endTime: peakFee.endTime || "22:00",
         amount:
           typeof peakFee.amount === "number"
-            ? peakFee.amount
+             peakFee.amount
             : Number(peakFee.amount || 0),
       },
       ranges: input.delivery.ranges.map((r, idx) => ({
@@ -557,25 +557,25 @@ const sanitizeImportedSettings = (raw, envConfig = {}) => {
         label: r.label || "",
         minKm:
           typeof r.minKm === "number"
-            ? r.minKm
+             r.minKm
             : Number(r.minKm || 0),
         maxKm:
           typeof r.maxKm === "number"
-            ? r.maxKm
+             r.maxKm
             : Number(r.maxKm || 0),
         price:
           typeof r.price === "number"
-            ? r.price
+             r.price
             : Number(r.price || 0),
       })),
     };
   }
 
   const envBaseUrl =
-    typeof envConfig?.apiBaseUrl === "string" ? envConfig.apiBaseUrl : "";
+    typeof envConfig.apiBaseUrl === "string"  envConfig.apiBaseUrl : "";
   const envToken =
-    typeof envConfig?.publicApiToken === "string"
-      ? envConfig.publicApiToken
+    typeof envConfig.publicApiToken === "string"
+       envConfig.publicApiToken
       : "";
   next.api = {
     base_url: envBaseUrl,
@@ -606,12 +606,12 @@ const normalizeRangeValue = (value) => {
   if (value === "" || value === null || value === undefined) return null;
   const normalized = value.toString().replace(",", ".");
   const n = Number(normalized);
-  return Number.isNaN(n) ? null : n;
+  return Number.isNaN(n)  null : n;
 };
 
 const isPickupRange = (range) => {
-  const id = String(range?.id || "").toLowerCase();
-  const label = String(range?.label || "").toLowerCase();
+  const id = String(range.id || "").toLowerCase();
+  const label = String(range.label || "").toLowerCase();
   return (
     id === "pickup" || label.includes("pickup") || label.includes("retirar")
   );
@@ -669,7 +669,7 @@ function buildThermalTestTicket({
 }) {
   const now = new Date().toLocaleString("pt-BR");
 
-  const profileLabel = profile === "kitchen" ? "COZINHA" : "BALCÃO / CONTA";
+  const profileLabel = profile === "kitchen"  "COZINHA" : "BALCÃO / CONTA";
 
   const header = "ANNE & TOM PIZZARIA";
   const separator = "--------------------------------";
@@ -820,16 +820,16 @@ const SettingsPage = () => {
         }
         let apiBaseUrlValue = "";
         let apiTokenValue = "";
-        if (window.electronAPI?.getPublicApiConfig) {
+        if (window.electronAPI.getPublicApiConfig) {
           try {
             const envConfig = await window.electronAPI.getPublicApiConfig();
             apiBaseUrlValue =
-              typeof envConfig?.apiBaseUrl === "string"
-                ? envConfig.apiBaseUrl
+              typeof envConfig.apiBaseUrl === "string"
+                 envConfig.apiBaseUrl
                 : "";
             apiTokenValue =
-              typeof envConfig?.publicApiToken === "string"
-                ? envConfig.publicApiToken
+              typeof envConfig.publicApiToken === "string"
+                 envConfig.publicApiToken
                 : "";
           } catch (envErr) {
             console.error("[Settings] Erro ao ler .env:", envErr);
@@ -868,7 +868,7 @@ const SettingsPage = () => {
             counterPrinterName: item.printing.counterPrinterName || "",
             silentMode:
               item.printing.silentMode !== undefined
-                ? !!item.printing.silentMode
+                 !!item.printing.silentMode
                 : true,
             autoPrintWebsiteOrders: !!item.printing.autoPrintWebsiteOrders,
           };
@@ -882,7 +882,7 @@ const SettingsPage = () => {
           const closedWeekdays = Array.isArray(
             item.businessHours.closedWeekdays
           )
-            ? item.businessHours.closedWeekdays
+             item.businessHours.closedWeekdays
             : [];
           const baseSchedule = buildWeeklySchedule({
             openTime,
@@ -892,10 +892,10 @@ const SettingsPage = () => {
           const rawSchedule = Array.isArray(
             item.businessHours.weeklySchedule
           )
-            ? item.businessHours.weeklySchedule
+             item.businessHours.weeklySchedule
             : null;
           const weeklySchedule = rawSchedule
-            ? baseSchedule.map((entry) => {
+             baseSchedule.map((entry) => {
                 const match = rawSchedule.find(
                   (day) => Number(day.day) === entry.day
                 );
@@ -926,7 +926,7 @@ const SettingsPage = () => {
           item.delivery = buildDefaultDeliveryConfig();
         } else {
           const blocked = Array.isArray(item.delivery.blockedNeighborhoods)
-            ? item.delivery.blockedNeighborhoods
+             item.delivery.blockedNeighborhoods
                 .map((b) => (b || "").toString().trim())
                 .filter(Boolean)
             : [];
@@ -939,24 +939,24 @@ const SettingsPage = () => {
             blockedNeighborhoods: blocked,
             minOrderValue:
               typeof item.delivery.minOrderValue === "number"
-                ? item.delivery.minOrderValue
+                 item.delivery.minOrderValue
                 : Number(item.delivery.minOrderValue || 0),
             maxDistanceKm:
               typeof item.delivery.maxDistanceKm === "number"
-                ? item.delivery.maxDistanceKm
+                 item.delivery.maxDistanceKm
                 : Number(item.delivery.maxDistanceKm || 0),
             etaMinutesDefault:
               typeof item.delivery.etaMinutesDefault === "number"
-                ? item.delivery.etaMinutesDefault
+                 item.delivery.etaMinutesDefault
                 : Number(item.delivery.etaMinutesDefault || 45),
             peakFee: {
               enabled: !!peakFee.enabled,
-              days: Array.isArray(peakFee.days) ? peakFee.days : [],
+              days: Array.isArray(peakFee.days)  peakFee.days : [],
               startTime: peakFee.startTime || "18:00",
               endTime: peakFee.endTime || "22:00",
               amount:
                 typeof peakFee.amount === "number"
-                  ? peakFee.amount
+                   peakFee.amount
                   : Number(peakFee.amount || 0),
             },
             ranges: item.delivery.ranges.map((r, idx) => ({
@@ -964,15 +964,15 @@ const SettingsPage = () => {
               label: r.label || "",
               minKm:
                 typeof r.minKm === "number"
-                  ? r.minKm
+                   r.minKm
                   : Number(r.minKm || 0),
               maxKm:
                 typeof r.maxKm === "number"
-                  ? r.maxKm
+                   r.maxKm
                   : Number(r.maxKm || 0),
               price:
                 typeof r.price === "number"
-                  ? r.price
+                   r.price
                   : Number(r.price || 0),
             })),
           };
@@ -1034,7 +1034,7 @@ const SettingsPage = () => {
       setPrintersError("");
       const list = await window.printerConfig.listPrinters();
       console.log("[Settings] Impressoras encontradas:", list);
-      setPrinters(Array.isArray(list) ? list : []);
+      setPrinters(Array.isArray(list)  list : []);
     } catch (err) {
       console.error("[Settings] Erro ao listar impressoras:", err);
       setPrintersError("Erro ao listar impressoras do sistema.");
@@ -1197,7 +1197,7 @@ const SettingsPage = () => {
     setSettings((prev) => {
       const current = prev.delivery || buildDefaultDeliveryConfig();
       const peakFee = current.peakFee || {};
-      const days = Array.isArray(peakFee.days) ? peakFee.days : [];
+      const days = Array.isArray(peakFee.days)  peakFee.days : [];
       const exists = days.includes(dayValue);
       return {
         ...prev,
@@ -1206,7 +1206,7 @@ const SettingsPage = () => {
           peakFee: {
             ...peakFee,
             days: exists
-              ? days.filter((d) => d !== dayValue)
+               days.filter((d) => d !== dayValue)
               : [...days, dayValue],
           },
         },
@@ -1241,11 +1241,11 @@ const SettingsPage = () => {
       const current =
         prev.businessHours || buildDefaultSettings().businessHours;
       const days = Array.isArray(current.closedWeekdays)
-        ? current.closedWeekdays
+         current.closedWeekdays
         : [];
       const exists = days.includes(dayValue);
       const schedule = Array.isArray(current.weeklySchedule)
-        ? [...current.weeklySchedule]
+         [...current.weeklySchedule]
         : buildWeeklySchedule({
             openTime: current.openTime || "11:00",
             closeTime: current.closeTime || "23:00",
@@ -1256,7 +1256,7 @@ const SettingsPage = () => {
       );
       const baseEntry =
         index >= 0
-          ? schedule[index]
+           schedule[index]
           : {
               day: dayValue,
               enabled: true,
@@ -1288,7 +1288,7 @@ const SettingsPage = () => {
       const current =
         prev.businessHours || buildDefaultSettings().businessHours;
       const schedule = Array.isArray(current.weeklySchedule)
-        ? [...current.weeklySchedule]
+         [...current.weeklySchedule]
         : buildWeeklySchedule({
             openTime: current.openTime || "11:00",
             closeTime: current.closeTime || "23:00",
@@ -1300,7 +1300,7 @@ const SettingsPage = () => {
       );
       const baseEntry =
         index >= 0
-          ? schedule[index]
+           schedule[index]
           : {
               day: dayValue,
               enabled: true,
@@ -1337,7 +1337,7 @@ const SettingsPage = () => {
       const openTime = current.openTime || "11:00";
       const closeTime = current.closeTime || "23:00";
       const schedule = Array.isArray(current.weeklySchedule)
-        ? current.weeklySchedule.map((entry) => ({
+         current.weeklySchedule.map((entry) => ({
             ...entry,
             openTime,
             closeTime,
@@ -1371,7 +1371,7 @@ const SettingsPage = () => {
         if (val === "" || val === null || val === undefined) return "";
         const normalized = val.toString().replace(",", ".");
         const n = Number(normalized);
-        return Number.isNaN(n) ? "" : n;
+        return Number.isNaN(n)  "" : n;
       };
 
       const updated = { ...(ranges[index] || {}) };
@@ -1442,7 +1442,7 @@ const SettingsPage = () => {
     setSettings((prev) => {
       const current = prev.delivery || buildDefaultDeliveryConfig();
       const existing = Array.isArray(current.blockedNeighborhoods)
-        ? current.blockedNeighborhoods
+         current.blockedNeighborhoods
         : [];
 
       const key = normalizeNeighborhoodKey(cleaned);
@@ -1470,7 +1470,7 @@ const SettingsPage = () => {
     setSettings((prev) => {
       const current = prev.delivery || buildDefaultDeliveryConfig();
       const existing = Array.isArray(current.blockedNeighborhoods)
-        ? current.blockedNeighborhoods
+         current.blockedNeighborhoods
         : [];
       const next = [...existing];
       next.splice(index, 1);
@@ -1490,14 +1490,14 @@ const SettingsPage = () => {
       setUpdateLoading(true);
       setUpdateStatus(null);
       const result = await window.appInfo.checkForUpdates();
-      if (result?.success) {
+      if (result.success) {
         const latest = result.latestVersion || "";
-        const current = appInfo?.version || settings?.versao || "";
+        const current = appInfo.version || settings.versao || "";
         const hasUpdate = latest && latest !== current;
         setUpdateStatus({
-          status: hasUpdate ? "available" : "ok",
+          status: hasUpdate  "available" : "ok",
           message: hasUpdate
-            ? `Atualizacao disponivel: ${latest}`
+             `Atualizacao disponivel: ${latest}`
             : "Sistema atualizado.",
           details: result.releaseNotes || "",
           downloadUrl: result.downloadUrl || "",
@@ -1505,7 +1505,7 @@ const SettingsPage = () => {
       } else {
         setUpdateStatus({
           status: "error",
-          message: result?.error || "Nao foi possivel verificar atualizacoes.",
+          message: result.error || "Nao foi possivel verificar atualizacoes.",
         });
       }
     } catch (err) {
@@ -1521,7 +1521,7 @@ const SettingsPage = () => {
 
   const sanitizeApiPath = (value) => {
     if (!value) return "/";
-    return value.startsWith("/") ? value : `/${value}`;
+    return value.startsWith("/")  value : `/${value}`;
   };
 
   const handleRunApiTest = async (override = {}) => {
@@ -1591,7 +1591,7 @@ const SettingsPage = () => {
       });
     } catch (err) {
       console.error("[Settings] Erro no teste de API:", err);
-      setApiTestError(err?.message || "Erro ao chamar API.");
+      setApiTestError(err.message || "Erro ao chamar API.");
     } finally {
       setApiTestLoading(false);
     }
@@ -1725,7 +1725,7 @@ const SettingsPage = () => {
       if (deliveryQuoteState.orderType) {
         params.set("orderType", deliveryQuoteState.orderType);
       }
-      const url = `${baseUrl}/api/pdv/delivery/quote?${params.toString()}`;
+      const url = `${baseUrl}/api/pdv/delivery/quote${params.toString()}`;
       const response = await fetch(url, {
         method: "GET",
         headers: buildApiHeaders(),
@@ -1733,13 +1733,13 @@ const SettingsPage = () => {
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         setDeliveryQuoteError(
-          payload?.message || `Erro HTTP ${response.status}`
+          payload.message || `Erro HTTP ${response.status}`
         );
         return;
       }
       setDeliveryQuoteResult(payload);
     } catch (err) {
-      setDeliveryQuoteError(err?.message || "Erro ao buscar cotacao.");
+      setDeliveryQuoteError(err.message || "Erro ao buscar cotacao.");
     } finally {
       setDeliveryQuoteLoading(false);
     }
@@ -1763,13 +1763,13 @@ const SettingsPage = () => {
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         setStockAlertsError(
-          payload?.message || `Erro HTTP ${response.status}`
+          payload.message || `Erro HTTP ${response.status}`
         );
         return;
       }
       setStockAlertsResult(payload);
     } catch (err) {
-      setStockAlertsError(err?.message || "Erro ao buscar alertas.");
+      setStockAlertsError(err.message || "Erro ao buscar alertas.");
     } finally {
       setStockAlertsLoading(false);
     }
@@ -1803,7 +1803,7 @@ const SettingsPage = () => {
         summary,
       });
     } catch (err) {
-      setHealthSnapshotError(err?.message || "Erro ao gerar snapshot.");
+      setHealthSnapshotError(err.message || "Erro ao gerar snapshot.");
     } finally {
       setHealthSnapshotLoading(false);
     }
@@ -1831,7 +1831,7 @@ const SettingsPage = () => {
     if (apiTokenValue) {
       params.set("api_key", apiTokenValue);
     }
-    const url = `${baseUrl}/api/orders/stream?${params.toString()}`;
+    const url = `${baseUrl}/api/orders/stream${params.toString()}`;
     if (ordersStreamRef.current) {
       ordersStreamRef.current.close();
     }
@@ -1851,7 +1851,7 @@ const SettingsPage = () => {
       setOrdersStreamEvents((prev) => [
         {
           type: "created",
-          id: payload?.id || payload?.orderId || "",
+          id: payload.id || payload.orderId || "",
           at: new Date().toISOString(),
         },
         ...prev,
@@ -1867,7 +1867,7 @@ const SettingsPage = () => {
       setOrdersStreamEvents((prev) => [
         {
           type: "updated",
-          id: payload?.id || payload?.orderId || "",
+          id: payload.id || payload.orderId || "",
           at: new Date().toISOString(),
         },
         ...prev,
@@ -1883,7 +1883,7 @@ const SettingsPage = () => {
       setOrdersStreamEvents((prev) => [
         {
           type: "ready",
-          id: payload?.types?.join(",") || "",
+          id: payload.types.join(",") || "",
           at: new Date().toISOString(),
         },
         ...prev,
@@ -1992,14 +1992,14 @@ const SettingsPage = () => {
       return;
     }
 
-    const kitchenName = settings.printing?.kitchenPrinterName || "";
-    const counterName = settings.printing?.counterPrinterName || "";
-    const silent = settings.printing?.silentMode ?? true;
+    const kitchenName = settings.printing.kitchenPrinterName || "";
+    const counterName = settings.printing.counterPrinterName || "";
+    const silent = settings.printing.silentMode  true;
 
     const isKitchen = target === "kitchen";
 
     const kitchenText = isKitchen
-      ? buildThermalTestTicket({
+       buildThermalTestTicket({
           profile: "kitchen",
           pizzaria: settings.pizzaria || "AXION PDV",
           configuredPrinterName: kitchenName,
@@ -2007,7 +2007,7 @@ const SettingsPage = () => {
       : "";
 
     const counterText = !isKitchen
-      ? buildThermalTestTicket({
+       buildThermalTestTicket({
           profile: "counter",
           pizzaria: settings.pizzaria || "AXION PDV",
           configuredPrinterName: counterName,
@@ -2016,7 +2016,7 @@ const SettingsPage = () => {
 
     const payload = {
       mode: "test",
-      target: isKitchen ? "kitchen" : "counter",
+      target: isKitchen  "kitchen" : "counter",
       silent,
       kitchenText,
       counterText,
@@ -2033,7 +2033,7 @@ const SettingsPage = () => {
       if (ok) {
         setPrintMessage(
           isKitchen
-            ? "Ticket de teste enviado para a impressora da cozinha."
+             "Ticket de teste enviado para a impressora da cozinha."
             : "Ticket de teste enviado para a impressora do balcão."
         );
       } else {
@@ -2061,12 +2061,12 @@ const SettingsPage = () => {
       setSyncLoading(true);
       setSyncMessage("");
       const result = await window.electronAPI.syncNow();
-      if (result?.success) {
+      if (result.success) {
         setSyncMessage("Sincronizacao concluida com sucesso.");
       } else {
         setSyncMessage(
-          result?.error
-            ? `Falha ao sincronizar: ${result.error}`
+          result.error
+             `Falha ao sincronizar: ${result.error}`
             : "Falha ao sincronizar."
         );
       }
@@ -2105,10 +2105,10 @@ const SettingsPage = () => {
     );
   }
 
-  const kitchenPrinterName = settings.printing?.kitchenPrinterName || "";
-  const counterPrinterName = settings.printing?.counterPrinterName || "";
+  const kitchenPrinterName = settings.printing.kitchenPrinterName || "";
+  const counterPrinterName = settings.printing.counterPrinterName || "";
   const printerNameSet = new Set(
-    Array.isArray(printers) ? printers.map((p) => p.name) : []
+    Array.isArray(printers)  printers.map((p) => p.name) : []
   );
   const kitchenPrinterMissing =
     kitchenPrinterName && !printerNameSet.has(kitchenPrinterName);
@@ -2117,23 +2117,23 @@ const SettingsPage = () => {
   const delivery = settings.delivery || buildDefaultDeliveryConfig();
   const blockedNeighborhoods =
     Array.isArray(delivery.blockedNeighborhoods)
-      ? delivery.blockedNeighborhoods
+       delivery.blockedNeighborhoods
       : [];
   const apiBaseUrlValue = publicApiConfig.apiBaseUrl || "";
   const apiTokenValue = publicApiConfig.publicApiToken || "";
   const apiTokenDisplay = apiTokenVisible
-    ? apiTokenValue
+     apiTokenValue
     : apiTokenValue
-    ? `${apiTokenValue.slice(0, 4)}...${apiTokenValue.slice(-4)}`
+     `${apiTokenValue.slice(0, 4)}...${apiTokenValue.slice(-4)}`
     : "";
   const businessSchedule = Array.isArray(
-    settings.businessHours?.weeklySchedule
+    settings.businessHours.weeklySchedule
   )
-    ? settings.businessHours.weeklySchedule
+     settings.businessHours.weeklySchedule
     : buildWeeklySchedule({
-        openTime: settings.businessHours?.openTime || "11:00",
-        closeTime: settings.businessHours?.closeTime || "23:00",
-        closedWeekdays: settings.businessHours?.closedWeekdays || [],
+        openTime: settings.businessHours.openTime || "11:00",
+        closeTime: settings.businessHours.closeTime || "23:00",
+        closedWeekdays: settings.businessHours.closedWeekdays || [],
       });
   const deliveryRangeIssues = validateDeliveryRanges(delivery.ranges);
 
@@ -2146,7 +2146,7 @@ const SettingsPage = () => {
           {isDirty && (
             <span className="settings-dirty-badge">
               Alteracoes nao salvas
-              {dirtyFields.length > 0 ? ` (${dirtyFields.length})` : ""}
+              {dirtyFields.length > 0  ` (${dirtyFields.length})` : ""}
             </span>
           )}
           {isDirty && (
@@ -2163,7 +2163,7 @@ const SettingsPage = () => {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? "Salvando..." : "Salvar"}
+            {saving  "Salvando..." : "Salvar"}
           </Button>
         </div>
       }
@@ -2229,7 +2229,7 @@ const SettingsPage = () => {
                 <span className="field-label">Versão do sistema</span>
                 <input
                   className="input"
-                  value={appInfo?.version || settings.versao || ""}
+                  value={appInfo.version || settings.versao || ""}
                   disabled
                 />
               </label>
@@ -2254,11 +2254,11 @@ const SettingsPage = () => {
                 <div>
                   <div className="system-version-title">Versao do sistema</div>
                   <div className="system-version-value">
-                    {appInfo?.version || settings.versao || "0.0.0"}
+                    {appInfo.version || settings.versao || "0.0.0"}
                   </div>
                 </div>
                 <span className="system-version-env">
-                  {appInfo?.env || "producao"}
+                  {appInfo.env || "producao"}
                 </span>
               </div>
 
@@ -2266,7 +2266,7 @@ const SettingsPage = () => {
                 <div className="system-version-meta-row">
                   <span className="system-version-meta-label">Aplicativo</span>
                   <span className="system-version-meta-value">
-                    {appInfo?.name || "AXION PDV"}
+                    {appInfo.name || "AXION PDV"}
                   </span>
                 </div>
                 <div className="system-version-meta-row">
@@ -2274,7 +2274,7 @@ const SettingsPage = () => {
                     Diretorio de dados
                   </span>
                   <span className="system-version-meta-value system-version-path">
-                    {appInfo?.dataDir || "nao informado"}
+                    {appInfo.dataDir || "nao informado"}
                   </span>
                 </div>
               </div>
@@ -2287,7 +2287,7 @@ const SettingsPage = () => {
                   onClick={handleCheckUpdates}
                   disabled={updateLoading}
                 >
-                  {updateLoading ? "Verificando..." : "Verificar atualizacoes"}
+                  {updateLoading  "Verificando..." : "Verificar atualizacoes"}
                 </Button>
                 {updateStatus && (
                   <div
@@ -2357,7 +2357,7 @@ const SettingsPage = () => {
                 onClick={handleManualSync}
                 disabled={syncLoading}
               >
-                {syncLoading ? "Sincronizando..." : "Sincronizar agora"}
+                {syncLoading  "Sincronizando..." : "Sincronizar agora"}
               </Button>
               <Button
                 type="button"
@@ -2386,15 +2386,15 @@ const SettingsPage = () => {
                 style={{
                   marginTop: 8,
                   fontSize: 12,
-                  color: syncStatus.online ? "#065f46" : "#b91c1c",
+                  color: syncStatus.online  "#065f46" : "#b91c1c",
                 }}
               >
-                Status: {syncStatus.online ? "Online" : "Offline"} | Última atualização (pull): {formatSyncTime(syncStatus.lastPullAt)} | Último envio (push): {formatSyncTime(syncStatus.lastPushAt)} | Fila: {syncStatus.queueRemaining ?? 0}
+                Status: {syncStatus.online  "Online" : "Offline"} | Última atualização (pull): {formatSyncTime(syncStatus.lastPullAt)} | Último envio (push): {formatSyncTime(syncStatus.lastPushAt)} | Fila: {syncStatus.queueRemaining  0}
                 {syncStatus.lastPullError
-                  ? ` | Erro pull: ${syncStatus.lastPullError}`
+                   ` | Erro pull: ${syncStatus.lastPullError}`
                   : ""}
                 {syncStatus.lastPushError
-                  ? ` | Erro push: ${syncStatus.lastPushError}`
+                   ` | Erro push: ${syncStatus.lastPushError}`
                   : ""}
               </div>
             )}
@@ -2492,7 +2492,7 @@ const SettingsPage = () => {
                     className="input"
                     value={
                       range.minKm === "" || range.minKm === null
-                        ? ""
+                         ""
                         : range.minKm
                     }
                     onChange={(e) =>
@@ -2509,7 +2509,7 @@ const SettingsPage = () => {
                     className="input"
                     value={
                       range.maxKm === "" || range.maxKm === null
-                        ? ""
+                         ""
                         : range.maxKm
                     }
                     onChange={(e) =>
@@ -2537,7 +2537,7 @@ const SettingsPage = () => {
                     className="input"
                     value={
                       range.price === "" || range.price === null
-                        ? ""
+                         ""
                         : range.price
                     }
                     onChange={(e) =>
@@ -2650,7 +2650,7 @@ const SettingsPage = () => {
                 </Button>
               </div>
 
-              {blockedNeighborhoods.length > 0 ? (
+              {blockedNeighborhoods.length > 0  (
                 <div className="delivery-blocked-list">
                   {blockedNeighborhoods.map((bairro, idx) => (
                     <div
@@ -2688,12 +2688,12 @@ const SettingsPage = () => {
                     type="number"
                     step="0.01"
                     className="input"
-                    value={delivery.minOrderValue ?? 0}
+                    value={delivery.minOrderValue  0}
                     onChange={(e) =>
                       handleDeliveryFieldChange(
                         "minOrderValue",
                         e.target.value === ""
-                          ? ""
+                           ""
                           : Number(e.target.value)
                       )
                     }
@@ -2709,12 +2709,12 @@ const SettingsPage = () => {
                     type="number"
                     step="0.1"
                     className="input"
-                    value={delivery.maxDistanceKm ?? 0}
+                    value={delivery.maxDistanceKm  0}
                     onChange={(e) =>
                       handleDeliveryFieldChange(
                         "maxDistanceKm",
                         e.target.value === ""
-                          ? ""
+                           ""
                           : Number(e.target.value)
                       )
                     }
@@ -2732,12 +2732,12 @@ const SettingsPage = () => {
                     type="number"
                     step="1"
                     className="input"
-                    value={delivery.etaMinutesDefault ?? 0}
+                    value={delivery.etaMinutesDefault  0}
                     onChange={(e) =>
                       handleDeliveryFieldChange(
                         "etaMinutesDefault",
                         e.target.value === ""
-                          ? ""
+                           ""
                           : Number(e.target.value)
                       )
                     }
@@ -2752,7 +2752,7 @@ const SettingsPage = () => {
                 <label className="settings-toggle">
                   <input
                     type="checkbox"
-                    checked={delivery.peakFee?.enabled || false}
+                    checked={delivery.peakFee.enabled || false}
                     onChange={(e) =>
                       handleDeliveryPeakFeeChange(
                         "enabled",
@@ -2764,7 +2764,7 @@ const SettingsPage = () => {
                 </label>
               </div>
 
-              {delivery.peakFee?.enabled && (
+              {delivery.peakFee.enabled && (
                 <div className="form-grid settings-grid">
                   <label className="field">
                     <span className="field-label">Valor extra (R$)</span>
@@ -2772,12 +2772,12 @@ const SettingsPage = () => {
                       type="number"
                       step="0.01"
                       className="input"
-                      value={delivery.peakFee?.amount ?? 0}
+                      value={delivery.peakFee.amount  0}
                       onChange={(e) =>
                         handleDeliveryPeakFeeChange(
                           "amount",
                           e.target.value === ""
-                            ? ""
+                             ""
                             : Number(e.target.value)
                         )
                       }
@@ -2789,7 +2789,7 @@ const SettingsPage = () => {
                     <input
                       type="time"
                       className="input"
-                      value={delivery.peakFee?.startTime || "18:00"}
+                      value={delivery.peakFee.startTime || "18:00"}
                       onChange={(e) =>
                         handleDeliveryPeakFeeChange(
                           "startTime",
@@ -2804,7 +2804,7 @@ const SettingsPage = () => {
                     <input
                       type="time"
                       className="input"
-                      value={delivery.peakFee?.endTime || "22:00"}
+                      value={delivery.peakFee.endTime || "22:00"}
                       onChange={(e) =>
                         handleDeliveryPeakFeeChange(
                           "endTime",
@@ -2816,7 +2816,7 @@ const SettingsPage = () => {
                 </div>
               )}
 
-              {delivery.peakFee?.enabled && (
+              {delivery.peakFee.enabled && (
                 <div style={{ marginTop: 8 }}>
                   <div className="field-label">Dias de pico</div>
                   <div
@@ -2840,7 +2840,7 @@ const SettingsPage = () => {
                         <input
                           type="checkbox"
                           checked={
-                            delivery.peakFee?.days?.includes(day.value) ||
+                            delivery.peakFee.days.includes(day.value) ||
                             false
                           }
                           onChange={() =>
@@ -2863,7 +2863,7 @@ const SettingsPage = () => {
               <label className="settings-toggle">
                 <input
                   type="checkbox"
-                  checked={settings.businessHours?.enabled || false}
+                  checked={settings.businessHours.enabled || false}
                   onChange={(e) =>
                     handleBusinessHoursChange(
                       "enabled",
@@ -2874,7 +2874,7 @@ const SettingsPage = () => {
                 <span>Ativar restricao de horario</span>
               </label>
 
-              {settings.businessHours?.enabled && (
+              {settings.businessHours.enabled && (
                 <>
                   <div className="business-hours-toolbar">
                     <div className="form-grid settings-grid">
@@ -2884,7 +2884,7 @@ const SettingsPage = () => {
                           type="time"
                           className="input"
                           value={
-                            settings.businessHours?.openTime || "11:00"
+                            settings.businessHours.openTime || "11:00"
                           }
                           onChange={(e) =>
                             handleBusinessHoursChange(
@@ -2901,7 +2901,7 @@ const SettingsPage = () => {
                           type="time"
                           className="input"
                           value={
-                            settings.businessHours?.closeTime || "23:00"
+                            settings.businessHours.closeTime || "23:00"
                           }
                           onChange={(e) =>
                             handleBusinessHoursChange(
@@ -2943,9 +2943,9 @@ const SettingsPage = () => {
                           day: day.value,
                           enabled: true,
                           openTime:
-                            settings.businessHours?.openTime || "11:00",
+                            settings.businessHours.openTime || "11:00",
                           closeTime:
-                            settings.businessHours?.closeTime || "23:00",
+                            settings.businessHours.closeTime || "23:00",
                         };
                       const isEnabled = entry.enabled !== false;
                       return (
@@ -2953,7 +2953,7 @@ const SettingsPage = () => {
                           key={`schedule-${day.value}`}
                           className={
                             "business-hours-row" +
-                            (isEnabled ? "" : " is-disabled")
+                            (isEnabled  "" : " is-disabled")
                           }
                         >
                           <div className="business-hours-day">
@@ -2971,7 +2971,7 @@ const SettingsPage = () => {
                                 )
                               }
                             />
-                            <span>{isEnabled ? "Aberto" : "Fechado"}</span>
+                            <span>{isEnabled  "Aberto" : "Fechado"}</span>
                           </label>
                           <div className="business-hours-time">
                             <input
@@ -3037,14 +3037,14 @@ const SettingsPage = () => {
                 disabled={printersLoading}
               >
                 {printersLoading
-                  ? "Atualizando impressoras..."
+                   "Atualizando impressoras..."
                   : "Atualizar lista de impressoras"}
               </Button>
               <span style={{ fontSize: 12, color: "#6b7280" }}>
                 {printersLoading
-                  ? "Buscando impressoras instaladas no sistema..."
+                   "Buscando impressoras instaladas no sistema..."
                   : printers.length > 0
-                  ? `${printers.length} impressora(s) encontrada(s).`
+                   `${printers.length} impressora(s) encontrada(s).`
                   : "Nenhuma impressora encontrada ou listagem indisponível."}
               </span>
             </div>
@@ -3082,9 +3082,9 @@ const SettingsPage = () => {
                   </option>
                   {printers.map((p) => (
                     <option key={p.name} value={p.name}>
-                      {p.isDefault ? "⭐ " : ""}
+                      {p.isDefault  "⭐ " : ""}
                       {p.name}
-                      {p.isDefault ? " (padrão)" : ""}
+                      {p.isDefault  " (padrão)" : ""}
                     </option>
                   ))}
                 </select>
@@ -3152,9 +3152,9 @@ const SettingsPage = () => {
                   </option>
                   {printers.map((p) => (
                     <option key={p.name} value={p.name}>
-                      {p.isDefault ? "⭐ " : ""}
+                      {p.isDefault  "⭐ " : ""}
                       {p.name}
-                      {p.isDefault ? " (padrão)" : ""}
+                      {p.isDefault  " (padrão)" : ""}
                     </option>
                   ))}
                 </select>
@@ -3206,7 +3206,7 @@ const SettingsPage = () => {
               <label className="settings-toggle">
                 <input
                   type="checkbox"
-                  checked={settings.printing?.silentMode ?? true}
+                  checked={settings.printing.silentMode  true}
                   onChange={(e) =>
                     handlePrintingChange(
                       "silentMode",
@@ -3223,7 +3223,7 @@ const SettingsPage = () => {
                 <input
                   type="checkbox"
                   checked={
-                    settings.printing?.autoPrintWebsiteOrders || false
+                    settings.printing.autoPrintWebsiteOrders || false
                   }
                   onChange={(e) =>
                     handlePrintingChange(
@@ -3332,7 +3332,7 @@ const SettingsPage = () => {
                   disabled={!importPreview || importApplying}
                   onClick={handleApplyImport}
                 >
-                  {importApplying ? "Aplicando..." : "Aplicar"}
+                  {importApplying  "Aplicando..." : "Aplicar"}
                 </Button>
               </div>
               {importError && (
@@ -3345,7 +3345,7 @@ const SettingsPage = () => {
                   <div className="field-helper">
                     Campos alterados:{" "}
                     {importDiff.length > 0
-                      ? importDiff.join(", ")
+                       importDiff.join(", ")
                       : "nenhum"}
                   </div>
                 </div>
@@ -3429,7 +3429,7 @@ const SettingsPage = () => {
               onClick={handleDeliveryQuote}
               disabled={deliveryQuoteLoading}
             >
-              {deliveryQuoteLoading ? "Consultando..." : "Consultar"}
+              {deliveryQuoteLoading  "Consultando..." : "Consultar"}
             </Button>
             {deliveryQuoteError && (
               <div style={{ color: "#b91c1c" }}>{deliveryQuoteError}</div>
@@ -3459,7 +3459,7 @@ const SettingsPage = () => {
                 onClick={handleLoadStockAlerts}
                 disabled={stockAlertsLoading}
               >
-                {stockAlertsLoading ? "Atualizando..." : "Atualizar"}
+                {stockAlertsLoading  "Atualizando..." : "Atualizar"}
               </Button>
               {stockAlertsError && (
                 <span style={{ color: "#b91c1c" }}>
@@ -3480,10 +3480,10 @@ const SettingsPage = () => {
                   <div className="field-label">Ingredientes em falta</div>
                   <div style={{ marginTop: 6 }}>
                     {Array.isArray(stockAlertsResult.missingIngredients) &&
-                    stockAlertsResult.missingIngredients.length > 0 ? (
+                    stockAlertsResult.missingIngredients.length > 0  (
                       stockAlertsResult.missingIngredients.map((item) => (
                         <div key={item.key}>
-                          - {item.name} (qtd: {item.quantity ?? 0})
+                          - {item.name} (qtd: {item.quantity  0})
                         </div>
                       ))
                     ) : (
@@ -3496,10 +3496,10 @@ const SettingsPage = () => {
                   <div className="field-label">Produtos afetados</div>
                   <div style={{ marginTop: 6 }}>
                     {Array.isArray(stockAlertsResult.affectedProducts) &&
-                    stockAlertsResult.affectedProducts.length > 0 ? (
+                    stockAlertsResult.affectedProducts.length > 0  (
                       stockAlertsResult.affectedProducts.map((item) => (
                         <div key={item.id || item.name}>
-                          - {item.name} ({item.missingIngredients?.join(", ")})
+                          - {item.name} ({item.missingIngredients.join(", ")})
                         </div>
                       ))
                     ) : (
@@ -3588,7 +3588,7 @@ const SettingsPage = () => {
                 fontSize: 12,
               }}
             >
-              {ordersStreamEvents.length > 0 ? (
+              {ordersStreamEvents.length > 0  (
                 ordersStreamEvents.map((event, index) => (
                   <div key={`${event.type}-${event.id}-${index}`}>
                     [{event.at}] {event.type} {event.id}
@@ -3617,7 +3617,7 @@ const SettingsPage = () => {
               onClick={handleHealthSnapshot}
               disabled={healthSnapshotLoading}
             >
-              {healthSnapshotLoading ? "Gerando..." : "Atualizar snapshot"}
+              {healthSnapshotLoading  "Gerando..." : "Atualizar snapshot"}
             </Button>
             {healthSnapshotError && (
               <div style={{ color: "#b91c1c" }}>{healthSnapshotError}</div>
@@ -3673,7 +3673,7 @@ const SettingsPage = () => {
                       className="api-console-toggle"
                       onClick={() => setApiTokenVisible((prev) => !prev)}
                     >
-                      {apiTokenVisible ? "Ocultar" : "Mostrar"}
+                      {apiTokenVisible  "Ocultar" : "Mostrar"}
                     </button>
                   )}
                 </div>
@@ -3865,7 +3865,7 @@ const SettingsPage = () => {
                     onClick={() => handleRunApiTest()}
                     disabled={apiTestLoading}
                   >
-                    {apiTestLoading ? "Executando..." : "Executar teste"}
+                    {apiTestLoading  "Executando..." : "Executar teste"}
                   </Button>
 
                   {apiTestError && (
@@ -3878,7 +3878,7 @@ const SettingsPage = () => {
                         className={
                           "api-test-status " +
                           (apiTestResult.ok
-                            ? "api-test-status-ok"
+                             "api-test-status-ok"
                             : "api-test-status-error")
                         }
                       >
@@ -3890,7 +3890,7 @@ const SettingsPage = () => {
                       </div>
                       <pre className="api-test-response">
                         {apiTestResult.json
-                          ? JSON.stringify(apiTestResult.json, null, 2)
+                           JSON.stringify(apiTestResult.json, null, 2)
                           : apiTestResult.rawText || "(vazio)"}
                       </pre>
                     </div>

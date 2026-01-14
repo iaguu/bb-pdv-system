@@ -1,19 +1,19 @@
 {
   "name": "pizzaria-pedidos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AXION PDV - Sistema de Ponto de Venda Desktop (Electron + React)",
   "author": "Iago Barreto",
   "private": true,
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently \"vite\" \"set ENV_FILE=.env.development&& electron .\"",
+    "dev": "concurrently \"vite\" \"set ELECTRON_RUN_AS_NODE=&& set ENV_FILE=.env.development&& electron .\"",
     "dev:renderer": "vite",
-    "dev:electron": "set ENV_FILE=.env.development&& electron .",
+    "dev:electron": "set ELECTRON_RUN_AS_NODE=&& set ENV_FILE=.env.development&& electron .",
     "build": "vite build",
     "clean:dist": "node -e \"require('fs').rmSync('dist',{ recursive: true, force: true }); require('fs').rmSync('dist-electron',{ recursive: true, force: true })\"",
     "build:prod": "npm run clean:dist && npm run build",
     "preview": "vite preview",
-    "start": "set ENV_FILE=.env.production&& electron .",
+    "start": "set ELECTRON_RUN_AS_NODE=&& set ENV_FILE=.env.production&& electron .",
     "test:api": "node electron/tests/apiServer.validation.test.js",
     "test:db": "node electron/tests/db.engine.test.js",
     "test:motoboy": "node electron/tests/motoboy.link.test.js",
@@ -22,13 +22,14 @@
     "test:sync:local": "node electron/tests/sync.local-first.test.js",
     "test:vitals": "node electron/tests/vitals.flow.test.js",
     "test": "npm run test:api && npm run test:db && npm run test:motoboy && npm run test:sync && npm run test:sync:lastpush && npm run test:sync:local && npm run test:vitals",
+    "deploy": "npm run test && npm run build:prod && npm run electron:build",
+    "deploy:web": "npm run test && npm run build:prod && echo '🚀 Web deploy ready! Files in dist/'",
     "electron:build": "npm run clean:dist && npm run build && electron-builder"
   },
   "dependencies": {
-    "concurrently": "^9.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "electron-store": "^8.2.0",
-    "cors": "^2.8.5",
     "express": "^4.19.2",
     "morgan": "^1.10.0",
     "node-fetch": "^3.3.2",
@@ -38,9 +39,16 @@
     "react-router-dom": "^7.9.6"
   },
   "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react-swc": "^3.7.0",
+    "babel-jest": "^30.2.0",
+    "concurrently": "^9.2.1",
     "electron": "^39.2.6",
     "electron-builder": "^26.0.12",
+    "jest": "^30.2.0",
     "sass-embedded": "^1.93.3",
     "vite": "^6.0.0"
   },
@@ -55,6 +63,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "!electron/tests/**",
       "package.json"
     ],
     "asar": true,

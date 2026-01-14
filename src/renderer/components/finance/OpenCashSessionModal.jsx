@@ -20,7 +20,7 @@ const OpenCashSessionModal = ({
   onChangeField,
   onConfirm,
 }) => {
-  const visible = typeof open === "boolean" ? open : isOpen || false;
+  const visible = typeof open === "boolean"  open : isOpen || false;
 
   const handleChange =
     (field) =>

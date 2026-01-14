@@ -1,13 +1,15 @@
-@import "./layout.scss";
-@import "./tokens.scss";
-@import "./modals.scss";
-@import "./buttons.scss";
-@import "./components.scss";
-@import "./reset.scss";
-@import "./orders.scss";
-@import "./people.scss";
-@import "./dashboard.scss";
-@import "./catalog.scss";
-@import "./stock.scss";
-@import "./finance.scss";
-@import "./settings.scss";
+﻿@use "./layout.scss" as *;
+@use "./tokens.scss" as *;
+@use "./modals.scss" as *;
+@use "./buttons.scss" as *;
+@use "./components.scss" as *;
+@use "./reset.scss" as *;
+@use "./orders.scss" as *;
+@use "./people.scss" as *;
+@use "./dashboard.scss" as *;
+@use "./catalog.scss" as *;
+@use "./stock.scss" as *;
+@use "./finance.scss" as *;
+@use "./settings.scss" as *;
+
+

@@ -9,7 +9,7 @@ const Tabs = ({ value, onChange, options }) => {
         return (
           <button
             key={opt.value}
-            className={"tab-item" + (active ? " tab-item-active" : "")}
+            className={"tab-item" + (active  " tab-item-active" : "")}
             onClick={() => onChange(opt.value)}
             type="button"
           >

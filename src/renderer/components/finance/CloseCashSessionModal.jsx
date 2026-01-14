@@ -40,7 +40,7 @@ const CloseCashSessionModal = ({
   onChangeField,
   onConfirm,
 }) => {
-  const visible = typeof open === "boolean" ? open : isOpen || false;
+  const visible = typeof open === "boolean"  open : isOpen || false;
 
   const handleChange =
     (field) =>
@@ -56,7 +56,7 @@ const CloseCashSessionModal = ({
       title="Fechar sessão de caixa"
     >
       <div className="cash-modal">
-        {hasOpenSession ? (
+        {hasOpenSession  (
           <>
             <p className="cash-modal-description">
               Confira os valores do dia, conte o dinheiro em caixa e
@@ -106,9 +106,9 @@ const CloseCashSessionModal = ({
               <strong
                 className={
                   closingDifference === 0
-                    ? "cash-diff-zero"
+                     "cash-diff-zero"
                     : closingDifference > 0
-                    ? "cash-diff-positive"
+                     "cash-diff-positive"
                     : "cash-diff-negative"
                 }
               >

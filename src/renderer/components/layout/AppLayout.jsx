@@ -25,7 +25,7 @@ const AppLayout = ({ children }) => {
   const [appToasts, setAppToasts] = useState([]);
   const lastSeenRef = useRef(
     typeof window !== "undefined"
-      ? window.localStorage?.getItem("bb-pdv:lastSeenOrdersAt")
+       window.localStorage.getItem("bb-pdv:lastSeenOrdersAt")
       : null
   );
   const lastProcessedRef = useRef(null);
@@ -42,11 +42,11 @@ const AppLayout = ({ children }) => {
 
     const handleKey = (event) => {
       const target = event.target;
-      const tag = target?.tagName;
+      const tag = target.tagName;
       const isField =
         tag === "INPUT" ||
         tag === "TEXTAREA" ||
-        target?.isContentEditable;
+        target.isContentEditable;
 
       const key = (event.key || "").toLowerCase();
       const isCtrl = event.ctrlKey || event.metaKey;
@@ -123,7 +123,7 @@ const AppLayout = ({ children }) => {
     if (location.pathname === "/orders") {
       const now = new Date().toISOString();
       lastSeenRef.current = now;
-      window.localStorage?.setItem("bb-pdv:lastSeenOrdersAt", now);
+      window.localStorage.setItem("bb-pdv:lastSeenOrdersAt", now);
       setNewOrdersCount(0);
     }
   }, [location.pathname]);
@@ -137,7 +137,7 @@ const AppLayout = ({ children }) => {
       }
       try {
         const result = await window.electronAPI.getNotificationsEnabled();
-        if (mounted && typeof result?.enabled === "boolean") {
+        if (mounted && typeof result.enabled === "boolean") {
           setNotificationsEnabled(result.enabled);
           if (!result.enabled) {
             setNewOrdersCount(0);
@@ -165,7 +165,7 @@ const AppLayout = ({ children }) => {
         title: detail.title || "",
         message: detail.message || "",
         duration:
-          typeof detail.duration === "number" ? detail.duration : 4000,
+          typeof detail.duration === "number"  detail.duration : 4000,
       };
 
       setAppToasts((prev) => [...prev, toast]);
@@ -195,14 +195,14 @@ const AppLayout = ({ children }) => {
       try {
         const status = await window.electronAPI.getSyncStatus();
         setSyncStatus(status || null);
-        if (status?.lastPullErrorType === "dns") {
+        if (status.lastPullErrorType === "dns") {
           setSyncAlert(
             "Sem conexao com o servidor (DNS). Aguarde o ngrok voltar ou atualize a URL."
           );
         } else {
           setSyncAlert(null);
         }
-        if (!status?.lastNewOrdersAt) return;
+        if (!status.lastNewOrdersAt) return;
         if (status.lastNewOrdersAt === lastProcessedRef.current) return;
         lastProcessedRef.current = status.lastNewOrdersAt;
 
@@ -216,7 +216,7 @@ const AppLayout = ({ children }) => {
           setNewOrdersCount((prev) => prev + increment);
           setToastMessage(
             increment === 1
-              ? "Novo pedido do site."
+               "Novo pedido do site."
               : `Novos pedidos do site: ${increment}.`
           );
           setToastVisible(true);
@@ -281,13 +281,13 @@ const AppLayout = ({ children }) => {
   };
 
   const handleSyncNow = async () => {
-    if (!window.electronAPI?.syncNow) return;
+    if (!window.electronAPI.syncNow) return;
     setSyncNowError("");
     setSyncNowPending(true);
     try {
       const result = await window.electronAPI.syncNow();
-      if (result?.success === false) {
-        setSyncNowError(result?.error || "Falha ao sincronizar.");
+      if (result.success === false) {
+        setSyncNowError(result.error || "Falha ao sincronizar.");
       }
       const updated = await window.electronAPI.getSyncStatus();
       setSyncStatus(updated || null);
@@ -314,7 +314,7 @@ const AppLayout = ({ children }) => {
               to={item.to}
               end={item.to === "/dashboard"}
               className={({ isActive }) =>
-                "app-nav-link" + (isActive ? " app-nav-link-active" : "")
+                "app-nav-link" + (isActive  " app-nav-link-active" : "")
               }
             >
               <span className="app-nav-link__label">{item.label}</span>
@@ -369,10 +369,10 @@ const AppLayout = ({ children }) => {
               <span
                 className={
                   "app-sync-status__pill " +
-                  (syncStatus.online ? "is-online" : "is-offline")
+                  (syncStatus.online  "is-online" : "is-offline")
                 }
               >
-                {syncStatus.online ? "Online" : "Offline"}
+                {syncStatus.online  "Online" : "Offline"}
               </span>
               <span>
                 Última atualização (pull): {formatSyncTime(syncStatus.lastPullAt)}
@@ -405,7 +405,7 @@ const AppLayout = ({ children }) => {
                 onClick={handleSyncNow}
                 disabled={syncNowPending}
               >
-                {syncNowPending ? "Sincronizando..." : "Sincronizar agora"}
+                {syncNowPending  "Sincronizando..." : "Sincronizar agora"}
               </button>
             </div>
           </div>

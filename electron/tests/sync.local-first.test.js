@@ -78,8 +78,8 @@ async function run() {
   global.fetch = async (url, options = {}) => {
     const method = (options.method || "GET").toUpperCase();
     requests.push({ url, method, body: options.body || null });
-    const match = String(url).match(/\/sync\/collection\/([^/?]+)/);
-    const collection = match ? decodeURIComponent(match[1]) : null;
+    const match = String(url).match(/\/sync\/collection\/([^/]+)/);
+    const collection = match  decodeURIComponent(match[1]) : null;
 
     if (method === "GET") {
       const payload =

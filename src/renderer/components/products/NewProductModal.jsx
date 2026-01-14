@@ -82,8 +82,8 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
       setPendingDraft(productDraft);
       setPriceConfirmMessage(
         type === "pizza"
-          ? "Os preços de broto e grande estão zerados. Deseja continuar mesmo assim?"
-          : "O preço está zerado. Deseja continuar mesmo assim?"
+           "Os preços de broto e grande estão zerados. Deseja continuar mesmo assim"
+          : "O preço está zerado. Deseja continuar mesmo assim"
       );
       setShowPriceConfirm(true);
       return;
@@ -145,7 +145,7 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
               <button
                 key={c}
                 type="button"
-                className={"field-pill" + (type === c ? " field-pill-active" : "")}
+                className={"field-pill" + (type === c  " field-pill-active" : "")}
                 onClick={() => setType(c)}
               >
                 {CATEGORY_LABELS[c] || c}
@@ -188,7 +188,7 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
           </div>
 
           {/* Preços */}
-          {type === "pizza" ? (
+          {type === "pizza"  (
             <div className="field-grid-2">
               <label className="field">
                 <span className="field-label">Preço broto</span>

@@ -44,7 +44,7 @@ const OrderFilters = ({ value = {}, onChange, searchInputRef }) => {
           const classes = [
             "order-status-tab",
             `order-status-tab--tone-${tab.tone}`,
-            isActive ? "order-status-tab--active" : "",
+            isActive  "order-status-tab--active" : "",
           ]
             .filter(Boolean)
             .join(" ");

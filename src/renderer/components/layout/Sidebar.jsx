@@ -31,7 +31,7 @@ export default function Sidebar({ current, onChange }) {
                 key={item.key}
                 type="button"
                 className={
-                  "sidebar-item" + (isActive ? " sidebar-item--active" : "")
+                  "sidebar-item" + (isActive  " sidebar-item--active" : "")
                 }
                 onClick={() => onChange && onChange(item.key)}
               >

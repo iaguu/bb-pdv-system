@@ -4,12 +4,6 @@ const path = require("path");
 const fs = require("fs");
 const dotenv = require("dotenv");
 const QRCode = require("qrcode"); // QR Code para tickets HTML
-
-// Módulo de acesso ao "banco" em JSON
-const db = require("./db"); // ajuste o path se necessário
-const apiServer = require("./apiServer");
-const sync = require("./sync");
-const { orderEvents, getTrackingBaseUrl } = apiServer;
 const isDev = !app.isPackaged;
 const packagedEnvPath = path.join(process.resourcesPath || "", ".env");
 const devEnvPath = path.join(__dirname, "..", ".env");
@@ -35,7 +29,11 @@ const resolvedEnvPath = envCandidates.find((candidate) =>
 );
 if (resolvedEnvPath) dotenv.config({ path: resolvedEnvPath, override: true });
 else dotenv.config();
-const fetch = require("node-fetch");
+// Modulo de acesso ao "banco" em JSON
+const db = require("./db"); // ajuste o path se necessario
+const apiServer = require("./apiServer");
+const sync = require("./sync");
+const { orderEvents, getTrackingBaseUrl } = apiServer;
 // Helper fetch no processo main (Node/Electron)
 // Usa fetch nativo se existir; caso contrário, faz import dinâmico do node-fetch.
 const fetchFn = global.fetch
@@ -123,7 +121,7 @@ function getOrderEventId(order) {
 }
 
 function flushPendingNewOrders() {
-  if (!mainWindow?.webContents || !mainWindowReady) {
+  if (!mainWindow.webContents || !mainWindowReady) {
     return;
   }
 
@@ -137,7 +135,7 @@ function flushPendingNewOrders() {
 }
 
 function flushPendingUpdatedOrders() {
-  if (!mainWindow?.webContents || !mainWindowReady) {
+  if (!mainWindow.webContents || !mainWindowReady) {
     return;
   }
 
@@ -257,15 +255,15 @@ function getTrackingUrlFromOrder(order) {
 
   const direct =
     order.trackingUrl ||
-    order.delivery?.trackingUrl ||
-    order.delivery?.tracking_url;
+    order.delivery.trackingUrl ||
+    order.delivery.tracking_url;
 
   if (direct) return String(direct);
 
   const code =
     order.trackingCode ||
-    order.delivery?.trackingCode ||
-    order.delivery?.tracking_code ||
+    order.delivery.trackingCode ||
+    order.delivery.tracking_code ||
     order.id ||
     order.code ||
     order.numeroPedido;
@@ -316,7 +314,7 @@ async function getDistanceKmFromGoogle(origin, destination) {
     key: GOOGLE_MAPS_API_KEY,
   });
 
-  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?${params.toString()}`;
+  const url = `https://maps.googleapis.com/maps/api/distancematrix/json${params.toString()}`;
 
   console.log("[distance] Chamando Distance Matrix:", url);
 
@@ -331,23 +329,23 @@ async function getDistanceKmFromGoogle(origin, destination) {
   const data = await response.json();
   console.log("[distance] JSON:", JSON.stringify(data, null, 2));
 
-  const element = data?.rows?.[0]?.elements?.[0];
+  const element = data.rows[0]?.elements?.[0];
   if (!element || element.status !== "OK") {
-    console.error("[distance] Element status:", element?.status, "element:", element);
+    console.error("[distance] Element status:", element.status, "element:", element);
     throw new Error(
-      `Distance Matrix retornou status inválido: ${element?.status || "sem dados"}`
+      `Distance Matrix retornou status inválido: ${element.status || "sem dados"}`
     );
   }
 
   const meters = element.distance.value;
   const km = meters / 1000;
-  const durationSeconds = element.duration?.value;
+  const durationSeconds = element.duration.value;
   const durationMinutes =
     typeof durationSeconds === "number"
       ? Math.round(durationSeconds / 60)
       : null;
-  const durationText = element.duration?.text || null;
-  console.log("[distance] Dist?ncia calculada (km):", km);
+  const durationText = element.duration.text || null;
+  console.log("[distance] Distncia calculada (km):", km);
   return {
     distanceKm: km,
     durationMinutes,
@@ -458,7 +456,7 @@ async function queryUpdateInfo() {
     if (!response.ok) {
       return {
         success: false,
-        error: payload?.error || `Resposta HTTP ${response.status}`,
+        error: payload.error || `Resposta HTTP ${response.status}`,
         status: response.status,
       };
     }
@@ -466,27 +464,27 @@ async function queryUpdateInfo() {
       success: true,
       currentVersion: app.getVersion(),
       latestVersion:
-        payload?.version ||
-        payload?.latestVersion ||
-        payload?.tag_name ||
+        payload.version ||
+        payload.latestVersion ||
+        payload.tag_name ||
         "",
       releaseNotes:
-        payload?.notes ||
-        payload?.releaseNotes ||
-        payload?.changelog ||
-        payload?.body ||
+        payload.notes ||
+        payload.releaseNotes ||
+        payload.changelog ||
+        payload.body ||
         "",
       downloadUrl:
-        payload?.downloadUrl || payload?.url || payload?.html_url || "",
+        payload.downloadUrl || payload.url || payload.html_url || "",
       raw: payload,
     };
   } catch (err) {
-    const isTimeout = err?.name === "AbortError";
+    const isTimeout = err.name === "AbortError";
     return {
       success: false,
       error: isTimeout
         ? "Verificação de atualizações expirou."
-        : err?.message || "Erro ao verificar atualizações.",
+        : err.message || "Erro ao verificar atualizações.",
     };
   } finally {
     clearTimeout(timeout);
@@ -505,7 +503,7 @@ async function getPrinterSettingsSafe() {
     const raw = await db.getCollection("settings");
 
     let root;
-    if (Array.isArray(raw?.items) && raw.items.length > 0) {
+    if (Array.isArray(raw.items) && raw.items.length > 0) {
       root = raw.items[0];
     } else if (Array.isArray(raw) && raw.length > 0) {
       root = raw[0];
@@ -1248,7 +1246,7 @@ function buildKitchenTicket(order) {
   const createdAt = order.createdAt ? new Date(order.createdAt) : new Date();
 
   const rawOrderType =
-    order.type || order.delivery?.mode || order.orderType || "delivery";
+    order.type || order.delivery.mode || order.orderType || "delivery";
   const orderTypeKey = rawOrderType.toString().toLowerCase();
   const orderTypeLabel =
     ORDER_TYPE_LABELS[orderTypeKey] || ORDER_TYPE_LABELS.delivery;
@@ -1281,7 +1279,7 @@ function buildKitchenTicket(order) {
       : null;
 
   const addressObj =
-    order.delivery?.address ||
+    order.delivery.address ||
     customer.address ||
     order.customerAddress ||
     order.address ||
@@ -1318,9 +1316,9 @@ function buildKitchenTicket(order) {
   }
 
   const courierRaw =
-    order.delivery?.courier ||
-    order.delivery?.motoboy ||
-    order.delivery?.driver ||
+    order.delivery.courier ||
+    order.delivery.motoboy ||
+    order.delivery.driver ||
     order.motoboy ||
     null;
 
@@ -1454,7 +1452,7 @@ function buildKitchenTicket(order) {
         unitPrice * qty;
 
       const extrasNames = Array.isArray(item.extras)
-        ? item.extras
+         ? item.extras
             .map(
               (ex) =>
                 (ex && (ex.name || ex.label || ex.descricao)) || ""
@@ -1566,7 +1564,7 @@ function buildCounterTicket(order) {
   const createdAt = order.createdAt ? new Date(order.createdAt) : new Date();
 
   const rawOrderType =
-    order.type || order.delivery?.mode || order.orderType || "delivery";
+    order.type || order.delivery.mode || order.orderType || "delivery";
   const orderTypeKey = rawOrderType.toString().toLowerCase();
   const orderTypeLabel =
     ORDER_TYPE_LABELS[orderTypeKey] || ORDER_TYPE_LABELS.delivery;
@@ -1575,13 +1573,13 @@ function buildCounterTicket(order) {
   const sourceLabel = SOURCE_LABELS[rawSource] || SOURCE_LABELS.local;
 
   const rawPaymentMethod =
-    order.payment?.method || order.paymentMethod || "";
+    order.payment.method || order.paymentMethod || "";
   const paymentMethodKey = rawPaymentMethod.toString().toLowerCase();
   const paymentMethodLabel =
     PAYMENT_METHOD_LABELS[paymentMethodKey] || PAYMENT_METHOD_LABELS[""];
 
   const rawPaymentStatus =
-    order.payment?.status || order.paymentStatus || "to_define";
+    order.payment.status || order.paymentStatus || "to_define";
   const paymentStatusKey = rawPaymentStatus
     .toString()
     .toLowerCase()
@@ -1591,9 +1589,9 @@ function buildCounterTicket(order) {
 
   const cashGiven =
     Number(
-      order.payment?.cashGiven ??
-        order.cashGiven ??
-        order.payment?.valorEntregue ??
+      order.payment.cashGiven ||
+        order.cashGiven ||
+        order.payment.valorEntregue ||
         0
     ) || 0;
 
@@ -1615,7 +1613,7 @@ function buildCounterTicket(order) {
       : null;
 
   const addressObj =
-    order.delivery?.address ||
+    order.delivery.address ||
     customer.address ||
     order.customerAddress ||
     order.address ||
@@ -1632,9 +1630,9 @@ function buildCounterTicket(order) {
     const state = addressObj.state || addressObj.uf || "";
 
     const main = [
-      street && (street + (number ? ", " + number : "")),
+      street && (street + (number  ", " + number : "")),
       neighborhood,
-      city && (state ? city + " / " + state : city),
+      city && (state  city + " / " + state : city),
     ]
       .filter(Boolean)
       .join(" • ");
@@ -1652,9 +1650,9 @@ function buildCounterTicket(order) {
   }
 
   const courierRaw =
-    order.delivery?.courier ||
-    order.delivery?.motoboy ||
-    order.delivery?.driver ||
+    order.delivery.courier ||
+    order.delivery.motoboy ||
+    order.delivery.driver ||
     order.motoboy ||
     null;
 
@@ -1671,34 +1669,34 @@ function buildCounterTicket(order) {
   }
 
   const subtotal = Number(
-    order.totals?.subtotal ?? order.subtotal ?? 0
+    order.totals.subtotal  order.subtotal  0
   );
 
   const deliveryFee = Number(
-    order.delivery?.fee ??
-      order.totals?.deliveryFee ??
-      order.deliveryFee ??
+    order.delivery.fee 
+      order.totals.deliveryFee 
+      order.deliveryFee 
       0
   );
 
   const discountAmount = Number(
-    order.totals?.discount ??
+    order.totals.discount 
       (typeof order.discount === "object"
-        ? order.discount.amount
-        : order.discount) ??
+         order.discount.amount
+        : order.discount) 
       0
   );
 
   const total = Number(
-    order.totals?.finalTotal ??
-      order.total ??
+    order.totals.finalTotal 
+      order.total 
       subtotal + deliveryFee - discountAmount
   );
 
   const changeAmount =
-    cashGiven > 0 ? Math.max(cashGiven - total, 0) : 0;
+    cashGiven > 0  Math.max(cashGiven - total, 0) : 0;
 
-  const items = Array.isArray(order.items) ? order.items : [];
+  const items = Array.isArray(order.items)  order.items : [];
 
   const trackingUrl = getTrackingUrlFromOrder(order);
 
@@ -1824,7 +1822,7 @@ function buildCounterTicket(order) {
     lines.push("--------------------------------");
     lines.push("OBSERVAÇÕES:");
     String(order.orderNotes)
-      .split(/\r?\n/)
+      .split(/\r\n/)
       .forEach((ln) => lines.push("  " + ln));
   }
 
@@ -1833,7 +1831,7 @@ function buildCounterTicket(order) {
     lines.push("TRACKING / QR:");
     lines.push("LINK:");
     String(trackingUrl)
-      .split(/\r?\n/)
+      .split(/\r\n/)
       .forEach((ln) => lines.push("  " + ln));
   }
 
@@ -1865,7 +1863,7 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
   const createdAt = order.createdAt ? new Date(order.createdAt) : new Date();
 
   const rawOrderType =
-    order.type || order.delivery?.mode || order.orderType || "delivery";
+    order.type || order.delivery.mode || order.orderType || "delivery";
   const orderTypeKey = rawOrderType.toString().toLowerCase();
   const orderTypeLabel =
     ORDER_TYPE_LABELS[orderTypeKey] || ORDER_TYPE_LABELS.delivery;
@@ -1874,13 +1872,13 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
   const sourceLabel = SOURCE_LABELS[rawSource] || SOURCE_LABELS.local;
 
   const rawPaymentMethod =
-    order.payment?.method || order.paymentMethod || "";
+    order.payment.method || order.paymentMethod || "";
   const paymentMethodKey = rawPaymentMethod.toString().toLowerCase();
   const paymentMethodLabel =
     PAYMENT_METHOD_LABELS[paymentMethodKey] || PAYMENT_METHOD_LABELS[""];
 
   const rawPaymentStatus =
-    order.payment?.status || order.paymentStatus || "to_define";
+    order.payment.status || order.paymentStatus || "to_define";
   const paymentStatusKey = rawPaymentStatus
     .toString()
     .toLowerCase()
@@ -1890,9 +1888,9 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
 
   const cashGiven =
     Number(
-      order.payment?.cashGiven ??
-        order.cashGiven ??
-        order.payment?.valorEntregue ??
+      order.payment.cashGiven ||
+        order.cashGiven ||
+        order.payment.valorEntregue ||
         0
     ) || 0;
 
@@ -1914,7 +1912,7 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
       : null;
 
   const addressObj =
-    order.delivery?.address ||
+    order.delivery.address ||
     customer.address ||
     order.customerAddress ||
     order.address ||
@@ -1931,9 +1929,9 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
     const state = addressObj.state || addressObj.uf || "";
 
     const main = [
-      street && (street + (number ? ", " + number : "")),
+      street && (street + (number  ", " + number : "")),
       neighborhood,
-      city && (state ? city + " / " + state : city),
+      city && (state  city + " / " + state : city),
     ]
       .filter(Boolean)
       .join(" • ");
@@ -1951,9 +1949,9 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
   }
 
   const courierRaw =
-    order.delivery?.courier ||
-    order.delivery?.motoboy ||
-    order.delivery?.driver ||
+    order.delivery.courier ||
+    order.delivery.motoboy ||
+    order.delivery.driver ||
     order.motoboy ||
     null;
 
@@ -1970,40 +1968,40 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
   }
 
   const subtotal = Number(
-    order.totals?.subtotal ?? order.subtotal ?? 0
+    order.totals.subtotal  order.subtotal  0
   );
 
   const deliveryFee = Number(
-    order.delivery?.fee ??
-      order.totals?.deliveryFee ??
-      order.deliveryFee ??
+    order.delivery.fee 
+      order.totals.deliveryFee 
+      order.deliveryFee 
       0
   );
 
   const discountAmount = Number(
-    order.totals?.discount ??
+    order.totals.discount 
       (typeof order.discount === "object"
-        ? order.discount.amount
-        : order.discount) ??
+         order.discount.amount
+        : order.discount) 
       0
   );
 
   const total = Number(
-    order.totals?.finalTotal ??
-      order.total ??
+    order.totals.finalTotal 
+      order.total 
       subtotal + deliveryFee - discountAmount
   );
 
   const changeAmount =
-    cashGiven > 0 ? Math.max(cashGiven - total, 0) : 0;
+    cashGiven > 0  Math.max(cashGiven - total, 0) : 0;
 
-  const items = Array.isArray(order.items) ? order.items : [];
+  const items = Array.isArray(order.items)  order.items : [];
 
   const trackingUrl = getTrackingUrlFromOrder(order);
 
   // ITENS – reuso do estilo da cozinha
   const itensHtml = items.length
-    ? items
+     items
         .map((item) => {
           const qty = Number(item.quantity || item.qty || 1);
           const sizeLabel = (item.sizeLabel || item.size || "").toString();
@@ -2027,7 +2025,7 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
             unitPrice * qty;
 
           const extrasNames = Array.isArray(item.extras)
-            ? item.extras
+             item.extras
                 .map(
                   (ex) =>
                     (ex && (ex.name || ex.label || ex.descricao)) || ""
@@ -2095,7 +2093,7 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
   // OBS GERAIS
   const hasObs = Boolean(order.orderNotes);
   const obsHtml = hasObs
-    ? `
+     `
       <div class="ticket-section">
         <div class="ticket-section-title">OBSERVAÇÕES</div>
         <div class="ticket-body">${escapeHtml(order.orderNotes)}</div>
@@ -2106,14 +2104,14 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
   // ENTREGA / MOTOBOY
   const isDelivery = orderTypeKey === "delivery";
   const entregaHtml = isDelivery
-    ? `
+     `
       <div class="ticket-section">
         <div class="ticket-section-title">ENTREGA / MOTOBOY</div>
         <div class="ticket-body">
-          ${courierName ? "Entregador: " + escapeHtml(courierName) + "<br/>" : "Entregador: A definir<br/>"}
+          ${courierName  "Entregador: " + escapeHtml(courierName) + "<br/>" : "Entregador: A definir<br/>"}
           ${
             courierPhone
-              ? "Fone mot.: " + escapeHtml(courierPhone) + "<br/>"
+               "Fone mot.: " + escapeHtml(courierPhone) + "<br/>"
               : ""
           }
           Valor na porta: ${escapeHtml(formatCurrencyBR(total))}
@@ -2150,18 +2148,18 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
         <div class="ticket-body">
           ${
             customerMode === "counter" && counterLabel
-              ? "Atendimento: " + escapeHtml(counterLabel) + "<br/>"
+               "Atendimento: " + escapeHtml(counterLabel) + "<br/>"
               : "Nome: " + escapeHtml(customerName) + "<br/>"
           }
           ${
             customerPhone
-              ? "Fone: " + escapeHtml(customerPhone) + "<br/>"
+               "Fone: " + escapeHtml(customerPhone) + "<br/>"
               : ""
           }
-          ${customerCpf ? "CPF: " + escapeHtml(customerCpf) + "<br/>" : ""}
+          ${customerCpf  "CPF: " + escapeHtml(customerCpf) + "<br/>" : ""}
           ${
             addressText && isDelivery
-              ? "Endereço: " + escapeHtml(addressText)
+               "Endereço: " + escapeHtml(addressText)
               : ""
           }
         </div>
@@ -2213,7 +2211,7 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
           Status: ${escapeHtml(paymentStatusLabel)}<br/>
           ${
             cashGiven > 0
-              ? "Valor pago: " +
+               "Valor pago: " +
                 escapeHtml(formatCurrencyBR(cashGiven)) +
                 "<br/>Troco: " +
                 escapeHtml(formatCurrencyBR(changeAmount)) +
@@ -2228,20 +2226,20 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
 
       ${
         qrCodeDataUrl || trackingUrl
-          ? `
+           `
       <div class="ticket-divider"></div>
       <div class="ticket-section ticket-section-qr">
         <div class="ticket-section-title">QR para motoboy / cliente</div>
         ${
           qrCodeDataUrl
-            ? `<div class="ticket-qr"><img src="${escapeHtml(
+             `<div class="ticket-qr"><img src="${escapeHtml(
                 qrCodeDataUrl
               )}" alt="QR Code" /></div>`
             : ""
         }
         ${
           trackingUrl
-            ? `<div class="ticket-qr-link">${escapeHtml(trackingUrl)}</div>`
+             `<div class="ticket-qr-link">${escapeHtml(trackingUrl)}</div>`
             : ""
         }
       </div>
@@ -2288,7 +2286,7 @@ ipcMain.handle("print:tickets", async (event, payload) => {
       systemPrinters,
     };
 
-    const silentFlag = silent ?? true;
+    const silentFlag = silent  true;
 
     if (kitchenText) {
       const deviceNameKitchen = resolveDeviceNameFromRole("kitchen", ctx);
@@ -2331,7 +2329,7 @@ ipcMain.handle("print:order", async (event, { order, options } = {}) => {
     const mode = (options && options.mode) || "full";
     const silent =
       options && typeof options.silent === "boolean"
-        ? options.silent
+         options.silent
         : true;
 
     const settingsPrinters = await getPrinterSettingsSafe();
@@ -2408,7 +2406,7 @@ ipcMain.handle("print:test", async (event, { role } = {}) => {
     let deviceName;
     if (systemPrinters && systemPrinters.length > 0 && settingsName) {
       const match = findBestPrinterMatch(systemPrinters, settingsName);
-      deviceName = match ? match.name : undefined;
+      deviceName = match  match.name : undefined;
     }
 
     const text = `TESTE DE IMPRESSAO - ${
@@ -2518,8 +2516,3 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
-
-
-
-
-

@@ -21,6 +21,17 @@ export default defineConfig({
     strictPort: true,    // se 5173 estiver ocupada, Vite dá erro em vez de mudar
   },
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('react')) return 'vendor-react';
+          if (id.includes('react-router')) return 'vendor-router';
+          if (id.includes('axios')) return 'vendor-axios';
+          return 'vendor';
+        }
+      }
+    }
   }
 });

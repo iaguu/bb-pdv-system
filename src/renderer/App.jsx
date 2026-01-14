@@ -1,3 +1,4 @@
+
 import React from "react";
 import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
@@ -9,11 +10,42 @@ import FinancePage from "./pages/FinancePage";
 import SettingsPage from "./pages/SettingsPage";
 import StockPage from "./pages/StockPage";
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>
+          <h2>❌ Ocorreu um erro na aplicação</h2>
+          <p>Verifique o console para detalhes técnicos</p>
+          <button onClick={() => window.location.reload()}>
+            Recarregar Página
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const App = () => {
   const Router = window.location.protocol === "file:" ? HashRouter : BrowserRouter;
 
   return (
-    <Router>
+    <ErrorBoundary><Router>
       <AppLayout>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -26,7 +58,7 @@ const App = () => {
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </AppLayout>
-    </Router>
+    </Router></ErrorBoundary>
   );
 };
 

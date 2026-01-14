@@ -1,4 +1,4 @@
-/* Auto-split from components.scss (stubs refinados) */
+﻿/* Auto-split from components.scss (stubs refinados) */
 
 .pizza-grid-top {
   display: flex;
@@ -47,7 +47,7 @@
 }
 
 .pizza-card-badge {
-  @extend .chip;
+  @extend .chip !optional;
   font-size: 10px;
 }
 
@@ -115,4 +115,5 @@
   color: #f97316;
 }
 
-/* Produto – forms / modal / rows */
+/* Produto â€“ forms / modal / rows */
+

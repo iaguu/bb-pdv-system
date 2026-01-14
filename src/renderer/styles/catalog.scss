@@ -1,4 +1,4 @@
-/* ============================================================================
+﻿/* ============================================================================
    CATALOG PAGE
    Cards de resumo + toolbar + lista de produtos
    ============================================================================ */
@@ -29,7 +29,7 @@ $catalog-accent: #e63946;
 }
 
 /* ========================================================================== */
-/* STATUS DE IMPORTAÇÃO                                                      */
+/* STATUS DE IMPORTAÃ‡ÃƒO                                                      */
 /* ========================================================================== */
 
 .catalog-import-status {
@@ -43,7 +43,7 @@ $catalog-accent: #e63946;
   gap: 6px;
 
   &::before {
-    content: "●";
+    content: "â—";
     font-size: 10px;
   }
 }
@@ -69,7 +69,7 @@ $catalog-accent: #e63946;
 }
 
 /* ========================================================================== */
-/* RESUMO DO CATÁLOGO (GRID DE CARDS)                                        */
+/* RESUMO DO CATÃLOGO (GRID DE CARDS)                                        */
 /* ========================================================================== */
 
 .catalog-summary-grid {
@@ -163,7 +163,7 @@ $catalog-accent: #e63946;
 }
 
 /* ========================================================================== */
-/* FIELD / INPUT (reutilizável)                                              */
+/* FIELD / INPUT (reutilizÃ¡vel)                                              */
 /* ========================================================================== */
 
 .catalog-toolbar .field {
@@ -239,7 +239,7 @@ $catalog-accent: #e63946;
 }
 
 /* Estes nomes (empty-state / empty-title / empty-description)
-   já são genéricos e podem ser compartilhados com outras páginas */
+   jÃ¡ sÃ£o genÃ©ricos e podem ser compartilhados com outras pÃ¡ginas */
 .empty-state {
   margin-top: 12px;
   border-radius: $catalog-radius;
@@ -262,12 +262,12 @@ $catalog-accent: #e63946;
   color: $catalog-text-muted;
 }
 /* ============================================================================
-   PATCH — Catalog page polish (header overlap, actions spacing, toolbar/chips)
-   - Não altera JSX nem nomes de classes existentes
-   - Corrige sobreposição do header com o grid de resumo
+   PATCH â€” Catalog page polish (header overlap, actions spacing, toolbar/chips)
+   - NÃ£o altera JSX nem nomes de classes existentes
+   - Corrige sobreposiÃ§Ã£o do header com o grid de resumo
    ============================================================================ */
 
-/* --- 1) Corrigir sobreposição: garantir que o header “reserve” espaço e que ações quebrem bem --- */
+/* --- 1) Corrigir sobreposiÃ§Ã£o: garantir que o header â€œreserveâ€ espaÃ§o e que aÃ§Ãµes quebrem bem --- */
 .page:has(.catalog-header-actions) :where(.page-header, .page-head, .page-top, .page-topbar, header) {
   display: flex;
   align-items: flex-start;
@@ -276,7 +276,7 @@ $catalog-accent: #e63946;
   flex-wrap: wrap;
 }
 
-/* Ações: manter altura consistente e afastar do grid */
+/* AÃ§Ãµes: manter altura consistente e afastar do grid */
 .catalog-header-actions {
   margin-top: 6px;
   margin-bottom: 10px;
@@ -284,10 +284,10 @@ $catalog-accent: #e63946;
 }
 
 .page:has(.catalog-summary-grid) .catalog-summary-grid {
-  margin-top: 10px; /* cria “respiro” mesmo se o header for compacto */
+  margin-top: 10px; /* cria â€œrespiroâ€ mesmo se o header for compacto */
 }
 
-/* Padroniza botões do header (Importar/Exportar/Novo) sem depender do componente Button internamente */
+/* Padroniza botÃµes do header (Importar/Exportar/Novo) sem depender do componente Button internamente */
 .catalog-header-actions :where(button, a, .btn, .button) {
   height: 40px;
   padding: 0 14px;
@@ -304,7 +304,7 @@ $catalog-accent: #e63946;
   filter: brightness(1.02);
 }
 
-/* --- 2) Resumo do catálogo: cards mais “premium” e legíveis --- */
+/* --- 2) Resumo do catÃ¡logo: cards mais â€œpremiumâ€ e legÃ­veis --- */
 .catalog-summary-card {
   background: $catalog-card-bg;
   border: 1px solid rgba(227, 227, 234, 0.95);
@@ -341,7 +341,7 @@ $catalog-accent: #e63946;
   color: $catalog-text-main;
 }
 
-/* --- 3) Toolbar (buscar + chips): alinhamento, espaçamento e inputs mais “SaaS” --- */
+/* --- 3) Toolbar (buscar + chips): alinhamento, espaÃ§amento e inputs mais â€œSaaSâ€ --- */
 .catalog-toolbar {
   padding: 12px 12px;
   border: 1px solid rgba(227, 227, 234, 0.9);
@@ -382,7 +382,7 @@ $catalog-accent: #e63946;
   }
 }
 
-/* Grupos de chips: “capsule” com fundo leve e separação */
+/* Grupos de chips: â€œcapsuleâ€ com fundo leve e separaÃ§Ã£o */
 .catalog-filter-group {
   display: flex;
   align-items: center;
@@ -397,7 +397,7 @@ $catalog-accent: #e63946;
   border: 1px solid rgba(227, 227, 234, 0.9);
 }
 
-/* Chips: melhor área clicável, foco visível e microinteração */
+/* Chips: melhor Ã¡rea clicÃ¡vel, foco visÃ­vel e microinteraÃ§Ã£o */
 .page:has(.catalog-summary-grid) .chip {
   padding: 7px 12px;
   font-weight: 800;
@@ -422,7 +422,7 @@ $catalog-accent: #e63946;
 }
 
 
-/* --- 4) Responsivo: evita “quebra feia” e mantém legibilidade --- */
+/* --- 4) Responsivo: evita â€œquebra feiaâ€ e mantÃ©m legibilidade --- */
 @media (max-width: 900px) {
   .catalog-header-actions {
     width: 100%;
@@ -444,3 +444,4 @@ $catalog-accent: #e63946;
     width: 100%;
   }
 }
+

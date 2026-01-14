@@ -29,8 +29,8 @@ const Modal = ({
 
   // Se tiver open/isOpen -> usa; senão, considera sempre visível
   const visible = hasControlProp
-    ? typeof open === "boolean"
-      ? open
+     typeof open === "boolean"
+       open
       : Boolean(isOpen)
     : true;
 

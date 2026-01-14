@@ -62,10 +62,10 @@ export default function ClientDetailsModal({
             ...prev.address,
             cep: addr.cep || prev.address.cep,
             street: auto
-              ? prev.address.street || addr.street
+               prev.address.street || addr.street
               : addr.street || prev.address.street,
             neighborhood: auto
-              ? prev.address.neighborhood || addr.neighborhood
+               prev.address.neighborhood || addr.neighborhood
               : addr.neighborhood || prev.address.neighborhood,
             city: addr.city || prev.address.city,
             state: addr.state || prev.address.state,
@@ -106,7 +106,7 @@ export default function ClientDetailsModal({
         clearTimeout(autoCepTimerRef.current);
       }
     };
-  }, [editing?.address?.cep]);
+  }, [editing.address.cep]);
   const submit = (e) => {
     e.preventDefault();
     const nm = editing.name.trim();
@@ -220,7 +220,7 @@ export default function ClientDetailsModal({
                 onClick={handleCepSearch}
                 disabled={cepLoading}
               >
-                {cepLoading ? "Buscando..." : "Buscar CEP"}
+                {cepLoading  "Buscando..." : "Buscar CEP"}
               </button>
             </div>
           </div>
@@ -317,7 +317,7 @@ export default function ClientDetailsModal({
       <ConfirmDialog
         open={showDeleteConfirm}
         title="Excluir cliente"
-        message={`Excluir o cliente "${editing.name}"?`}
+        message={`Excluir o cliente "${editing.name}"`}
         confirmLabel="Excluir"
         cancelLabel="Cancelar"
         tone="danger"

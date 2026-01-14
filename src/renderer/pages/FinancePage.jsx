@@ -19,7 +19,7 @@ const COMMISSION_RATE = 0.012; // 1,2%
 const COMMISSION_COLLECTION = "commissions";
 
 const normalizeCollectionItems = (data) => {
-  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data.items)) return data.items;
   if (Array.isArray(data)) return data;
   return [];
 };
@@ -33,7 +33,7 @@ const parseMoneyInput = (raw) => {
     .replace(/\./g, "")
     .replace(",", ".");
   const n = Number(cleaned);
-  return Number.isNaN(n) ? 0 : n;
+  return Number.isNaN(n)  0 : n;
 };
 
 /**
@@ -41,19 +41,19 @@ const parseMoneyInput = (raw) => {
  */
 const parseSessionDate = (session) => {
   const raw =
-    session?.openedAt ||
-    session?.createdAt ||
-    session?.startAt ||
-    session?.date;
+    session.openedAt ||
+    session.createdAt ||
+    session.startAt ||
+    session.date;
   if (!raw) return null;
   const d = new Date(raw);
-  return Number.isNaN(d.getTime()) ? null : d;
+  return Number.isNaN(d.getTime())  null : d;
 };
 
 const isSessionClosed = (session) => {
-  const status = (session?.status || "").toLowerCase();
+  const status = (session.status || "").toLowerCase();
   if (status === "closed" || status === "fechado") return true;
-  if (session?.closedAt || session?.endAt) return true;
+  if (session.closedAt || session.endAt) return true;
   return false;
 };
 
@@ -94,13 +94,13 @@ const getSessionClosing = (session) => {
  */
 const getOrderDate = (order) => {
   const raw =
-    order?.createdAt ||
-    order?.created_at ||
-    order?.date ||
-    order?.pedidoData;
+    order.createdAt ||
+    order.created_at ||
+    order.date ||
+    order.pedidoData;
   if (!raw) return null;
   const d = new Date(raw);
-  return Number.isNaN(d.getTime()) ? null : d;
+  return Number.isNaN(d.getTime())  null : d;
 };
 
 const getOrderPaymentMethod = (order) => {
@@ -245,7 +245,7 @@ const computeSessionStats = (sessionsList) => {
     }
   });
 
-  const avgPerSession = closedCount > 0 ? totalSales / closedCount : 0;
+  const avgPerSession = closedCount > 0  totalSales / closedCount : 0;
 
   return {
     count,
@@ -277,16 +277,16 @@ const buildCashReportPayload = ({
 
   const sessions = filteredSessions.map((s) => {
     const opened = parseSessionDate(s);
-    const openedIso = opened ? opened.toISOString() : null;
+    const openedIso = opened  opened.toISOString() : null;
 
     const closedRaw = s.closedAt || s.endAt || s.closed_at;
-    const closedDate = closedRaw ? new Date(closedRaw) : null;
+    const closedDate = closedRaw  new Date(closedRaw) : null;
     const closedIso =
       closedDate && !Number.isNaN(closedDate.getTime())
-        ? closedDate.toISOString()
+         closedDate.toISOString()
         : null;
 
-    const status = isSessionClosed(s) ? "closed" : "open";
+    const status = isSessionClosed(s)  "closed" : "open";
 
     const operator =
       s.openedBy || s.userName || s.operator || s.cashier || "";
@@ -308,7 +308,7 @@ const buildCashReportPayload = ({
     const d = getOrderDate(o);
     return {
       id: o.id || o.code || "",
-      createdAt: d ? d.toISOString() : null,
+      createdAt: d  d.toISOString() : null,
       total: getOrderTotal(o),
       status: getOrderStatus(o),
       paymentMethod: getOrderPaymentMethod(o),
@@ -333,10 +333,10 @@ const buildCashReportPayload = ({
       closingSum: stats.closingSum,
       avgPerSession: stats.avgPerSession,
       firstSession: stats.firstSession
-        ? stats.firstSession.toISOString()
+         stats.firstSession.toISOString()
         : null,
       lastSession: stats.lastSession
-        ? stats.lastSession.toISOString()
+         stats.lastSession.toISOString()
         : null,
     },
     ordersSummary: {
@@ -406,14 +406,14 @@ const FinancePage = () => {
         window.dataEngine.get("orders"),
       ]);
 
-      const cashItems = Array.isArray(cashData?.items)
-        ? cashData.items
+      const cashItems = Array.isArray(cashData.items)
+         cashData.items
         : Array.isArray(cashData)
-        ? cashData
+         cashData
         : [];
 
       let ordersItems = [];
-      if (Array.isArray(ordersData?.items)) {
+      if (Array.isArray(ordersData.items)) {
         ordersItems = ordersData.items;
       } else if (Array.isArray(ordersData)) {
         ordersItems = ordersData;
@@ -639,7 +639,7 @@ const FinancePage = () => {
       next.push({ ...record, createdAt: record.createdAt || record.updatedAt });
     }
     await window.dataEngine.set(COMMISSION_COLLECTION, { items: next });
-    return next[index >= 0 ? index : next.length - 1];
+    return next[index >= 0  index : next.length - 1];
   }, []);
 
   const syncCommissionToApi = useCallback(async () => {
@@ -649,17 +649,17 @@ const FinancePage = () => {
     try {
       const record = buildTodayCommissionRecord();
       const stored = await upsertCommissionRecord(record);
-      const lastSentTotal = stored?.lastSentTotalSales;
-      const lastSentCommission = stored?.lastSentCommission;
+      const lastSentTotal = stored.lastSentTotalSales;
+      const lastSentCommission = stored.lastSentCommission;
       const wasSent =
-        stored?.lastSendStatus === "success" &&
+        stored.lastSendStatus === "success" &&
         lastSentTotal === record.totalSales &&
         lastSentCommission === record.commission;
 
       if (wasSent) return;
 
       let apiConfig = null;
-      if (window.electronAPI?.getPublicApiConfig) {
+      if (window.electronAPI.getPublicApiConfig) {
         try {
           apiConfig = await window.electronAPI.getPublicApiConfig();
         } catch (err) {
@@ -667,8 +667,8 @@ const FinancePage = () => {
         }
       }
 
-      const baseUrl = (apiConfig?.apiBaseUrl || "").replace(/\/+$/, "");
-      const apiToken = apiConfig?.publicApiToken || "";
+      const baseUrl = (apiConfig.apiBaseUrl || "").replace(/\/+$/, "");
+      const apiToken = apiConfig.publicApiToken || "";
 
       if (!baseUrl) {
         await upsertCommissionRecord({
@@ -684,7 +684,7 @@ const FinancePage = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(apiToken ? { "x-api-key": apiToken } : {}),
+          ...(apiToken  { "x-api-key": apiToken } : {}),
         },
         body: JSON.stringify(record),
       });
@@ -771,7 +771,7 @@ const FinancePage = () => {
 
       const updatedSessions = cashList.map((s) =>
         s.id === openSession.id
-          ? {
+           {
               ...s,
               status: "closed",
               closedAt: now.toISOString(),
@@ -881,23 +881,23 @@ const FinancePage = () => {
     const rows = filteredSessions.map((s) => {
       const opened = parseSessionDate(s);
       const openedStr = opened
-        ? opened.toLocaleString("pt-BR", {
+         opened.toLocaleString("pt-BR", {
             dateStyle: "short",
             timeStyle: "short",
           })
         : "";
 
       const closedRaw = s.closedAt || s.endAt || s.closed_at;
-      const closedDate = closedRaw ? new Date(closedRaw) : null;
+      const closedDate = closedRaw  new Date(closedRaw) : null;
       const closedStr =
         closedDate && !Number.isNaN(closedDate.getTime())
-          ? closedDate.toLocaleString("pt-BR", {
+           closedDate.toLocaleString("pt-BR", {
               dateStyle: "short",
               timeStyle: "short",
             })
           : "";
 
-      const status = isSessionClosed(s) ? "Fechada" : "Aberta";
+      const status = isSessionClosed(s)  "Fechada" : "Aberta";
 
       const operator =
         s.openedBy || s.userName || s.operator || s.cashier || "";
@@ -1145,12 +1145,12 @@ const FinancePage = () => {
         <div className="finance-header-left">
           <h2 className="finance-title">
             {tab === "cash"
-              ? "Sessões de caixa"
+               "Sessões de caixa"
               : "Relatórios financeiros"}
           </h2>
           <p className="finance-subtitle">
             {tab === "cash"
-              ? "Acompanhe as aberturas e fechamentos do caixa."
+               "Acompanhe as aberturas e fechamentos do caixa."
               : "Visão consolidada das sessões de caixa e pedidos."}
           </p>
 
@@ -1159,12 +1159,12 @@ const FinancePage = () => {
               Caixa aberto desde{" "}
               {parseSessionDate(
                 currentOpenSession
-              )?.toLocaleString("pt-BR", {
+              ).toLocaleString("pt-BR", {
                 dateStyle: "short",
                 timeStyle: "short",
               }) || "-"}
               {currentOpenSession.openedBy
-                ? ` • Operador: ${currentOpenSession.openedBy}`
+                 ` • Operador: ${currentOpenSession.openedBy}`
                 : ""}
             </div>
           )}
@@ -1180,7 +1180,7 @@ const FinancePage = () => {
                   className={
                     "finance-period-btn" +
                     (period === "today"
-                      ? " finance-period-btn-active"
+                       " finance-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("today")}
@@ -1192,7 +1192,7 @@ const FinancePage = () => {
                   className={
                     "finance-period-btn" +
                     (period === "7d"
-                      ? " finance-period-btn-active"
+                       " finance-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("7d")}
@@ -1204,7 +1204,7 @@ const FinancePage = () => {
                   className={
                     "finance-period-btn" +
                     (period === "15d"
-                      ? " finance-period-btn-active"
+                       " finance-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("15d")}
@@ -1216,7 +1216,7 @@ const FinancePage = () => {
                   className={
                     "finance-period-btn" +
                     (period === "30d"
-                      ? " finance-period-btn-active"
+                       " finance-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("30d")}
@@ -1228,7 +1228,7 @@ const FinancePage = () => {
                   className={
                     "finance-period-btn" +
                     (period === "all"
-                      ? " finance-period-btn-active"
+                       " finance-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("all")}
@@ -1260,7 +1260,7 @@ const FinancePage = () => {
               disabled={loading || hasOpenSession}
             >
               {hasOpenSession
-                ? "Caixa aberto"
+                 "Caixa aberto"
                 : "Abrir sessão de caixa"}
             </button>
 
@@ -1306,11 +1306,11 @@ const FinancePage = () => {
       {/* CONTEÚDO POR ABA */}
       {tab === "cash" && (
         <div className="finance-tab-content">
-          {loading ? (
+          {loading  (
             <p className="finance-loading">
               Carregando dados de caixa...
             </p>
-          ) : !hasSessions ? (
+          ) : !hasSessions  (
             <EmptyState
               title="Nenhuma sessão de caixa"
               description="Abra uma sessão de caixa para começar o controle diário."
@@ -1377,7 +1377,7 @@ const FinancePage = () => {
                     <span className="finance-last-closure-tag">
                       {parseSessionDate(
                         lastClosedSession
-                      )?.toLocaleString("pt-BR", {
+                      ).toLocaleString("pt-BR", {
                         dateStyle: "short",
                         timeStyle: "short",
                       }) || "-"}
@@ -1430,7 +1430,7 @@ const FinancePage = () => {
               {/* Resumo de pedidos do período */}
               <div className="finance-orders-summary">
                 <h3>Resumo de pedidos no período</h3>
-                {filteredOrders.length === 0 ? (
+                {filteredOrders.length === 0  (
                   <p className="finance-orders-empty">
                     Nenhum pedido encontrado para o período
                     selecionado.
@@ -1490,11 +1490,11 @@ const FinancePage = () => {
 
       {tab === "reports" && (
         <div className="finance-tab-content">
-          {loading ? (
+          {loading  (
             <p className="finance-loading">
               Carregando relatórios...
             </p>
-          ) : !hasSessions && filteredOrders.length === 0 ? (
+          ) : !hasSessions && filteredOrders.length === 0  (
             <EmptyState
               title="Nenhum dado para relatórios"
               description="Não encontramos sessões ou pedidos no período selecionado."
@@ -1632,14 +1632,14 @@ const FinancePage = () => {
                   {filteredSessions.map((s) => {
                     const d = parseSessionDate(s);
                     const dateStr = d
-                      ? d.toLocaleString("pt-BR", {
+                       d.toLocaleString("pt-BR", {
                           dateStyle: "short",
                           timeStyle: "short",
                         })
                       : "-";
 
                     const status = isSessionClosed(s)
-                      ? "Fechada"
+                       "Fechada"
                       : "Aberta";
 
                     const operator =
@@ -1688,7 +1688,7 @@ const FinancePage = () => {
         onClose={() => setCloseModalVisible(false)}
         hasOpenSession={!!currentOpenSession}
         openingAmount={
-          currentOpenSession ? getSessionOpening(currentOpenSession) : 0
+          currentOpenSession  getSessionOpening(currentOpenSession) : 0
         }
         orderCount={orderStats.count}
         paidTotal={orderStats.paidTotal}

@@ -34,6 +34,8 @@ const OrdersPage = () => {
       style: "currency",
       currency: "BRL",
     });
+  const formatNumber = (value) =>
+    (Number(value) || 0).toLocaleString("pt-BR");
 
   // ========= HELPERS BÁSICOS =========
 
@@ -59,17 +61,17 @@ const OrdersPage = () => {
   );
 
   const isOrderLate = (order) => {
-    const ns = normalizeStatus(order?.status);
+    const ns = normalizeStatus(order.status);
     if (!["open", "preparing", "out_for_delivery"].includes(ns)) return false;
-    if (!order?.createdAt) return false;
+    if (!order.createdAt) return false;
     const created = new Date(order.createdAt);
     if (Number.isNaN(created.getTime())) return false;
 
     const minMinutes =
       typeof order.deliveryMinMinutes === "number"
-        ? order.deliveryMinMinutes
+         order.deliveryMinMinutes
         : 0;
-    const threshold = minMinutes > 0 ? minMinutes : 40;
+    const threshold = minMinutes > 0  minMinutes : 40;
 
     const diffMinutes = Math.round(
       (Date.now() - created.getTime()) / 60000
@@ -92,19 +94,19 @@ const OrdersPage = () => {
       draft.customerSnapshot && typeof draft.customerSnapshot === "object";
 
     const rawSubtotal =
-      draft.subtotal ??
-      (hasTotals ? draft.totals.subtotal : 0) ??
+      draft.subtotal 
+      (hasTotals  draft.totals.subtotal : 0) 
       0;
 
     const rawDeliveryFee =
-      draft.deliveryFee ??
-      draft.delivery?.fee ??
-      (hasTotals ? draft.totals.deliveryFee : 0) ??
+      draft.deliveryFee 
+      draft.delivery.fee 
+      (hasTotals  draft.totals.deliveryFee : 0) 
       0;
 
     const rawDiscount =
       typeof draft.discount === "object"
-        ? draft.discount.amount
+         draft.discount.amount
         : draft.discount;
 
     const subtotal = Number(rawSubtotal || 0);
@@ -112,7 +114,7 @@ const OrdersPage = () => {
     const discount = Number(rawDiscount || 0);
 
     const finalTotal =
-      Number(draft.total ?? (hasTotals ? draft.totals.finalTotal : 0)) ||
+      Number(draft.total  (hasTotals  draft.totals.finalTotal : 0)) ||
       subtotal + deliveryFee - discount;
 
     const typeRaw = (draft.type || draft.orderType || "delivery")
@@ -136,7 +138,7 @@ const OrdersPage = () => {
       "";
     const paymentMethod =
       typeof paymentMethodRaw === "string"
-        ? paymentMethodRaw.toLowerCase()
+         paymentMethodRaw.toLowerCase()
         : "";
 
     const payment = {
@@ -157,48 +159,48 @@ const OrdersPage = () => {
     // 🔗 Campos de motoboy – já preparados para fluxo via QR
     const motoboySnapshot =
       draft.motoboySnapshot ||
-      draft.delivery?.motoboySnapshot ||
+      draft.delivery.motoboySnapshot ||
       null;
 
     const motoboyId =
       draft.motoboyId ||
-      draft.delivery?.motoboyId ||
-      motoboySnapshot?.id ||
+      draft.delivery.motoboyId ||
+      motoboySnapshot.id ||
       null;
 
     const motoboyName =
       draft.motoboyName ||
-      draft.delivery?.motoboyName ||
-      motoboySnapshot?.name ||
+      draft.delivery.motoboyName ||
+      motoboySnapshot.name ||
       null;
 
     const motoboyPhone =
       draft.motoboyPhone ||
-      draft.delivery?.motoboyPhone ||
-      motoboySnapshot?.phone ||
+      draft.delivery.motoboyPhone ||
+      motoboySnapshot.phone ||
       null;
 
     const motoboyBaseNeighborhood =
       draft.motoboyBaseNeighborhood ||
-      draft.delivery?.motoboyBaseNeighborhood ||
-      motoboySnapshot?.baseNeighborhood ||
+      draft.delivery.motoboyBaseNeighborhood ||
+      motoboySnapshot.baseNeighborhood ||
       null;
 
     const motoboyBaseFee =
       typeof draft.motoboyBaseFee === "number"
-        ? draft.motoboyBaseFee
-        : typeof draft.delivery?.motoboyBaseFee === "number"
-        ? draft.delivery.motoboyBaseFee
-        : typeof motoboySnapshot?.baseFee === "number"
-        ? motoboySnapshot.baseFee
+         draft.motoboyBaseFee
+        : typeof draft.delivery.motoboyBaseFee === "number"
+         draft.delivery.motoboyBaseFee
+        : typeof motoboySnapshot.baseFee === "number"
+         motoboySnapshot.baseFee
         : null;
 
     const motoboyStatus =
       draft.motoboyStatus ||
-      draft.delivery?.motoboyStatus ||
+      draft.delivery.motoboyStatus ||
       (type === "delivery"
-        ? motoboyId
-          ? "assigned"
+         motoboyId
+           "assigned"
           : "waiting_qr"
         : null);
 
@@ -218,11 +220,11 @@ const OrdersPage = () => {
 
     const customerSnapshot =
       hasCustomerSnapshot
-        ? draft.customerSnapshot
+         draft.customerSnapshot
         : (draft.customerName ||
             draft.customerPhone ||
             draft.customerCpf)
-        ? {
+         {
             id: draft.customerId || null,
             name: draft.customerName || "Cliente",
             phone: draft.customerPhone || "",
@@ -231,12 +233,12 @@ const OrdersPage = () => {
           }
         : null;
 
-    const items = Array.isArray(draft.items) ? draft.items : [];
+    const items = Array.isArray(draft.items)  draft.items : [];
     const normalizedItems = items.map((it, idx) => {
-      const quantity = Number(it.quantity ?? it.qty ?? 1);
-      const unitPrice = Number(it.unitPrice ?? it.price ?? 0);
+      const quantity = Number(it.quantity  it.qty  1);
+      const unitPrice = Number(it.unitPrice  it.price  0);
       const lineTotal =
-        Number(it.lineTotal ?? it.total) || unitPrice * quantity;
+        Number(it.lineTotal  it.total) || unitPrice * quantity;
 
       const flavor1Name = it.name || it.flavor1Name || "Item";
       const flavor2Name = it.halfDescription || it.flavor2Name || "";
@@ -244,12 +246,12 @@ const OrdersPage = () => {
       const size = it.size || it.sizeLabel || "";
       const kind =
         it.kind ||
-        (size || it.productName || it.productId ? "pizza" : "drink");
-      const extras = (Array.isArray(it.extras) ? it.extras : []).map(
+        (size || it.productName || it.productId  "pizza" : "drink");
+      const extras = (Array.isArray(it.extras)  it.extras : []).map(
         (extra) => ({
           ...extra,
           unitPrice:
-            Number(extra.unitPrice ?? extra.price ?? extra.value ?? 0) || 0,
+            Number(extra.unitPrice  extra.price  extra.value  0) || 0,
         })
       );
 
@@ -272,8 +274,8 @@ const OrdersPage = () => {
         flavor1Name,
         flavor2Name,
         flavor3Name,
-        twoFlavors: it.twoFlavors ?? Boolean(flavor2Name),
-        threeFlavors: it.threeFlavors ?? Boolean(flavor3Name),
+        twoFlavors: it.twoFlavors  Boolean(flavor2Name),
+        threeFlavors: it.threeFlavors  Boolean(flavor3Name),
         extras,
         kitchenNotes:
           it.kitchenNotes || it.obs || it.observacao || "",
@@ -286,12 +288,12 @@ const OrdersPage = () => {
     const summary =
       draft.summary ||
       (normalizedItems.length
-        ? normalizedItems
+         normalizedItems
             .slice(0, 2)
             .map(
               (it) =>
                 `${it.quantity}x ${
-                  it.size ? it.size + " " : ""
+                  it.size  it.size + " " : ""
                 }${it.name}`
             )
             .join(" • ")
@@ -349,6 +351,7 @@ const OrdersPage = () => {
     const doneToday = todayOrders.filter(
       (o) => normalizeStatus(o.status) === "done"
     );
+    const doneCountToday = doneToday.length;
 
     const totalRevenueToday = doneToday.reduce(
       (sum, o) => sum + getOrderTotal(o),
@@ -356,7 +359,7 @@ const OrdersPage = () => {
     );
     const totalOrdersToday = todayOrders.length;
     const avgTicket =
-      totalOrdersToday > 0 ? totalRevenueToday / totalOrdersToday : 0;
+      totalOrdersToday > 0  totalRevenueToday / totalOrdersToday : 0;
 
     const bySource = todayOrders.reduce(
       (acc, o) => {
@@ -403,7 +406,27 @@ const OrdersPage = () => {
       avgTicket,
       bySource,
       lateCountToday,
+      doneCountToday,
     };
+  }, [orders]);
+
+  const statusCounts = useMemo(() => {
+    const base = {
+      open: 0,
+      preparing: 0,
+      out_for_delivery: 0,
+      done: 0,
+      cancelled: 0,
+    };
+
+    orders.forEach((order) => {
+      const ns = normalizeStatus(order.status);
+      if (ns && Object.prototype.hasOwnProperty.call(base, ns)) {
+        base[ns] += 1;
+      }
+    });
+
+    return base;
   }, [orders]);
 
   // ========= CARREGAR PEDIDOS =========
@@ -424,7 +447,7 @@ const OrdersPage = () => {
       }
       const data = await window.dataEngine.get("orders");
 
-      const items = Array.isArray(data?.items) ? data.items : [];
+      const items = Array.isArray(data.items)  data.items : [];
 
       // Soft delete: filtra pedidos marcados como deleted
       const visibleItems = items.filter((o) => !o.deleted);
@@ -460,7 +483,7 @@ const OrdersPage = () => {
     const newlyLate = [];
 
     orders.forEach((order) => {
-      const orderId = order?.id || order?._id;
+      const orderId = order.id || order._id;
       if (!orderId) return;
       if (isOrderLate(order)) {
         currentLate.add(orderId);
@@ -476,7 +499,7 @@ const OrdersPage = () => {
         title: "Pedidos atrasados",
         message:
           newlyLate.length === 1
-            ? "Um pedido entrou na lista de atrasados."
+             "Um pedido entrou na lista de atrasados."
             : `${newlyLate.length} pedidos entraram na lista de atrasados.`,
         duration: 6000,
       });
@@ -511,7 +534,7 @@ const OrdersPage = () => {
 
       // Salva no DataEngine e tenta obter o registro salvo (com ID)
       const saved = await window.dataEngine.addItem("orders", payload);
-      const orderForPrint = saved && typeof saved === "object" ? saved : payload;
+      const orderForPrint = saved && typeof saved === "object"  saved : payload;
 
       // Imprime automaticamente o pedido completo ao criar
       await handlePrintOrder(orderForPrint, "full");
@@ -552,7 +575,7 @@ const OrdersPage = () => {
         id: orderId,
         _id: formInitialOrder._id,
         history: Array.isArray(formInitialOrder.history)
-          ? formInitialOrder.history
+           formInitialOrder.history
           : [],
       };
 
@@ -562,16 +585,16 @@ const OrdersPage = () => {
         );
         setOrders((prev) =>
           prev.map((o) =>
-            o.id === orderId || o._id === orderId ? updatedOrder : o
+            o.id === orderId || o._id === orderId  updatedOrder : o
           )
         );
       } else if (typeof window.dataEngine.updateItem === "function") {
         await window.dataEngine.updateItem("orders", orderId, updatedOrder);
       } else if (typeof window.dataEngine.set === "function") {
         const current = await window.dataEngine.get("orders");
-        const items = Array.isArray(current?.items) ? current.items : [];
+        const items = Array.isArray(current.items)  current.items : [];
         const updatedItems = items.map((o) =>
-          o.id === orderId || o._id === orderId ? updatedOrder : o
+          o.id === orderId || o._id === orderId  updatedOrder : o
         );
         await window.dataEngine.set("orders", { items: updatedItems });
       } else {
@@ -584,7 +607,7 @@ const OrdersPage = () => {
       setActiveModal(null);
       setFormInitialOrder(null);
       setSelectedOrder(null);
-      if (options?.action === "save_and_print") {
+      if (options.action === "save_and_print") {
         await handlePrintOrder(updatedOrder, "full");
       }
     } catch (err) {
@@ -625,11 +648,11 @@ const OrdersPage = () => {
       setOrders((prev) =>
         prev.map((o) =>
           o.id === orderId || o._id === orderId
-            ? {
+             {
                 ...o,
                 status: newStatus,
                 history: [
-                  ...(Array.isArray(o.history) ? o.history : []),
+                  ...(Array.isArray(o.history)  o.history : []),
                   {
                     status: newStatus,
                     at: new Date().toISOString(),
@@ -641,11 +664,11 @@ const OrdersPage = () => {
       );
       setSelectedOrder((prev) =>
         prev && (prev.id === orderId || prev._id === orderId)
-          ? {
+           {
               ...prev,
               status: newStatus,
               history: [
-                ...(Array.isArray(prev.history) ? prev.history : []),
+                ...(Array.isArray(prev.history)  prev.history : []),
                 {
                   status: newStatus,
                   at: new Date().toISOString(),
@@ -665,8 +688,8 @@ const OrdersPage = () => {
       const updatePayload = {
         status: newStatus,
         history: [
-          ...(Array.isArray(currentOrder?.history)
-            ? currentOrder.history
+          ...(Array.isArray(currentOrder.history)
+             currentOrder.history
             : []),
           { status: newStatus, at: new Date().toISOString() },
         ],
@@ -674,14 +697,14 @@ const OrdersPage = () => {
 
       let updatedViaUpdateItem = false;
       if (typeof window.dataEngine.updateItem === "function") {
-        const idToUpdate = currentOrder?.id || null;
+        const idToUpdate = currentOrder.id || null;
         if (idToUpdate) {
           try {
             await window.dataEngine.updateItem("orders", idToUpdate, updatePayload);
             updatedViaUpdateItem = true;
           } catch (err) {
             console.warn(
-              "[OrdersPage] updateItem falhou, usando set: " + (err?.message || err)
+              "[OrdersPage] updateItem falhou, usando set: " + (err.message || err)
             );
           }
         }
@@ -689,10 +712,10 @@ const OrdersPage = () => {
 
       if (!updatedViaUpdateItem && typeof window.dataEngine.set === "function") {
         const current = await window.dataEngine.get("orders");
-        const items = Array.isArray(current?.items) ? current.items : [];
+        const items = Array.isArray(current.items)  current.items : [];
         const updatedItems = items.map((o) =>
           o.id === orderId || o._id === orderId
-            ? { ...o, ...updatePayload }
+             { ...o, ...updatePayload }
             : o
         );
         await window.dataEngine.set("orders", { items: updatedItems });
@@ -723,19 +746,19 @@ const OrdersPage = () => {
       const safeMode = mode || "full";
       let printResult = null;
 
-      if (window.electronAPI?.printOrder) {
+      if (window.electronAPI.printOrder) {
         printResult = await window.electronAPI.printOrder(order, {
           mode: safeMode,
           silent: true,
         });
-      } else if (window.printEngine?.printOrder) {
+      } else if (window.printEngine.printOrder) {
         const engineResult = await window.printEngine.printOrder(order, {
           mode: safeMode,
           silent: true,
         });
         printResult =
           engineResult && typeof engineResult === "object"
-            ? engineResult
+             engineResult
             : { success: Boolean(engineResult) };
       } else {
         console.warn(
@@ -762,7 +785,7 @@ const OrdersPage = () => {
         type: "error",
         title: "Falha na impressão",
         message:
-          err?.message || "Erro desconhecido ao tentar imprimir o pedido.",
+          err.message || "Erro desconhecido ao tentar imprimir o pedido.",
         duration: 6000,
       });
     }
@@ -770,8 +793,8 @@ const OrdersPage = () => {
 
   useEffect(() => {
     const listener =
-      typeof window.orderEvents?.onNewOrder === "function"
-        ? window.orderEvents.onNewOrder((order) => {
+      typeof window.orderEvents.onNewOrder === "function"
+         window.orderEvents.onNewOrder((order) => {
             if (!order) return;
 
             const normalizedId = order.id || order._id;
@@ -807,11 +830,11 @@ const OrdersPage = () => {
           })
         : null;
 
-    return typeof listener === "function" ? listener : undefined;
+    return typeof listener === "function"  listener : undefined;
   }, [handlePrintOrder]);
 
   useEffect(() => {
-    if (typeof window.orderEvents?.onOrderUpdated !== "function") {
+    if (typeof window.orderEvents.onOrderUpdated !== "function") {
       return undefined;
     }
 
@@ -847,7 +870,7 @@ const OrdersPage = () => {
       });
     });
 
-    return typeof listener === "function" ? listener : undefined;
+    return typeof listener === "function"  listener : undefined;
   }, [normalizeOrderRecord]);
 
   // ========= DUPLICAR PEDIDO =========
@@ -886,7 +909,7 @@ const OrdersPage = () => {
       if (!orderToDelete) return;
 
       const confirmed = window.confirm(
-        "Deseja realmente excluir este pedido? Esta acao nao pode ser desfeita."
+        "Deseja realmente excluir este pedido Esta acao nao pode ser desfeita."
       );
       if (!confirmed) return;
 
@@ -920,7 +943,7 @@ const OrdersPage = () => {
 
       if (!removed && typeof window.dataEngine.set === "function") {
         const current = await window.dataEngine.get("orders");
-        const items = Array.isArray(current?.items) ? current.items : [];
+        const items = Array.isArray(current.items)  current.items : [];
         const updated = items.filter((o) => {
           if (orderId) {
             return o.id !== orderId && o._id !== orderId;
@@ -970,7 +993,7 @@ const OrdersPage = () => {
   // ========= ATALHOS DE TECLADO =========
   useEffect(() => {
     const handler = (event) => {
-      const action = event.detail?.action;
+      const action = event.detail.action;
       if (!action) return;
       if (action === "new-order") {
         handleNewOrderClick();
@@ -981,7 +1004,7 @@ const OrdersPage = () => {
         return;
       }
       if (action === "focus-order-search") {
-        searchInputRef.current?.focus();
+        searchInputRef.current.focus();
         return;
       }
       if (action === "close-modal" && activeModal) {
@@ -997,14 +1020,14 @@ const OrdersPage = () => {
     const handleSlashFocus = (event) => {
       if (event.key !== "/") return;
       const target = event.target;
-      const tag = target?.tagName;
+      const tag = target.tagName;
       const isField =
         tag === "INPUT" ||
         tag === "TEXTAREA" ||
-        target?.isContentEditable;
+        target.isContentEditable;
       if (isField) return;
       event.preventDefault();
-      searchInputRef.current?.focus();
+      searchInputRef.current.focus();
     };
 
     window.addEventListener("keydown", handleSlashFocus);
@@ -1021,52 +1044,169 @@ const OrdersPage = () => {
         </button>
       }
     >
-      {loadError && (
-        <div className="order-list-refresh">{loadError}</div>
-      )}
+      <div className="orders-page">
+        <section className="orders-hero">
+          <div className="orders-hero-header">
+            <div>
+              <h3 className="orders-hero-title">Resumo de hoje</h3>
+              <p className="orders-hero-subtitle">
+                Visual rapido do desempenho e dos pedidos em andamento.
+              </p>
+            </div>
+            <div className="orders-hero-meta">
+              {lastUpdatedAt && (
+                <span className="orders-hero-meta-pill">
+                  Atualizado as{" "}
+                  {new Date(lastUpdatedAt).toLocaleTimeString("pt-BR")}
+                </span>
+              )}
+              {isRefreshing && (
+                <span className="orders-hero-meta-pill orders-hero-meta-pill--pulse">
+                  Atualizando
+                </span>
+              )}
+            </div>
+          </div>
 
-      {lastUpdatedAt && (
-        <div className="order-list-refresh">
-          Atualizado em {new Date(lastUpdatedAt).toLocaleTimeString("pt-BR")}
+          {loadError && (
+            <div className="orders-hero-banner orders-hero-banner--error">
+              {loadError}
+            </div>
+          )}
+
+          <div className="orders-hero-grid">
+            <div className="orders-hero-card">
+              <div className="orders-hero-label">Pedidos hoje</div>
+              <div className="orders-hero-value">
+                {formatNumber(kpis.totalOrdersToday)}
+              </div>
+              <div className="orders-hero-meta-row">
+                <span className="orders-hero-meta-chip">
+                  Ticket medio {formatCurrency(kpis.avgTicket)}
+                </span>
+              </div>
+            </div>
+
+            <div className="orders-hero-card">
+              <div className="orders-hero-label">Faturamento hoje</div>
+              <div className="orders-hero-value">
+                {formatCurrency(kpis.totalRevenueToday)}
+              </div>
+              <div className="orders-hero-meta-row">
+                <span className="orders-hero-meta-chip">
+                  Finalizados {formatNumber(kpis.doneCountToday)}
+                </span>
+              </div>
+            </div>
+
+            <div className="orders-hero-card orders-hero-card--alert">
+              <div className="orders-hero-label">Atrasados</div>
+              <div className="orders-hero-value">
+                {formatNumber(kpis.lateCountToday)}
+              </div>
+              <div className="orders-hero-meta-row">
+                <span className="orders-hero-meta-chip">
+                  Acima do tempo medio
+                </span>
+              </div>
+            </div>
+
+            <div className="orders-hero-card orders-hero-card--sources">
+              <div className="orders-hero-label">Canais</div>
+              <div className="orders-hero-sources">
+                {[
+                  {
+                    key: "website",
+                    label: "Site",
+                    value: kpis.bySource.website,
+                  },
+                  {
+                    key: "whatsapp",
+                    label: "WhatsApp",
+                    value: kpis.bySource.whatsapp,
+                  },
+                  {
+                    key: "ifood",
+                    label: "iFood",
+                    value: kpis.bySource.ifood,
+                  },
+                  {
+                    key: "local",
+                    label: "Local",
+                    value: kpis.bySource.local,
+                  },
+                  {
+                    key: "other",
+                    label: "Outros",
+                    value: kpis.bySource.other,
+                  },
+                ].map((entry) => (
+                  <span key={entry.key}>
+                    {entry.label} {formatNumber(entry.value)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="orders-hero-status">
+            {[
+              { key: "open", label: "Em aberto", tone: "open" },
+              { key: "preparing", label: "Em preparo", tone: "preparing" },
+              { key: "out_for_delivery", label: "Em entrega", tone: "delivering" },
+              { key: "done", label: "Finalizados", tone: "done" },
+              { key: "cancelled", label: "Cancelados", tone: "cancelled" },
+            ].map((item) => (
+              <div
+                key={item.key}
+                className={`orders-hero-status-chip orders-hero-status-chip--${item.tone}`}
+              >
+                <span>{item.label}</span>
+                <strong>{formatNumber(statusCounts[item.key])}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Toolbar: filtros + botao atualizar */}
+        <div className="page-toolbar orders-toolbar">
+          <div className="toolbar-left">
+            <OrderFilters
+              value={filters}
+              onChange={setFilters}
+              searchInputRef={searchInputRef}
+            />
+          </div>
+          <div className="toolbar-actions">
+            <button
+              className="btn btn-outline"
+              onClick={loadOrders}
+              disabled={isLoading || isRefreshing}
+            >
+              {isLoading || isRefreshing  "Atualizando..." : "Atualizar"}
+            </button>
+          </div>
         </div>
-      )}
 
-      {/* Toolbar: filtros + botão atualizar */}
-      <div className="page-toolbar orders-toolbar">
-        <div className="toolbar-left">
-          <OrderFilters
-            value={filters}
-            onChange={setFilters}
-            searchInputRef={searchInputRef}
+        {isLoading && orders.length === 0  (
+          <div className="order-list">
+            {[0, 1, 2, 3].map((idx) => (
+              <div
+                key={`orders-skeleton-${idx}`}
+                className="skeleton skeleton-card"
+              />
+            ))}
+          </div>
+        ) : (
+          <OrderList
+            orders={orders}
+            filters={filters}
+            onClickOrder={handleOpenDetails}
+            onCreateOrder={handleNewOrderClick}
+            isRefreshing={isRefreshing}
           />
-        </div>
-        <div className="toolbar-actions">
-          <button
-            className="btn btn-outline"
-            onClick={loadOrders}
-            disabled={isLoading || isRefreshing}
-          >
-            {isLoading || isRefreshing ? "Atualizando..." : "Atualizar"}
-          </button>
-        </div>
+        )}
       </div>
-
-      {isLoading && orders.length === 0 ? (
-        <div className="order-list">
-          {[0, 1, 2, 3].map((idx) => (
-            <div key={`orders-skeleton-${idx}`} className="skeleton skeleton-card" />
-          ))}
-        </div>
-      ) : (
-        <OrderList
-          orders={orders}
-          filters={filters}
-          onClickOrder={handleOpenDetails}
-          onCreateOrder={handleNewOrderClick}
-          isRefreshing={isRefreshing}
-        />
-      )}
-
       {/* Modal de detalhes */}
       {activeModal === "details" && selectedOrder && (
         <OrderDetailsModal

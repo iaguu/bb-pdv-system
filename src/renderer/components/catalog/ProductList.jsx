@@ -5,12 +5,12 @@ import ProductRow from "./ProductRow";
 
 const ProductList = ({ items, products, currentTab, onEdit }) => {
   const source = Array.isArray(items)
-    ? items
+     items
     : Array.isArray(products)
-    ? products
+     products
     : [];
 
-  const tab = currentTab ? currentTab.toLowerCase() : "all";
+  const tab = currentTab  currentTab.toLowerCase() : "all";
 
   const filtered = source.filter((p) => {
     if (tab === "pizzas") return p.type === "pizza";

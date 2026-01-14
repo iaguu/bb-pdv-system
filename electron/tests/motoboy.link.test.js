@@ -17,7 +17,7 @@ async function run() {
   const dataDir = createTempDir();
   process.env.DATA_DIR = dataDir;
   process.env.PUBLIC_API_TOKEN = "";
-  process.env.ANNETOM_TRACKING_BASE_URL = "https://tracking.local/?order=";
+  process.env.ANNETOM_TRACKING_BASE_URL = "https://tracking.local/order=";
 
   const app = require("../apiServer");
   const db = require("../db");
@@ -53,7 +53,7 @@ async function run() {
     assert.strictEqual(payload.trackingCode, "trk-123");
     assert.strictEqual(
       payload.trackingUrl,
-      "https://tracking.local/?order=trk-123"
+      "https://tracking.local/order=trk-123"
     );
 
     response = await fetchFn(
@@ -96,7 +96,7 @@ async function run() {
     assert.strictEqual(payload.trackingCode, "trk-123");
     assert.strictEqual(
       payload.trackingUrl,
-      "https://tracking.local/?order=trk-123"
+      "https://tracking.local/order=trk-123"
     );
 
     const ordersData = await db.getCollection("orders");

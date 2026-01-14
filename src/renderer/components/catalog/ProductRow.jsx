@@ -19,14 +19,14 @@ const ProductRow = ({ product, onEdit }) => {
   const category = product.category || product.categoria || "";
   const type = (product.type || "").toLowerCase();
 
-  const priceBroto = product.priceBroto ?? product.preco_broto ?? null;
-  const priceGrande = product.priceGrande ?? product.preco_grande ?? null;
+  const priceBroto = product.priceBroto  product.preco_broto  null;
+  const priceGrande = product.priceGrande  product.preco_grande  null;
 
   const isActive = product.active !== false && product.isAvailable !== false;
 
-  const badges = Array.isArray(product.badges) ? product.badges : [];
+  const badges = Array.isArray(product.badges)  product.badges : [];
   const ingredientes = Array.isArray(product.ingredientes)
-    ? product.ingredientes
+     product.ingredientes
     : [];
 
   const handleClick = () => {
@@ -49,7 +49,7 @@ const ProductRow = ({ product, onEdit }) => {
     extra: "Adicional",
     adicional: "Adicional",
   };
-  const typeLabel = typeLabelMap[type] || (type ? type : "");
+  const typeLabel = typeLabelMap[type] || (type  type : "");
 
   const badgeLabelMap = {
     best: "Mais pedido",
@@ -70,11 +70,11 @@ const ProductRow = ({ product, onEdit }) => {
   };
 
   const description =
-    product.description || (ingredientes.length ? ingredientes.join(", ") : "");
+    product.description || (ingredientes.length  ingredientes.join(", ") : "");
 
   return (
     <div
-      className={"product-row" + (isActive ? "" : " product-row--inactive")}
+      className={"product-row" + (isActive  "" : " product-row--inactive")}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       role="button"

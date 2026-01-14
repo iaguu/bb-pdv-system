@@ -1,10 +1,10 @@
-@import './mixins.scss';
+﻿@use "./mixins.scss" as *;
 
 /* ============================================================================
    Base modal styling
    - Visual clean e consistente para todos os modais
    - Resolve problemas de overflow adicionando scroll interno seguro
-   - Padroniza espaçamentos, hierarquia e alinhamentos
+   - Padroniza espaÃ§amentos, hierarquia e alinhamentos
    ============================================================================ */
 
 body.has-modal-open {
@@ -261,3 +261,5 @@ body.has-modal-open {
     grid-template-columns: 1fr;
   }
 }
+
+

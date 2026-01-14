@@ -14,7 +14,7 @@ const parseMoney = (value) => {
   if (value === null || value === undefined || value === "") return null;
   const cleaned = value.toString().replace(/\./g, "").replace(",", ".");
   const n = Number(cleaned);
-  return Number.isNaN(n) ? null : n;
+  return Number.isNaN(n)  null : n;
 };
 
 const formatMoneyInput = (value) => {
@@ -32,15 +32,15 @@ const ProductFormModal = ({
   activeTab = "pizzas",
 }) => {
   const [form, setForm] = useState(() => ({
-    id: product?.id || null,
-    name: product?.name || "",
-    description: product?.description || "",
-    type: product?.type || inferTypeFromTab(activeTab),
-    price: product?.price || null,
-    priceBroto: product?.priceBroto || null,
-    priceGrande: product?.priceGrande || null,
-    active: product?.active ?? true,
-    ingredients: Array.isArray(product?.ingredients) ? product.ingredients : [],
+    id: product.id || null,
+    name: product.name || "",
+    description: product.description || "",
+    type: product.type || inferTypeFromTab(activeTab),
+    price: product.price || null,
+    priceBroto: product.priceBroto || null,
+    priceGrande: product.priceGrande || null,
+    active: product.active  true,
+    ingredients: Array.isArray(product.ingredients)  product.ingredients : [],
   }));
 
   const [newIngredient, setNewIngredient] = useState("");
@@ -48,15 +48,15 @@ const ProductFormModal = ({
   useEffect(() => {
     setForm((prev) => ({
       ...prev,
-      id: product?.id || null,
-      name: product?.name || "",
-      description: product?.description || "",
-      type: product?.type || inferTypeFromTab(activeTab),
-      price: product?.price || null,
-      priceBroto: product?.priceBroto || null,
-      priceGrande: product?.priceGrande || null,
-      active: product?.active ?? true,
-      ingredients: Array.isArray(product?.ingredients) ? product.ingredients : [],
+      id: product.id || null,
+      name: product.name || "",
+      description: product.description || "",
+      type: product.type || inferTypeFromTab(activeTab),
+      price: product.price || null,
+      priceBroto: product.priceBroto || null,
+      priceGrande: product.priceGrande || null,
+      active: product.active  true,
+      ingredients: Array.isArray(product.ingredients)  product.ingredients : [],
     }));
   }, [product, activeTab]);
 
@@ -114,7 +114,7 @@ const ProductFormModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={form.id ? "Editar produto" : "Novo produto"}
+      title={form.id  "Editar produto" : "Novo produto"}
       className="product-form-modal"
     >
       <div className="product-form__body">

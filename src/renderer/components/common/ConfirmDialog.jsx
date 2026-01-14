@@ -5,7 +5,7 @@ import Button from "./Button";
 const ConfirmDialog = ({
   open,
   title = "Confirmar acao",
-  message = "Tem certeza?",
+  message = "Tem certeza",
   confirmLabel = "Confirmar",
   cancelLabel = "Cancelar",
   tone = "danger",
@@ -14,7 +14,7 @@ const ConfirmDialog = ({
 }) => {
   if (!open) return null;
 
-  const confirmVariant = tone === "danger" ? "danger" : "primary";
+  const confirmVariant = tone === "danger"  "danger" : "primary";
 
   return (
     <Modal

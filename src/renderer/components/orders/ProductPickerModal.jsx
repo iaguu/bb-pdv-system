@@ -48,9 +48,9 @@ const ProductPickerModal = ({
     setFlavorCount(1);
     setActiveFlavorSlot(1);
     setSelectedExtras([]);
-    setSelectedDrinkId(drinks[0]?.id || "");
+    setSelectedDrinkId(drinks[0].id || "");
     setFlavors({
-      1: pizzas[0]?.id || "",
+      1: pizzas[0].id || "",
       2: "",
       3: "",
     });
@@ -64,7 +64,7 @@ const ProductPickerModal = ({
     const handleKey = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose?.();
+        onClose.();
         return;
       }
       if (event.key === "Enter") {
@@ -106,7 +106,7 @@ const ProductPickerModal = ({
       if (!extra) return acc;
       const price =
         size === "broto"
-          ? extra.prices.broto || extra.prices.grande || 0
+           extra.prices.broto || extra.prices.grande || 0
           : extra.prices.grande || extra.prices.broto || 0;
       return acc + (price || 0);
     }, 0);
@@ -158,7 +158,7 @@ const ProductPickerModal = ({
   const handleToggleExtra = (extraId) => {
     setSelectedExtras((prev) =>
       prev.includes(extraId)
-        ? prev.filter((id) => id !== extraId)
+         prev.filter((id) => id !== extraId)
         : [...prev, extraId]
     );
   };
@@ -227,14 +227,14 @@ const ProductPickerModal = ({
         }
       }
 
-      const sizeLabel = size === "broto" ? "Broto" : "Grande";
+      const sizeLabel = size === "broto"  "Broto" : "Grande";
       const extrasDetail = selectedExtras
         .map((extraId) => {
           const extra = findById(extraId, extras);
           if (!extra) return null;
           const price =
             size === "broto"
-              ? extra.prices.broto || extra.prices.grande || 0
+               extra.prices.broto || extra.prices.grande || 0
               : extra.prices.grande || extra.prices.broto || 0;
           return {
             id: extra.id,
@@ -252,10 +252,10 @@ const ProductPickerModal = ({
         quantity: q,
         flavor1Id: pizza1.id,
         flavor1Name: pizza1.name,
-        flavor2Id: pizza2?.id || null,
-        flavor2Name: pizza2?.name || null,
-        flavor3Id: pizza3?.id || null,
-        flavor3Name: pizza3?.name || null,
+        flavor2Id: pizza2.id || null,
+        flavor2Name: pizza2.name || null,
+        flavor3Id: pizza3.id || null,
+        flavor3Name: pizza3.name || null,
         twoFlavors: !!pizza2,
         threeFlavors: !!pizza3,
         extras: extrasDetail,
@@ -263,7 +263,7 @@ const ProductPickerModal = ({
         total: unitPizzaPrice * q,
       };
 
-      onAddItem?.(newItem);
+      onAddItem.(newItem);
       setQuantity(1);
       setFlavorCount(1);
       setActiveFlavorSlot(1);
@@ -312,7 +312,7 @@ const ProductPickerModal = ({
       unitPrice: unit,
       total: unit * q,
     };
-    onAddItem?.(newItem);
+    onAddItem.(newItem);
     setDrinkQuantity(1);
   };
 
@@ -333,7 +333,7 @@ const ProductPickerModal = ({
           </button>
           <div className="product-picker-footer-summary">
             <span className="chip chip-outline">
-              Unitario {formatCurrency(type === "pizza" ? unitPizzaPrice : unitDrinkPrice)}
+              Unitario {formatCurrency(type === "pizza"  unitPizzaPrice : unitDrinkPrice)}
             </span>
             <span className="chip">
               Total {formatCurrency(lineTotal)}
@@ -343,7 +343,7 @@ const ProductPickerModal = ({
             type="button"
             className="btn btn-primary"
             onClick={handleAddItem}
-            disabled={type === "pizza" ? !pizzas.length : !drinks.length}
+            disabled={type === "pizza"  !pizzas.length : !drinks.length}
           >
             Adicionar ao pedido
           </button>
@@ -353,7 +353,7 @@ const ProductPickerModal = ({
       <div className="product-picker-tabs">
         <button
           type="button"
-          className={`product-picker-tab${type === "pizza" ? " active" : ""}`}
+          className={`product-picker-tab${type === "pizza"  " active" : ""}`}
           onClick={() => setType("pizza")}
           disabled={!pizzas.length}
         >
@@ -361,7 +361,7 @@ const ProductPickerModal = ({
         </button>
         <button
           type="button"
-          className={`product-picker-tab${type === "drink" ? " active" : ""}`}
+          className={`product-picker-tab${type === "drink"  " active" : ""}`}
           onClick={() => setType("drink")}
           disabled={!drinks.length}
         >
@@ -377,7 +377,7 @@ const ProductPickerModal = ({
             className="field-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={type === "pizza" ? "Nome, categoria ou ingrediente..." : "Ex: Coca, Guarana..."}
+            placeholder={type === "pizza"  "Nome, categoria ou ingrediente..." : "Ex: Coca, Guarana..."}
           />
 
           <div className="product-picker-panel product-picker-panel--list">
@@ -385,7 +385,7 @@ const ProductPickerModal = ({
               className={
                 "product-picker-list " +
                 (type === "pizza"
-                  ? "product-picker-list--pizza"
+                   "product-picker-list--pizza"
                   : "product-picker-list--drink")
               }
             >
@@ -404,7 +404,7 @@ const ProductPickerModal = ({
                       <button
                         key={pizza.id}
                         type="button"
-                        className={`product-card${isSelected ? " selected" : ""}`}
+                        className={`product-card${isSelected  " selected" : ""}`}
                         onClick={() => handleSelectFlavorCard(pizza.id)}
                       >
                         <div className="product-card-main">
@@ -432,7 +432,7 @@ const ProductPickerModal = ({
                       <button
                         key={drink.id}
                         type="button"
-                        className={`product-card${selected ? " selected" : ""}`}
+                        className={`product-card${selected  " selected" : ""}`}
                         onClick={() => setSelectedDrinkId(drink.id)}
                       >
                         <div className="product-card-main">
@@ -460,14 +460,14 @@ const ProductPickerModal = ({
                   <div className="field-pill-group">
                     <button
                       type="button"
-                      className={`field-pill${size === "broto" ? " field-pill-active" : ""}`}
+                      className={`field-pill${size === "broto"  " field-pill-active" : ""}`}
                       onClick={() => setSize("broto")}
                     >
                       Broto
                     </button>
                     <button
                       type="button"
-                      className={`field-pill${size === "grande" ? " field-pill-active" : ""}`}
+                      className={`field-pill${size === "grande"  " field-pill-active" : ""}`}
                       onClick={() => setSize("grande")}
                     >
                       Grande
@@ -493,18 +493,18 @@ const ProductPickerModal = ({
                       <button
                         key={count}
                         type="button"
-                        className={`field-pill${flavorCount === count ? " field-pill-active" : ""}`}
+                        className={`field-pill${flavorCount === count  " field-pill-active" : ""}`}
                         onClick={() => {
                           setFlavorCount(count);
                           setActiveFlavorSlot(count);
                           setFlavors((prev) => ({
                             ...prev,
-                            2: count >= 2 ? prev[2] : "",
-                            3: count === 3 ? prev[3] : "",
+                            2: count >= 2  prev[2] : "",
+                            3: count === 3  prev[3] : "",
                           }));
                         }}
                       >
-                        {count} sabor{count > 1 ? "es" : ""}
+                        {count} sabor{count > 1  "es" : ""}
                       </button>
                     ))}
                   </div>
@@ -517,13 +517,13 @@ const ProductPickerModal = ({
                       <button
                         key={slot}
                         type="button"
-                        className={`field-pill flavor-slot-pill${activeFlavorSlot === slot ? " field-pill-active" : ""}`}
+                        className={`field-pill flavor-slot-pill${activeFlavorSlot === slot  " field-pill-active" : ""}`}
                         onClick={() => setActiveFlavorSlot(slot)}
                       >
                         {slot}o sabor
                         {flavors[slot] && (
                           <span className="flavor-slot-sub">
-                            {findById(flavors[slot], pizzas)?.name || "Selecionado"}
+                            {findById(flavors[slot], pizzas).name || "Selecionado"}
                           </span>
                         )}
                       </button>
@@ -555,12 +555,12 @@ const ProductPickerModal = ({
                         const checked = selectedExtras.includes(extra.id);
                         const price =
                           size === "broto"
-                            ? extra.prices.broto || extra.prices.grande || 0
+                             extra.prices.broto || extra.prices.grande || 0
                             : extra.prices.grande || extra.prices.broto || 0;
                         return (
                           <label
                             key={extra.id}
-                            className={`extras-item${checked ? " extras-item-active" : ""}`}
+                            className={`extras-item${checked  " extras-item-active" : ""}`}
                           >
                             <input
                               type="checkbox"
@@ -589,7 +589,7 @@ const ProductPickerModal = ({
                   <div className="product-picker-inline">
                     <div className="selected-drink-card">
                       <div className="selected-drink-name">
-                        {selectedDrink?.name || "Selecione uma bebida"}
+                        {selectedDrink.name || "Selecione uma bebida"}
                       </div>
                       <div className="selected-drink-price">
                         {formatCurrency(unitDrinkPrice)}

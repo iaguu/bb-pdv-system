@@ -39,7 +39,7 @@ const FilterChips = ({ options, value, onChange }) => {
         <button
           key={opt.value}
           type="button"
-          className={"chip" + (value === opt.value ? " chip-active" : "")}
+          className={"chip" + (value === opt.value  " chip-active" : "")}
           onClick={() => onChange && onChange(opt.value)}
         >
           {opt.label}
@@ -210,14 +210,14 @@ const CatalogPage = () => {
           // API / site trabalham com "nome" e "categoria"
           nome: p.nome || p.name || "",
           categoria: p.categoria || p.category || "",
-          ingredientes: Array.isArray(p.ingredientes) ? p.ingredientes : [],
-          preco_broto: p.preco_broto ?? p.priceBroto ?? null,
-          preco_grande: p.preco_grande ?? p.priceGrande ?? null,
-          badges: Array.isArray(p.badges) ? p.badges : [],
-          extras: Array.isArray(p.extras) ? p.extras : [],
+          ingredientes: Array.isArray(p.ingredientes)  p.ingredientes : [],
+          preco_broto: p.preco_broto  p.priceBroto  null,
+          preco_grande: p.preco_grande  p.priceGrande  null,
+          badges: Array.isArray(p.badges)  p.badges : [],
+          extras: Array.isArray(p.extras)  p.extras : [],
           sugestoes:
             Array.isArray(p.sugestoes) || Array.isArray(p.suggestions)
-              ? p.sugestoes || p.suggestions
+               p.sugestoes || p.suggestions
               : [],
         })),
       };
@@ -277,29 +277,29 @@ const CatalogPage = () => {
           name: p.name || p.nome || "",
           description:
             p.description ||
-            (Array.isArray(p.ingredientes) ? p.ingredientes.join(", ") : ""),
+            (Array.isArray(p.ingredientes)  p.ingredientes.join(", ") : ""),
           category: p.category || p.categoria || "",
           priceBroto:
             typeof p.priceBroto === "number"
-              ? p.priceBroto
+               p.priceBroto
               : typeof p.preco_broto === "number"
-              ? p.preco_broto
+               p.preco_broto
               : null,
           priceGrande:
             typeof p.priceGrande === "number"
-              ? p.priceGrande
+               p.priceGrande
               : typeof p.preco_grande === "number"
-              ? p.preco_grande
+               p.preco_grande
               : null,
-          price: typeof p.price === "number" ? p.price : null,
+          price: typeof p.price === "number"  p.price : null,
           active: p.active !== false,
           // Guardamos info extra pra outros usos (site, CardapioPage, etc.)
-          ingredientes: Array.isArray(p.ingredientes) ? p.ingredientes : [],
-          badges: Array.isArray(p.badges) ? p.badges : [],
-          extras: Array.isArray(p.extras) ? p.extras : [],
+          ingredientes: Array.isArray(p.ingredientes)  p.ingredientes : [],
+          badges: Array.isArray(p.badges)  p.badges : [],
+          extras: Array.isArray(p.extras)  p.extras : [],
           sugestoes:
             Array.isArray(p.sugestoes) || Array.isArray(p.suggestions)
-              ? p.sugestoes || p.suggestions
+               p.sugestoes || p.suggestions
               : [],
         }));
 
@@ -363,7 +363,7 @@ const CatalogPage = () => {
           className={
             "catalog-import-status" +
             (importStatus.type === "error"
-              ? " catalog-import-status-error"
+               " catalog-import-status-error"
               : " catalog-import-status-ok")
           }
         >
@@ -432,13 +432,13 @@ const CatalogPage = () => {
         </div>
       </div>
 
-      {loading && products.length === 0 ? (
+      {loading && products.length === 0  (
         <div className="product-list">
           {[0, 1, 2, 3, 4, 5].map((idx) => (
             <div key={`product-skeleton-${idx}`} className="skeleton skeleton-card" />
           ))}
         </div>
-      ) : filteredProducts.length === 0 ? (
+      ) : filteredProducts.length === 0  (
         <div className="empty-state">
           <h3 className="empty-title">Nenhum produto encontrado.</h3>
           <p className="empty-description">

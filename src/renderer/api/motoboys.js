@@ -1,6 +1,6 @@
 const ensureDataEngine = () => {
   if (
-    !globalThis.window?.dataEngine ||
+    !globalThis.window.dataEngine ||
     typeof globalThis.window.dataEngine.get !== "function"
   ) {
     throw new Error("window.dataEngine não está disponível no momento.");
@@ -10,7 +10,7 @@ const ensureDataEngine = () => {
 
 const normalizeAmount = (value) => {
   const normalized = Number(String(value || "").replace(",", "."));
-  return Number.isNaN(normalized) ? 0 : normalized;
+  return Number.isNaN(normalized)  0 : normalized;
 };
 
 const createId = (prefix) => {
@@ -29,7 +29,7 @@ const buildQrToken = () => {
 export async function getMotoboys() {
   const dataEngine = ensureDataEngine();
   const payload = await dataEngine.get("motoboys");
-  const items = Array.isArray(payload?.items) ? payload.items : [];
+  const items = Array.isArray(payload.items)  payload.items : [];
   return items;
 }
 
@@ -41,7 +41,7 @@ export async function saveMotoboy(motoboy) {
   const now = new Date().toISOString();
   const normalized = {
     ...motoboy,
-    active: motoboy.active ?? true,
+    active: motoboy.active  true,
     status: motoboy.status || "available",
     updatedAt: now,
   };
@@ -68,7 +68,7 @@ export async function toggleMotoboyActive(motoboyId, nextActive) {
 }
 
 export async function generateMotoboyQr(motoboy) {
-  if (!motoboy?.id) {
+  if (!motoboy.id) {
     throw new Error("Motoboy inválido para gerar QR.");
   }
   const dataEngine = ensureDataEngine();
@@ -82,7 +82,7 @@ export async function generateMotoboyQr(motoboy) {
 }
 
 export async function addMotoboyTip(motoboy, tipDraft) {
-  if (!motoboy?.id) {
+  if (!motoboy.id) {
     throw new Error("Motoboy inválido para registrar gorjeta.");
   }
   if (!tipDraft || typeof tipDraft !== "object") {
@@ -92,7 +92,7 @@ export async function addMotoboyTip(motoboy, tipDraft) {
   const dataEngine = ensureDataEngine();
   const now = new Date().toISOString();
   const payload = await dataEngine.get("motoboys");
-  const items = Array.isArray(payload?.items) ? payload.items : [];
+  const items = Array.isArray(payload.items)  payload.items : [];
   const existing = items.find((entry) => String(entry.id) === String(motoboy.id));
   if (!existing) {
     throw new Error("Motoboy não encontrado.");
@@ -111,7 +111,7 @@ export async function addMotoboyTip(motoboy, tipDraft) {
     createdAt: now,
   };
 
-  const nextTips = [tip, ...(Array.isArray(existing.tips) ? existing.tips : [])];
+  const nextTips = [tip, ...(Array.isArray(existing.tips)  existing.tips : [])];
   const nextTotal = nextTips.reduce(
     (sum, entry) => sum + (Number(entry.amount) || 0),
     0

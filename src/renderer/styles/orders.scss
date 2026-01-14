@@ -1,4 +1,4 @@
-/* ============================================================================
+﻿/* ============================================================================
    ORDERS PAGE
    KPIs do dia + toolbar + lista
    ============================================================================ */
@@ -10,7 +10,250 @@ $orders-pill-radius: 999px;
 $orders-text-main: #111827;
 $orders-text-muted: #6b7280;
 $orders-text-soft: #4b5563; /* Aumentado contraste para acessibilidade (era #9ca3af) */
-$orders-accent: #e63946;
+$orders-accent: #f97316;
+
+/* ============================================================================
+   HERO / RESUMO DO DIA
+   ============================================================================ */
+
+.orders-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.orders-hero {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.orders-hero::after {
+  content: "";
+  position: absolute;
+  right: -120px;
+  top: -80px;
+  width: 320px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.18), transparent 65%);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.orders-hero-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.orders-hero-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: $orders-text-main;
+  margin: 0 0 6px;
+}
+
+.orders-hero-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: $orders-text-muted;
+  max-width: 520px;
+}
+
+.orders-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.orders-hero-meta-pill {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  color: rgba(15, 23, 42, 0.72);
+}
+
+.orders-hero-meta-pill--pulse {
+  color: rgba(124, 45, 18, 0.95);
+  border-color: rgba(249, 115, 22, 0.4);
+  background: rgba(249, 115, 22, 0.12);
+  animation: ordersPulse 1.6s ease-in-out infinite;
+}
+
+.orders-hero-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.orders-hero-banner--error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: rgba(127, 29, 29, 0.95);
+}
+
+.orders-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.orders-hero-status {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.orders-hero-status-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(15, 23, 42, 0.78);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+}
+
+.orders-hero-status-chip strong {
+  font-size: 14px;
+  font-weight: 900;
+  color: rgba(15, 23, 42, 0.9);
+}
+
+.orders-hero-status-chip--open {
+  border-color: rgba(59, 130, 246, 0.3);
+  color: rgba(30, 64, 175, 0.9);
+}
+
+.orders-hero-status-chip--preparing {
+  border-color: rgba(245, 158, 11, 0.32);
+  color: rgba(146, 64, 14, 0.9);
+}
+
+.orders-hero-status-chip--delivering {
+  border-color: rgba(139, 92, 246, 0.32);
+  color: rgba(91, 33, 182, 0.9);
+}
+
+.orders-hero-status-chip--done {
+  border-color: rgba(34, 197, 94, 0.32);
+  color: rgba(20, 83, 45, 0.9);
+}
+
+.orders-hero-status-chip--cancelled {
+  border-color: rgba(239, 68, 68, 0.32);
+  color: rgba(127, 29, 29, 0.9);
+}
+
+.orders-hero-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
+  min-height: 110px;
+}
+
+.orders-hero-card--alert {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: linear-gradient(180deg, rgba(254, 242, 242, 0.8), #ffffff);
+}
+
+.orders-hero-card--sources {
+  min-height: 120px;
+}
+
+.orders-hero-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(17, 24, 39, 0.6);
+}
+
+.orders-hero-value {
+  font-size: 20px;
+  font-weight: 900;
+  color: $orders-text-main;
+}
+
+.orders-hero-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.orders-hero-meta-chip {
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  color: rgba(15, 23, 42, 0.72);
+}
+
+.orders-hero-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+
+  span {
+    font-size: 11px;
+    color: $orders-text-muted;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    white-space: nowrap;
+  }
+}
+
+@keyframes ordersPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 900px) {
+  .orders-hero-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .orders-hero-meta {
+    justify-content: flex-start;
+  }
+}
 
 /* ============================================================================
    BARRA DE KPIs
@@ -93,7 +336,7 @@ $orders-accent: #e63946;
 }
 
 /* ============================================================================
-   TOOLBAR SUPERIOR (FILTROS + BOT?O ATUALIZAR)
+   TOOLBAR SUPERIOR (FILTROS + BOTO ATUALIZAR)
    ============================================================================ */
 
 .page-toolbar {
@@ -129,7 +372,7 @@ $orders-accent: #e63946;
   min-height: 40px;
 }
 
-/* Botão principal (cobre: button, a, .btn, etc. sem exigir refactor de JSX) */
+/* BotÃ£o principal (cobre: button, a, .btn, etc. sem exigir refactor de JSX) */
 .page-toolbar :where(button, a, .btn, .button) {
   border-radius: $orders-pill-radius;
 }
@@ -146,7 +389,7 @@ $orders-accent: #e63946;
   border: 0;
   cursor: pointer;
 
-  /* destaque premium sem “gritar” */
+  /* destaque premium sem â€œgritarâ€ */
   background: #111827;
   color: #ffffff;
   box-shadow: none;
@@ -168,7 +411,7 @@ $orders-accent: #e63946;
   }
 }
 
-/* Controles (select/input): altura, borda, focus ring e aparência “clean” */
+/* Controles (select/input): altura, borda, focus ring e aparÃªncia â€œcleanâ€ */
 .page-toolbar :where(select, input[type="text"], input[type="search"], input:not([type])) {
   height: 38px;
   padding: 0 12px;
@@ -224,7 +467,7 @@ $orders-accent: #e63946;
   margin-right: 6px;
 }
 
-/* Campos “colados” (ex.: label + select/input em linha) ficam alinhados */
+/* Campos â€œcoladosâ€ (ex.: label + select/input em linha) ficam alinhados */
 .page-toolbar :where(.field, .filter, .control, .toolbar-field) {
   display: inline-flex;
   align-items: center;
@@ -239,13 +482,13 @@ $orders-accent: #e63946;
   }
 }
 
-/* Área da direita (onde fica o botão Atualizar) */
+/* Ãrea da direita (onde fica o botÃ£o Atualizar) */
 .page-toolbar :where(.toolbar-right, .toolbar-actions) {
   margin-left: auto; /* empurra para a direita */
   padding-left: 12px;
 }
 
-/* Botão Atualizar (ação secundária) */
+/* BotÃ£o Atualizar (aÃ§Ã£o secundÃ¡ria) */
 .page-toolbar
   :where(button, .btn, .button):not([class*="new"]):not([class*="novo"]) {
   height: 40px;
@@ -273,7 +516,7 @@ $orders-accent: #e63946;
   }
 }
 
-/* Mobile: botão separado dos filtros */
+/* Mobile: botÃ£o separado dos filtros */
 @media (max-width: 900px) {
   .page-toolbar :where(.toolbar-right, .toolbar-actions) {
     margin-left: 0;
@@ -281,8 +524,8 @@ $orders-accent: #e63946;
   }
 }
 
-/* Opcional: garante que o botão (actions) tenha um pouco de folga embaixo
-   sem afetar bot?es em outras partes */
+/* Opcional: garante que o botÃ£o (actions) tenha um pouco de folga embaixo
+   sem afetar botes em outras partes */
 .page:has(.page-toolbar) .btn.btn-primary {
   margin-bottom: 6px;
 }
@@ -317,8 +560,12 @@ $orders-accent: #e63946;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
 
-  /* Melhoria para telas menores: permite scroll horizontal se necessário */
+  /* Melhoria para telas menores: permite scroll horizontal se necessÃ¡rio */
   @media (max-width: 600px) {
     display: flex;
     overflow-x: auto;
@@ -330,8 +577,8 @@ $orders-accent: #e63946;
 
 .order-status-tab {
   border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.18);
-  background: #f9fafb;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #ffffff;
   padding: 8px 14px;
   font-weight: 700;
   font-size: 13px;
@@ -342,15 +589,15 @@ $orders-accent: #e63946;
 
   &:hover {
     transform: translateY(0);
-    border-color: rgba(15, 23, 42, 0.35);
-    background: #fff;
+    border-color: rgba(15, 23, 42, 0.28);
+    background: #f9fafb;
   }
 }
 
 .order-status-tab--active {
   color: #ffffff;
-  background: #111827;
-  border-color: #111827;
+  background: #0f172a;
+  border-color: #0f172a;
 }
 
 .order-status-tab--tone-open {
@@ -412,6 +659,26 @@ $orders-accent: #e63946;
 
 .order-filters-field--search .order-filters-input {
   min-width: 260px;
+  padding-right: 72px;
+}
+
+.order-filters-field--search {
+  position: relative;
+}
+
+.order-filters-clear {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(15, 23, 42, 0.72);
+  cursor: pointer;
 }
 
 @media (max-width: 1100px) {
@@ -429,3 +696,4 @@ $orders-accent: #e63946;
     min-width: 0;
   }
 }
+

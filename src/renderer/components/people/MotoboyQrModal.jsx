@@ -10,7 +10,7 @@ const MotoboyQrModal = ({ motoboy, onClose }) => {
     let mounted = true;
 
     const buildQr = async () => {
-      if (!motoboy?.qrToken) {
+      if (!motoboy.qrToken) {
         setQrDataUrl("");
         return;
       }
@@ -30,10 +30,10 @@ const MotoboyQrModal = ({ motoboy, onClose }) => {
     return () => {
       mounted = false;
     };
-  }, [motoboy?.qrToken]);
+  }, [motoboy.qrToken]);
 
   const handleCopy = async () => {
-    if (!motoboy?.qrToken) return;
+    if (!motoboy.qrToken) return;
     try {
       if (!navigator.clipboard) {
         window.prompt("Copie o token:", motoboy.qrToken);
@@ -59,7 +59,7 @@ const MotoboyQrModal = ({ motoboy, onClose }) => {
     >
       <div className="motoboy-qr">
         <div className="motoboy-qr-card">
-          {qrDataUrl ? (
+          {qrDataUrl  (
             <img
               src={qrDataUrl}
               alt="QR Code do motoboy"
@@ -73,8 +73,8 @@ const MotoboyQrModal = ({ motoboy, onClose }) => {
         </div>
 
         <div className="motoboy-qr-info">
-          <div className="motoboy-qr-name">{motoboy?.name || "Motoboy"}</div>
-          <div className="motoboy-qr-token">{motoboy?.qrToken || "--"}</div>
+          <div className="motoboy-qr-name">{motoboy.name || "Motoboy"}</div>
+          <div className="motoboy-qr-token">{motoboy.qrToken || "--"}</div>
           <div className="motoboy-qr-actions">
             <button
               type="button"

@@ -38,8 +38,8 @@ const computeProductsWithStock = (baseProducts, ingredientStockMap) => {
   const unavailableKeys = new Set(
     Object.values(ingredientStockMap || {})
       .filter((item) => {
-        const q = Number(item.quantity ?? 0);
-        const minQ = Number(item.minQuantity ?? 0);
+        const q = Number(item.quantity  0);
+        const minQ = Number(item.minQuantity  0);
         // Considera em falta se marcado explicitamente ou se quantidade <= 0 com mínimo > 0
         return item.unavailable || (minQ > 0 && q <= 0);
       })
@@ -48,7 +48,7 @@ const computeProductsWithStock = (baseProducts, ingredientStockMap) => {
 
   return (baseProducts || []).map((p) => {
     const type = (p.type || "").toLowerCase();
-    const ingredientes = Array.isArray(p.ingredientes) ? p.ingredientes : [];
+    const ingredientes = Array.isArray(p.ingredientes)  p.ingredientes : [];
 
     const hasMissingIngredient =
       type === "pizza" &&
@@ -120,7 +120,7 @@ const StockPage = () => {
       ]);
 
       const items = normalizeProductsData(productsData);
-      const normalizedProducts = Array.isArray(items) ? items : [];
+      const normalizedProducts = Array.isArray(items)  items : [];
 
       // Constrói índice de ingredientes existentes nas pizzas
       const ingredientIndexFromProducts = {};
@@ -129,7 +129,7 @@ const StockPage = () => {
         if (type !== "pizza") return;
 
         const ingredientes = Array.isArray(p.ingredientes)
-          ? p.ingredientes
+           p.ingredientes
           : [];
 
         ingredientes.forEach((rawName) => {
@@ -146,10 +146,10 @@ const StockPage = () => {
       });
 
       // Normaliza estoque salvo (se existir)
-      const stockItemsRaw = Array.isArray(stockIngredientsData?.items)
-        ? stockIngredientsData.items
+      const stockItemsRaw = Array.isArray(stockIngredientsData.items)
+         stockIngredientsData.items
         : Array.isArray(stockIngredientsData)
-        ? stockIngredientsData
+         stockIngredientsData
         : [];
 
       const ingredientStockMap = {};
@@ -165,9 +165,9 @@ const StockPage = () => {
         ingredientStockMap[ing.key] = {
           key: ing.key,
           name: (existing && existing.name) || ing.name,
-          quantity: Number(existing?.quantity ?? 0),
-          minQuantity: Number(existing?.minQuantity ?? 0),
-          unavailable: Boolean(existing?.unavailable),
+          quantity: Number(existing.quantity  0),
+          minQuantity: Number(existing.minQuantity  0),
+          unavailable: Boolean(existing.unavailable),
         };
       });
 
@@ -181,8 +181,8 @@ const StockPage = () => {
         ingredientStockMap[key] = {
           key,
           name: s.name || s.ingrediente || key,
-          quantity: Number(s.quantity ?? 0),
-          minQuantity: Number(s.minQuantity ?? 0),
+          quantity: Number(s.quantity  0),
+          minQuantity: Number(s.minQuantity  0),
           unavailable: Boolean(s.unavailable),
         };
       });
@@ -226,8 +226,8 @@ const StockPage = () => {
     const stockItems = Object.values(stockMap || {}).map((s) => ({
       key: s.key,
       name: s.name,
-      quantity: Number(s.quantity ?? 0),
-      minQuantity: Number(s.minQuantity ?? 0),
+      quantity: Number(s.quantity  0),
+      minQuantity: Number(s.minQuantity  0),
       unavailable: Boolean(s.unavailable),
     }));
 
@@ -251,7 +251,7 @@ const StockPage = () => {
     const missingIngredients = ingredients.filter(
       (i) =>
         i.unavailable ||
-        (Number(i.minQuantity ?? 0) > 0 && Number(i.quantity ?? 0) <= 0)
+        (Number(i.minQuantity  0) > 0 && Number(i.quantity  0) <= 0)
     ).length;
 
     const totalProducts = (products || []).length;
@@ -274,8 +274,8 @@ const StockPage = () => {
   const unavailableIngredientsSet = useMemo(() => {
     const set = new Set();
     Object.values(ingredientStock || {}).forEach((i) => {
-      const qty = Number(i.quantity ?? 0);
-      const minQ = Number(i.minQuantity ?? 0);
+      const qty = Number(i.quantity  0);
+      const minQ = Number(i.minQuantity  0);
       if (i.unavailable || (minQ > 0 && qty <= 0)) {
         set.add(i.key);
       }
@@ -294,7 +294,7 @@ const StockPage = () => {
       let value = rawValue;
       if (field === "quantity" || field === "minQuantity") {
         const n = Number(rawValue);
-        value = Number.isNaN(n) ? "" : n;
+        value = Number.isNaN(n)  "" : n;
       }
 
       return {
@@ -367,10 +367,10 @@ const StockPage = () => {
     return result.sort((a, b) => {
       const aMissing =
         a.unavailable ||
-        (Number(a.minQuantity ?? 0) > 0 && Number(a.quantity ?? 0) <= 0);
+        (Number(a.minQuantity  0) > 0 && Number(a.quantity  0) <= 0);
       const bMissing =
         b.unavailable ||
-        (Number(b.minQuantity ?? 0) > 0 && Number(b.quantity ?? 0) <= 0);
+        (Number(b.minQuantity  0) > 0 && Number(b.quantity  0) <= 0);
 
       if (aMissing && !bMissing) return -1;
       if (!aMissing && bMissing) return 1;
@@ -382,25 +382,25 @@ const StockPage = () => {
   // HANDLERS – PRODUTOS (manual "sem estoque")
   // -----------------------------
   const handleToggleProductOutOfStock = async (product) => {
-    const base = Array.isArray(products) ? [...products] : [];
+    const base = Array.isArray(products)  [...products] : [];
     let targetIndex = -1;
 
-    if (product?.id != null) {
+    if (product.id != null) {
       targetIndex = base.findIndex(
         (item) => String(item.id) === String(product.id)
       );
     }
 
     if (targetIndex < 0) {
-      const name = product?.name || product?.nome;
-      const type = (product?.type || "").toLowerCase();
-      const category = product?.categoria || product?.category || "";
+      const name = product.name || product.nome;
+      const type = (product.type || "").toLowerCase();
+      const category = product.categoria || product.category || "";
       if (name) {
         targetIndex = base.findIndex((item) => {
-          const itemName = item?.name || item?.nome || "";
+          const itemName = item.name || item.nome || "";
           if (itemName !== name) return false;
-          const itemType = (item?.type || "").toLowerCase();
-          const itemCategory = item?.categoria || item?.category || "";
+          const itemType = (item.type || "").toLowerCase();
+          const itemCategory = item.categoria || item.category || "";
           if (type && itemType !== type) return false;
           if (category && itemCategory !== category) return false;
           return true;
@@ -441,7 +441,7 @@ const StockPage = () => {
 
   // Lista de produtos filtrada
   const filteredProducts = useMemo(() => {
-    const list = Array.isArray(products) ? products : [];
+    const list = Array.isArray(products)  products : [];
     const q = searchProduct.trim().toLowerCase();
 
     let result = list;
@@ -506,13 +506,13 @@ const StockPage = () => {
               onClick={handleSaveAllIngredients}
               disabled={saving}
             >
-              {saving ? "Salvando..." : "Salvar alterações"}
+              {saving  "Salvando..." : "Salvar alterações"}
             </Button>
           </div>
         </div>
 
         <div className="stock-table-wrapper">
-          {filteredIngredients.length === 0 ? (
+          {filteredIngredients.length === 0  (
             <p className="stock-empty">
               Nenhum ingrediente encontrado. Adicione ingredientes no catálogo
               de pizzas primeiro.
@@ -524,20 +524,20 @@ const StockPage = () => {
                   <th>Ingrediente</th>
                   <th>Qtd. atual</th>
                   <th>Qtd. mínima</th>
-                  <th>Em falta?</th>
+                  <th>Em falta</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredIngredients.map((ing) => {
                   const isMissing =
                     ing.unavailable ||
-                    (Number(ing.minQuantity ?? 0) > 0 &&
-                      Number(ing.quantity ?? 0) <= 0);
+                    (Number(ing.minQuantity  0) > 0 &&
+                      Number(ing.quantity  0) <= 0);
 
                   return (
                     <tr
                       key={ing.key}
-                      className={isMissing ? "is-missing" : ""}
+                      className={isMissing  "is-missing" : ""}
                     >
                       <td>{ing.name}</td>
                       <td>
@@ -545,7 +545,7 @@ const StockPage = () => {
                           type="number"
                           className="stock-input"
                           value={
-                            ing.quantity === "" ? "" : ing.quantity ?? ""
+                            ing.quantity === ""  "" : ing.quantity  ""
                           }
                           onChange={(e) =>
                             handleIngredientFieldChange(
@@ -562,8 +562,8 @@ const StockPage = () => {
                           className="stock-input"
                           value={
                             ing.minQuantity === ""
-                              ? ""
-                              : ing.minQuantity ?? ""
+                               ""
+                              : ing.minQuantity  ""
                           }
                           onChange={(e) =>
                             handleIngredientFieldChange(
@@ -577,12 +577,12 @@ const StockPage = () => {
                       <td>
                         <Button
                           size="sm"
-                          variant={isMissing ? "secondary" : "ghost"}
+                          variant={isMissing  "secondary" : "ghost"}
                           onClick={() =>
                             handleToggleIngredientUnavailable(ing.key)
                           }
                         >
-                          {isMissing ? "Em falta" : "Disponível"}
+                          {isMissing  "Em falta" : "Disponível"}
                         </Button>
                       </td>
                     </tr>
@@ -629,7 +629,7 @@ const StockPage = () => {
         </div>
 
         <div className="stock-table-wrapper">
-          {filteredProducts.length === 0 ? (
+          {filteredProducts.length === 0  (
             <p className="stock-empty">
               Nenhum produto encontrado no catálogo.
             </p>
@@ -650,7 +650,7 @@ const StockPage = () => {
                   const category = p.categoria || p.category || "";
 
                   const ingredientes = Array.isArray(p.ingredientes)
-                    ? p.ingredientes
+                     p.ingredientes
                     : [];
 
                   const hasMissingIngredient =
@@ -678,11 +678,11 @@ const StockPage = () => {
 
                   const typeLabel =
                     type === "pizza"
-                      ? "Pizza"
+                       "Pizza"
                       : type === "drink" || type === "bebida"
-                      ? "Bebida"
+                       "Bebida"
                       : type === "extra" || type === "adicional"
-                      ? "Extra"
+                       "Extra"
                       : type || "Outro";
 
                   return (
@@ -704,9 +704,9 @@ const StockPage = () => {
                         <span
                           className={
                             isOutOfStock
-                              ? "stock-status paused"
+                               "stock-status paused"
                               : isActive
-                              ? "stock-status active"
+                               "stock-status active"
                               : "stock-status"
                           }
                         >
@@ -716,11 +716,11 @@ const StockPage = () => {
                       <td>
                         <Button
                           size="sm"
-                          variant={p._manualOutOfStock ? "secondary" : "ghost"}
+                          variant={p._manualOutOfStock  "secondary" : "ghost"}
                           onClick={() => handleToggleProductOutOfStock(p)}
                         >
                           {p._manualOutOfStock
-                            ? "Reativar manual"
+                             "Reativar manual"
                             : "Marcar sem estoque"}
                         </Button>
                       </td>
@@ -765,7 +765,7 @@ const StockPage = () => {
             <div className="order-list-refresh">Atualizando estoque...</div>
           )}
 
-          {isInitialLoading ? (
+          {isInitialLoading  (
             <>
               <div className="stock-summary-grid">
                 {[0, 1, 2, 3, 4].map((idx) => (
@@ -780,7 +780,7 @@ const StockPage = () => {
             </>
           ) : (
             <>
-              {/* Resumo r??pido do estoque */}
+              {/* Resumo rpido do estoque */}
               <div className="stock-summary-grid">
                 <div className="stock-summary-card">
                   <div className="stock-summary-label">Ingredientes mapeados</div>
@@ -795,7 +795,7 @@ const StockPage = () => {
                   </div>
                 </div>
                 <div className="stock-summary-card">
-                  <div className="stock-summary-label">Produtos no cat??logo</div>
+                  <div className="stock-summary-label">Produtos no catlogo</div>
                   <div className="stock-summary-value">
                     {stockSummary.totalProducts}
                   </div>
@@ -829,7 +829,7 @@ const StockPage = () => {
                 />
               </div>
 
-              {tab === "ingredients" ? renderIngredientsTab() : renderProductsTab()}
+              {tab === "ingredients"  renderIngredientsTab() : renderProductsTab()}
             </>
           )}
         </div>

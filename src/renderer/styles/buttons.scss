@@ -1,9 +1,9 @@
-@import './mixins.scss';
+﻿@use "./mixins.scss" as *;
 
 /* ============================================================================
-   BOTÕES GERAIS
+   BOTÃ•ES GERAIS
    - Padroniza .btn (primary, outline, secondary, danger, ghost) e tamanhos
-   - Cobre variantes usadas em várias páginas/modais
+   - Cobre variantes usadas em vÃ¡rias pÃ¡ginas/modais
    ============================================================================ */
 
 .btn {
@@ -115,3 +115,5 @@
   border-color: var(--border, rgba(17, 24, 39, 0.12));
   box-shadow: var(--shadow-1, 0 8px 18px rgba(17, 24, 39, 0.08));
 }
+
+

@@ -1,6 +1,6 @@
-/* ============================================================================
+﻿/* ============================================================================
    STOCK PAGE
-   Estoque & Disponibilidade – Ingredientes + Produtos
+   Estoque & Disponibilidade â€“ Ingredientes + Produtos
    ============================================================================ */
 
 $stock-card-bg: #ffffff;
@@ -118,7 +118,7 @@ $stock-accent-soft: rgba(230, 57, 70, 0.08);
 }
 
 /* ========================================================================== */
-/* SEÇÃO GENÉRICA (INGREDIENTS / PRODUCTS)                                   */
+/* SEÃ‡ÃƒO GENÃ‰RICA (INGREDIENTS / PRODUCTS)                                   */
 /* ========================================================================== */
 
 .stock-section {
@@ -129,7 +129,7 @@ $stock-accent-soft: rgba(230, 57, 70, 0.08);
 }
 
 /* ========================================================================== */
-/* TOOLBAR (SEARCH + BOTÕES / SELECT)                                        */
+/* TOOLBAR (SEARCH + BOTÃ•ES / SELECT)                                        */
 /* ========================================================================== */
 
 .stock-toolbar {
@@ -276,7 +276,7 @@ $stock-accent-soft: rgba(230, 57, 70, 0.08);
   }
 }
 
-/* Inputs numéricos dentro da tabela de ingredientes */
+/* Inputs numÃ©ricos dentro da tabela de ingredientes */
 .stock-input {
   width: 100%;
   max-width: 90px;
@@ -304,7 +304,7 @@ $stock-accent-soft: rgba(230, 57, 70, 0.08);
 }
 
 /* ========================================================================== */
-/* PRODUTOS – COLUNA DE NOME / META / STATUS                                 */
+/* PRODUTOS â€“ COLUNA DE NOME / META / STATUS                                 */
 /* ========================================================================== */
 
 .stock-product-main {
@@ -365,3 +365,4 @@ $stock-accent-soft: rgba(230, 57, 70, 0.08);
     color: $stock-text-main;
   }
 }
+

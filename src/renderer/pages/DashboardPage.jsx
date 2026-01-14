@@ -15,10 +15,10 @@ const normalizeOrdersData = (data) => {
 
 const getOrderDate = (order) => {
   const raw =
-    order?.createdAt ||
-    order?.created_at ||
-    order?.date ||
-    order?.created_at_iso;
+    order.createdAt ||
+    order.created_at ||
+    order.date ||
+    order.created_at_iso;
   if (!raw) return null;
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return null;
@@ -162,28 +162,28 @@ const DashboardPage = () => {
       // TOTAL
       const fromTotals =
         order.totals && typeof order.totals.finalTotal === "number"
-          ? order.totals.finalTotal
+           order.totals.finalTotal
           : null;
 
       const fromNewTotal =
-        typeof order.total === "number" ? order.total : null;
+        typeof order.total === "number"  order.total : null;
 
       const subtotalNew =
-        typeof order.subtotal === "number" ? order.subtotal : 0;
+        typeof order.subtotal === "number"  order.subtotal : 0;
       const deliveryNew =
         typeof order.deliveryFee === "number"
-          ? order.deliveryFee
+           order.deliveryFee
           : 0;
       const discountNew =
-        typeof order.discount?.amount === "number"
-          ? order.discount.amount
+        typeof order.discount.amount === "number"
+           order.discount.amount
           : 0;
 
       const computedFallback =
         subtotalNew + deliveryNew - discountNew;
 
       const orderTotal =
-        fromTotals ?? fromNewTotal ?? computedFallback ?? 0;
+        fromTotals  fromNewTotal  computedFallback  0;
 
       revenue += orderTotal;
 
@@ -235,12 +235,12 @@ const DashboardPage = () => {
       const deliveryFromTotals =
         order.totals &&
         typeof order.totals.deliveryFee === "number"
-          ? order.totals.deliveryFee
+           order.totals.deliveryFee
           : null;
 
       const deliveryValue =
         typeof order.deliveryFee === "number"
-          ? order.deliveryFee
+           order.deliveryFee
           : deliveryFromTotals || 0;
 
       deliveryFees += deliveryValue;
@@ -248,12 +248,12 @@ const DashboardPage = () => {
       // DESCONTOS
       const discountFromTotals =
         order.totals && typeof order.totals.discount === "number"
-          ? order.totals.discount
+           order.totals.discount
           : null;
 
       const discountValue =
-        typeof order.discount?.amount === "number"
-          ? order.discount.amount
+        typeof order.discount.amount === "number"
+           order.discount.amount
           : discountFromTotals || 0;
 
       discountsTotal += discountValue;
@@ -271,7 +271,7 @@ const DashboardPage = () => {
         order.counterLabel ||
         "";
 
-      const key = id ? String(id) : name ? `name:${name}` : null;
+      const key = id  String(id) : name  `name:${name}` : null;
       if (key) {
         customersSet.add(key);
       }
@@ -279,7 +279,7 @@ const DashboardPage = () => {
       // CANAIS
       const source =
         (order.source ||
-          order.metadata?.createdChannel ||
+          order.metadata.createdChannel ||
           "other") + "";
       const src = source.toLowerCase();
 
@@ -299,7 +299,7 @@ const DashboardPage = () => {
     });
 
     const avgTicket =
-      ordersCount > 0 ? revenue / ordersCount : 0;
+      ordersCount > 0  revenue / ordersCount : 0;
 
     return {
       ordersCount,
@@ -343,13 +343,13 @@ const DashboardPage = () => {
       const h = d.getHours();
 
       const totalSimple = Number(
-        order.totals?.finalTotal ??
-          order.total ??
+        order.totals.finalTotal 
+          order.total 
           0
       );
 
       revenueByWeekday[wd] += Number.isNaN(totalSimple)
-        ? 0
+         0
         : totalSimple;
       countByWeekday[wd] += 1;
       countByHour[h] += 1;
@@ -396,7 +396,7 @@ const DashboardPage = () => {
 
     const peakHourLabel =
       peakCount > 0
-        ? `${String(peakHourIndex).padStart(2, "0")}h–${String(
+         `${String(peakHourIndex).padStart(2, "0")}h–${String(
             (peakHourIndex + 1) % 24
           ).padStart(2, "0")}h`
         : "Sem pico definido";
@@ -438,7 +438,7 @@ const DashboardPage = () => {
 
     const dominantChannelLabel =
       maxChannelCount > 0
-        ? channelLabelsMap[dominantChannelKey]
+         channelLabelsMap[dominantChannelKey]
         : "Nenhum canal se destaca";
 
     const hasChannelData = Object.values(stats.bySource).some(
@@ -538,7 +538,7 @@ const DashboardPage = () => {
     const rows = filteredOrders.map((order) => {
       const d = getOrderDate(order);
       const dateStr = d
-        ? d.toLocaleString("pt-BR", {
+         d.toLocaleString("pt-BR", {
             dateStyle: "short",
             timeStyle: "short",
           })
@@ -556,31 +556,31 @@ const DashboardPage = () => {
 
       const fromTotals =
         order.totals && typeof order.totals.finalTotal === "number"
-          ? order.totals.finalTotal
+           order.totals.finalTotal
           : null;
       const fromNewTotal =
-        typeof order.total === "number" ? order.total : null;
+        typeof order.total === "number"  order.total : null;
       const subtotalNew =
-        typeof order.subtotal === "number" ? order.subtotal : 0;
+        typeof order.subtotal === "number"  order.subtotal : 0;
       const deliveryNew =
         typeof order.deliveryFee === "number"
-          ? order.deliveryFee
+           order.deliveryFee
           : 0;
       const discountNew =
-        typeof order.discount?.amount === "number"
-          ? order.discount.amount
+        typeof order.discount.amount === "number"
+           order.discount.amount
           : 0;
       const computedFallback =
         subtotalNew + deliveryNew - discountNew;
       const orderTotal =
-        fromTotals ??
-        fromNewTotal ??
-        computedFallback ??
+        fromTotals 
+        fromNewTotal 
+        computedFallback 
         0;
 
       const source =
         order.source ||
-        order.metadata?.createdChannel ||
+        order.metadata.createdChannel ||
         "";
       const orderType =
         order.orderType || order.type || order.mode || "";
@@ -648,7 +648,7 @@ const DashboardPage = () => {
                   className={
                     "dashboard-period-btn" +
                     (period === "today"
-                      ? " dashboard-period-btn-active"
+                       " dashboard-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("today")}
@@ -660,7 +660,7 @@ const DashboardPage = () => {
                   className={
                     "dashboard-period-btn" +
                     (period === "7d"
-                      ? " dashboard-period-btn-active"
+                       " dashboard-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("7d")}
@@ -672,7 +672,7 @@ const DashboardPage = () => {
                   className={
                     "dashboard-period-btn" +
                     (period === "30d"
-                      ? " dashboard-period-btn-active"
+                       " dashboard-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("30d")}
@@ -684,7 +684,7 @@ const DashboardPage = () => {
                   className={
                     "dashboard-period-btn" +
                     (period === "all"
-                      ? " dashboard-period-btn-active"
+                       " dashboard-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("all")}
@@ -705,11 +705,11 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {loading ? (
+        {loading  (
           <p className="dashboard-loading">
             Carregando dados da dashboard...
           </p>
-        ) : filteredOrders.length === 0 ? (
+        ) : filteredOrders.length === 0  (
           <div className="dashboard-empty">
             <p>Nenhum pedido encontrado no período selecionado.</p>
           </div>
@@ -863,7 +863,7 @@ const DashboardPage = () => {
                       Distribuição por canal (% de pedidos)
                     </div>
 
-                    {insights.hasChannelData ? (
+                    {insights.hasChannelData  (
                       <div className="dashboard-insights-bars">
                         {[
                           { key: "website", label: "Site" },
@@ -947,7 +947,7 @@ const DashboardPage = () => {
                 </div>
                 <div className="dashboard-channels-total">
                   Total: {stats.ordersCount} pedido
-                  {stats.ordersCount !== 1 ? "s" : ""}
+                  {stats.ordersCount !== 1  "s" : ""}
                 </div>
               </div>
               <div className="dashboard-channels-grid">

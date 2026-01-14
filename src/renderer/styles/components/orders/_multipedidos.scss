@@ -1,0 +1,274 @@
+﻿// Estilos para o sistema de mÃºltiplos pedidos e rascunhos
+
+// Header com aÃ§Ãµes de rascunho
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.modal-header-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: 1rem;
+}
+
+.draft-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.draft-toggle-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.draft-toggle-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.draft-action-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.1rem;
+  line-height: 1;
+  min-width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.draft-action-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.draft-action-btn--save {
+  background: var(--info-color);
+  color: white;
+  border-color: var(--info-color);
+}
+
+.draft-action-btn--save:hover {
+  background: var(--info-dark);
+  border-color: var(--info-dark);
+}
+
+.draft-action-btn--convert {
+  background: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+}
+
+.draft-action-btn--convert:hover {
+  background: var(--success-dark);
+  border-color: var(--success-dark);
+}
+
+.draft-action-btn--convert:disabled {
+  background: var(--bg-disabled);
+  color: var(--text-disabled);
+  border-color: var(--border-color);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.draft-action-btn--create {
+  background: var(--warning-color);
+  color: white;
+  border-color: var(--warning-color);
+}
+
+.draft-action-btn--create:hover {
+  background: var(--warning-dark);
+  border-color: var(--warning-dark);
+}
+
+.draft-indicator {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  margin-left: 0.5rem;
+}
+
+// Wrapper de conteÃºdo com painel lateral
+.orderform-content-wrapper {
+  display: flex;
+  position: relative;
+  min-height: 500px;
+}
+
+.orderform-content-wrapper .modal-body {
+  flex: 1;
+  min-width: 0;
+}
+
+// Ajustes no modal principal
+.orderform-modal {
+  max-width: none;
+  width: 100%;
+  max-height: 95vh;
+  height: auto;
+}
+
+.orderform-modal .modal-window {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+// Responsividade
+@media (max-width: 1200px) {
+  .order-drafts-panel {
+    width: 280px;
+  }
+  
+  .draft-toggle-btn {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .draft-action-btn {
+    min-width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .modal-header-actions {
+    margin-left: 0;
+    justify-content: space-between;
+  }
+  
+  .draft-actions {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .draft-toggle-btn {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .orderform-content-wrapper {
+    flex-direction: column;
+  }
+  
+  .order-drafts-panel {
+    width: 100%;
+    height: 300px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .orderform-modal .modal-window {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    height: 100vh;
+    max-height: 100vh;
+  }
+}
+
+// AnimaÃ§Ãµes
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.order-drafts-panel {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.order-drafts-list__empty {
+  animation: fadeIn 0.5s ease-out;
+}
+
+// Estados visuais para modo rascunho
+.orderform-modal.draft-mode {
+  border-left: 4px solid var(--warning-color);
+}
+
+.orderform-modal.draft-mode .modal-eyebrow {
+  color: var(--warning-color);
+  font-weight: 600;
+}
+
+// Melhorias no feedback visual
+.draft-toggle-btn.active {
+  background: var(--primary-dark);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.3);
+}
+
+.order-drafts-panel__header {
+  background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+  border-bottom: 2px solid var(--primary-color);
+}
+
+// Tooltip para botÃµes
+.draft-action-btn[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-tooltip);
+  color: var(--text-tooltip);
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 1000;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
