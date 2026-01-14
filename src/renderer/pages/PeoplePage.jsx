@@ -63,16 +63,16 @@ function normalizeCustomer(raw) {
 
   const totalOrders =
     meta.totalOrders != null
-       meta.totalOrders
+      ? meta.totalOrders
       : raw.totalOrders != null
-       raw.totalOrders
+      ? raw.totalOrders
       : 0;
 
   const totalSpent =
     meta.totalSpent != null
-       meta.totalSpent
+      ? meta.totalSpent
       : raw.totalSpent != null
-       raw.totalSpent
+      ? raw.totalSpent
       : 0;
 
   const normalizedMeta = {
@@ -84,9 +84,9 @@ function normalizeCustomer(raw) {
   };
 
   const tags = Array.isArray(raw.tags)
-     raw.tags
+    ? raw.tags
     : raw.isVip
-     ["VIP"]
+    ? ["VIP"]
     : [];
 
   return {
@@ -168,7 +168,7 @@ const PeoplePage = () => {
     try {
       setLoadingCustomers(true);
       const data = await window.dataEngine.get("customers");
-      const items = Array.isArray(data.items)  data.items : [];
+      const items = Array.isArray(data.items) ? data.items : [];
 
       const normalized = items.map(normalizeCustomer).filter(Boolean);
 

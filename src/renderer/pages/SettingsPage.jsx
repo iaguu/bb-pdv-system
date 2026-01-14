@@ -459,8 +459,11 @@ const normalizeSettingsData = (data) => {
 
 const sanitizeImportedSettings = (raw, envConfig = {}) => {
   const base = buildDefaultSettings();
-  const input = raw && typeof raw === "object"  raw : {};
+  const input = raw && typeof raw === "object" ? raw : {};
   const next = { ...base, ...input };
+  const printing = input.printing || {};
+  const businessHours = input.businessHours || {};
+  const delivery = input.delivery || {};
 
   if (!next.id) next.id = "default";
   if (!next.pizzaria) next.pizzaria = base.pizzaria;
@@ -468,30 +471,30 @@ const sanitizeImportedSettings = (raw, envConfig = {}) => {
   if (!next.tema) next.tema = base.tema;
 
   next.printing = {
-    kitchenPrinterName: input.printing.kitchenPrinterName || "",
-    counterPrinterName: input.printing.counterPrinterName || "",
+    kitchenPrinterName: printing.kitchenPrinterName || "",
+    counterPrinterName: printing.counterPrinterName || "",
     silentMode:
-      input.printing.silentMode !== undefined
-         !!input.printing.silentMode
+      printing.silentMode !== undefined
+        ? !!printing.silentMode
         : true,
-    autoPrintWebsiteOrders: !!input.printing.autoPrintWebsiteOrders,
+    autoPrintWebsiteOrders: !!printing.autoPrintWebsiteOrders,
   };
 
-  const openTime = input.businessHours.openTime || "11:00";
-  const closeTime = input.businessHours.closeTime || "23:00";
-  const closedWeekdays = Array.isArray(input.businessHours.closedWeekdays)
-     input.businessHours.closedWeekdays
+  const openTime = businessHours.openTime || "11:00";
+  const closeTime = businessHours.closeTime || "23:00";
+  const closedWeekdays = Array.isArray(businessHours.closedWeekdays)
+    ? businessHours.closedWeekdays
     : [];
   const baseSchedule = buildWeeklySchedule({
     openTime,
     closeTime,
     closedWeekdays,
   });
-  const rawSchedule = Array.isArray(input.businessHours.weeklySchedule)
-     input.businessHours.weeklySchedule
+  const rawSchedule = Array.isArray(businessHours.weeklySchedule)
+    ? businessHours.weeklySchedule
     : null;
   const weeklySchedule = rawSchedule
-     baseSchedule.map((entry) => {
+    ? baseSchedule.map((entry) => {
         const match = rawSchedule.find(
           (day) => Number(day.day) === entry.day
         );
@@ -509,73 +512,73 @@ const sanitizeImportedSettings = (raw, envConfig = {}) => {
     .map((entry) => entry.day);
 
   next.businessHours = {
-    enabled: !!input.businessHours.enabled,
+    enabled: !!businessHours.enabled,
     openTime,
     closeTime,
     closedWeekdays: normalizedClosedWeekdays,
     weeklySchedule,
   };
 
-  if (!input.delivery || !Array.isArray(input.delivery.ranges)) {
+  if (!delivery || !Array.isArray(delivery.ranges)) {
     next.delivery = buildDefaultDeliveryConfig();
   } else {
-    const blocked = Array.isArray(input.delivery.blockedNeighborhoods)
-       input.delivery.blockedNeighborhoods
+    const blocked = Array.isArray(delivery.blockedNeighborhoods)
+      ? delivery.blockedNeighborhoods
           .map((b) => (b || "").toString().trim())
           .filter(Boolean)
       : [];
-    const peakFee = input.delivery.peakFee || {};
+    const peakFee = delivery.peakFee || {};
     next.delivery = {
-      mode: input.delivery.mode || "km_table",
+      mode: delivery.mode || "km_table",
       baseLocationLabel:
-        input.delivery.baseLocationLabel || "Chora Menino (bairro base)",
+        delivery.baseLocationLabel || "Chora Menino (bairro base)",
       blockedNeighborhoods: blocked,
       minOrderValue:
-        typeof input.delivery.minOrderValue === "number"
-           input.delivery.minOrderValue
-          : Number(input.delivery.minOrderValue || 0),
+        typeof delivery.minOrderValue === "number"
+          ? delivery.minOrderValue
+          : Number(delivery.minOrderValue || 0),
       maxDistanceKm:
-        typeof input.delivery.maxDistanceKm === "number"
-           input.delivery.maxDistanceKm
-          : Number(input.delivery.maxDistanceKm || 0),
+        typeof delivery.maxDistanceKm === "number"
+          ? delivery.maxDistanceKm
+          : Number(delivery.maxDistanceKm || 0),
       etaMinutesDefault:
-        typeof input.delivery.etaMinutesDefault === "number"
-           input.delivery.etaMinutesDefault
-          : Number(input.delivery.etaMinutesDefault || 45),
+        typeof delivery.etaMinutesDefault === "number"
+          ? delivery.etaMinutesDefault
+          : Number(delivery.etaMinutesDefault || 45),
       peakFee: {
         enabled: !!peakFee.enabled,
-        days: Array.isArray(peakFee.days)  peakFee.days : [],
+        days: Array.isArray(peakFee.days) ? peakFee.days : [],
         startTime: peakFee.startTime || "18:00",
         endTime: peakFee.endTime || "22:00",
         amount:
           typeof peakFee.amount === "number"
-             peakFee.amount
+            ? peakFee.amount
             : Number(peakFee.amount || 0),
       },
-      ranges: input.delivery.ranges.map((r, idx) => ({
+      ranges: delivery.ranges.map((r, idx) => ({
         id: r.id || `r_${idx}`,
         label: r.label || "",
         minKm:
           typeof r.minKm === "number"
-             r.minKm
+            ? r.minKm
             : Number(r.minKm || 0),
         maxKm:
           typeof r.maxKm === "number"
-             r.maxKm
+            ? r.maxKm
             : Number(r.maxKm || 0),
         price:
           typeof r.price === "number"
-             r.price
+            ? r.price
             : Number(r.price || 0),
       })),
     };
   }
 
   const envBaseUrl =
-    typeof envConfig.apiBaseUrl === "string"  envConfig.apiBaseUrl : "";
+    typeof envConfig.apiBaseUrl === "string" ? envConfig.apiBaseUrl : "";
   const envToken =
     typeof envConfig.publicApiToken === "string"
-       envConfig.publicApiToken
+      ? envConfig.publicApiToken
       : "";
   next.api = {
     base_url: envBaseUrl,
@@ -606,7 +609,7 @@ const normalizeRangeValue = (value) => {
   if (value === "" || value === null || value === undefined) return null;
   const normalized = value.toString().replace(",", ".");
   const n = Number(normalized);
-  return Number.isNaN(n)  null : n;
+  return Number.isNaN(n) ? null : n;
 };
 
 const isPickupRange = (range) => {
@@ -669,7 +672,8 @@ function buildThermalTestTicket({
 }) {
   const now = new Date().toLocaleString("pt-BR");
 
-  const profileLabel = profile === "kitchen"  "COZINHA" : "BALCÃO / CONTA";
+  const profileLabel =
+    profile === "kitchen" ? "COZINHA" : "BALCÃO / CONTA";
 
   const header = "ANNE & TOM PIZZARIA";
   const separator = "--------------------------------";
@@ -951,7 +955,7 @@ const SettingsPage = () => {
                 : Number(item.delivery.etaMinutesDefault || 45),
             peakFee: {
               enabled: !!peakFee.enabled,
-              days: Array.isArray(peakFee.days)  peakFee.days : [],
+              days: Array.isArray(peakFee.days) ? peakFee.days : [],
               startTime: peakFee.startTime || "18:00",
               endTime: peakFee.endTime || "22:00",
               amount:
@@ -1034,7 +1038,7 @@ const SettingsPage = () => {
       setPrintersError("");
       const list = await window.printerConfig.listPrinters();
       console.log("[Settings] Impressoras encontradas:", list);
-      setPrinters(Array.isArray(list)  list : []);
+      setPrinters(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error("[Settings] Erro ao listar impressoras:", err);
       setPrintersError("Erro ao listar impressoras do sistema.");
@@ -1197,7 +1201,7 @@ const SettingsPage = () => {
     setSettings((prev) => {
       const current = prev.delivery || buildDefaultDeliveryConfig();
       const peakFee = current.peakFee || {};
-      const days = Array.isArray(peakFee.days)  peakFee.days : [];
+      const days = Array.isArray(peakFee.days) ? peakFee.days : [];
       const exists = days.includes(dayValue);
       return {
         ...prev,
@@ -1371,7 +1375,7 @@ const SettingsPage = () => {
         if (val === "" || val === null || val === undefined) return "";
         const normalized = val.toString().replace(",", ".");
         const n = Number(normalized);
-        return Number.isNaN(n)  "" : n;
+        return Number.isNaN(n) ? "" : n;
       };
 
       const updated = { ...(ranges[index] || {}) };
@@ -1521,7 +1525,7 @@ const SettingsPage = () => {
 
   const sanitizeApiPath = (value) => {
     if (!value) return "/";
-    return value.startsWith("/")  value : `/${value}`;
+    return value.startsWith("/") ? value : `/${value}`;
   };
 
   const handleRunApiTest = async (override = {}) => {
@@ -2108,7 +2112,7 @@ const SettingsPage = () => {
   const kitchenPrinterName = settings.printing.kitchenPrinterName || "";
   const counterPrinterName = settings.printing.counterPrinterName || "";
   const printerNameSet = new Set(
-    Array.isArray(printers)  printers.map((p) => p.name) : []
+    Array.isArray(printers) ? printers.map((p) => p.name) : []
   );
   const kitchenPrinterMissing =
     kitchenPrinterName && !printerNameSet.has(kitchenPrinterName);
@@ -3980,9 +3984,6 @@ Body: {"status":"preparing"}
 };
 
 export default SettingsPage;
-
-
-
 
 
 

@@ -25,7 +25,7 @@ const AppLayout = ({ children }) => {
   const [appToasts, setAppToasts] = useState([]);
   const lastSeenRef = useRef(
     typeof window !== "undefined"
-       window.localStorage.getItem("bb-pdv:lastSeenOrdersAt")
+      ? window.localStorage.getItem("bb-pdv:lastSeenOrdersAt")
       : null
   );
   const lastProcessedRef = useRef(null);
@@ -165,7 +165,7 @@ const AppLayout = ({ children }) => {
         title: detail.title || "",
         message: detail.message || "",
         duration:
-          typeof detail.duration === "number"  detail.duration : 4000,
+          typeof detail.duration === "number" ? detail.duration : 4000,
       };
 
       setAppToasts((prev) => [...prev, toast]);
@@ -216,7 +216,7 @@ const AppLayout = ({ children }) => {
           setNewOrdersCount((prev) => prev + increment);
           setToastMessage(
             increment === 1
-               "Novo pedido do site."
+              ? "Novo pedido do site."
               : `Novos pedidos do site: ${increment}.`
           );
           setToastVisible(true);
@@ -314,7 +314,7 @@ const AppLayout = ({ children }) => {
               to={item.to}
               end={item.to === "/dashboard"}
               className={({ isActive }) =>
-                "app-nav-link" + (isActive  " app-nav-link-active" : "")
+                "app-nav-link" + (isActive ? " app-nav-link-active" : "")
               }
             >
               <span className="app-nav-link__label">{item.label}</span>
@@ -369,10 +369,10 @@ const AppLayout = ({ children }) => {
               <span
                 className={
                   "app-sync-status__pill " +
-                  (syncStatus.online  "is-online" : "is-offline")
+                  (syncStatus.online ? "is-online" : "is-offline")
                 }
               >
-                {syncStatus.online  "Online" : "Offline"}
+                {syncStatus.online ? "Online" : "Offline"}
               </span>
               <span>
                 Última atualização (pull): {formatSyncTime(syncStatus.lastPullAt)}
@@ -405,7 +405,7 @@ const AppLayout = ({ children }) => {
                 onClick={handleSyncNow}
                 disabled={syncNowPending}
               >
-                {syncNowPending  "Sincronizando..." : "Sincronizar agora"}
+                {syncNowPending ? "Sincronizando..." : "Sincronizar agora"}
               </button>
             </div>
           </div>
@@ -439,4 +439,3 @@ const AppLayout = ({ children }) => {
 };
 
 export default AppLayout;
-
