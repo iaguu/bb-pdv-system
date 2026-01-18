@@ -8,7 +8,7 @@ jest.mock('../components/orders/OrderIcons', () => ({
 }));
 
 // Mock do toast
-jest.mock('../../utils/toast', () => ({
+jest.mock('../utils/toast', () => ({
   emitToast: jest.fn()
 }));
 
