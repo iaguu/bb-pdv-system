@@ -5,16 +5,16 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-console.log('🔍 DEBUG SIMPLES - TELA BRANCA\n');
+console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â DEBUG SIMPLES - TELA BRANCA\n');
 
-// Configurações
+// ConfiguraÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes
 const projectRoot = path.join(__dirname, '../..');
 
-// Verificação básica
+// VerificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o bÃƒÆ’Ã‚Â¡sica
 function basicCheck() {
-  console.log('📋 VERIFICAÇÃO BÁSICA\n');
+  console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ VERIFICAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O BÃƒÆ’Ã‚ÂSICA\n');
   
-  // Verifica arquivos críticos
+  // Verifica arquivos crÃƒÆ’Ã‚Â­ticos
   const files = [
     'dist/index.html',
     'dist/assets/index-DVKlQ-mq.js',
@@ -27,20 +27,20 @@ function basicCheck() {
   files.forEach(file => {
     const filePath = path.join(projectRoot, file);
     const exists = fs.existsSync(filePath);
-    console.log(`${exists  '✅' : '❌'} ${file}`);
+    console.log(`${exists ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} ${file}`);
     if (!exists) allExist = false;
   });
   
   return allExist;
 }
 
-// Verificação do conteúdo HTML
+// VerificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do conteÃƒÆ’Ã‚Âºdo HTML
 function checkHtmlContent() {
-  console.log('\n📋 VERIFICAÇÃO DO HTML\n');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ VERIFICAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O DO HTML\n');
   
   const htmlPath = path.join(projectRoot, 'dist/index.html');
   if (!fs.existsSync(htmlPath)) {
-    console.log('❌ HTML não encontrado');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ HTML nÃƒÆ’Ã‚Â£o encontrado');
     return false;
   }
   
@@ -54,19 +54,19 @@ function checkHtmlContent() {
   ];
   
   checks.forEach(({ name, test }) => {
-    console.log(`${test  '✅' : '❌'} ${name}`);
+    console.log(`${test ? '?' : '?'} ${name}`);
   });
   
   return checks.every(c => c.test);
 }
 
-// Verificação do JavaScript
+// VerificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do JavaScript
 function checkJsContent() {
-  console.log('\n📋 VERIFICAÇÃO DO JAVASCRIPT\n');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ VERIFICAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O DO JAVASCRIPT\n');
   
   const jsPath = path.join(projectRoot, 'dist/assets/index-DVKlQ-mq.js');
   if (!fs.existsSync(jsPath)) {
-    console.log('❌ JavaScript não encontrado');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ JavaScript nÃƒÆ’Ã‚Â£o encontrado');
     return false;
   }
   
@@ -80,18 +80,18 @@ function checkJsContent() {
   ];
   
   checks.forEach(({ name, test }) => {
-    console.log(`${test  '✅' : '❌'} ${name}`);
+    console.log(`${test ? '?' : '?'} ${name}`);
   });
   
   return checks.every(c => c.test);
 }
 
-// Teste de execução do Electron
+// Teste de execuÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do Electron
 async function testElectronExecution() {
-  console.log('\n📋 TESTE DE EXECUÇÃO DO ELECTRON\n');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ TESTE DE EXECUÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O DO ELECTRON\n');
   
   return new Promise((resolve) => {
-    console.log('🚀 Tentando executar em modo dev...');
+    console.log('ÃƒÂ°Ã…Â¸Ã…Â¡Ã¢â€šÂ¬ Tentando executar em modo dev...');
     
     const electronProcess = spawn('cmd', ['/c', `cd "${projectRoot}" && set ENV_FILE=.env.production&& electron .`], {
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -106,7 +106,7 @@ async function testElectronExecution() {
     electronProcess.stdout.on('data', (data) => {
       const text = data.toString();
       output += text;
-      console.log('📄', text.trim());
+      console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Å¾', text.trim());
       
       if (text.includes('ready') || text.includes('started') || text.includes('loaded')) {
         hasSuccess = true;
@@ -117,11 +117,11 @@ async function testElectronExecution() {
       const text = data.toString();
       output += text;
       hasError = true;
-      console.log('❌', text.trim());
+      console.log('ÃƒÂ¢Ã‚ÂÃ…â€™', text.trim());
     });
     
     electronProcess.on('close', (code) => {
-      console.log('📊 Processo finalizado com código:', code);
+      console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã…Â  Processo finalizado com cÃƒÆ’Ã‚Â³digo:', code);
       resolve({
         exitCode: code,
         output,
@@ -138,49 +138,49 @@ async function testElectronExecution() {
   });
 }
 
-// Análise do problema
+// AnÃƒÆ’Ã‚Â¡lise do problema
 function analyzeProblem(basicOk, htmlOk, jsOk, electronResult) {
-  console.log('\n📋 ANÁLISE DO PROBLEMA\n');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ ANÃƒÆ’Ã‚ÂLISE DO PROBLEMA\n');
   
-  console.log('🔍 Resultados:');
-  console.log(`   Arquivos básicos: ${basicOk  '✅' : '❌'}`);
-  console.log(`   HTML: ${htmlOk  '✅' : '❌'}`);
-  console.log(`   JavaScript: ${jsOk  '✅' : '❌'}`);
-  console.log(`   Execução: ${electronResult.hasError  '❌' : '✅'} (código: ${electronResult.exitCode})`);
+  console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â Resultados:');
+  console.log(`   Arquivos bÃƒÆ’Ã‚Â¡sicos: ${basicOk ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
+  console.log(`   HTML: ${htmlOk ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
+  console.log(`   JavaScript: ${jsOk ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
+  console.log(`   ExecuÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o: ${electronResult.hasError ? 'ÃƒÂ¢Ã‚ÂÃ…â€™' : 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦'} (cÃƒÆ’Ã‚Â³digo: ${electronResult.exitCode})`);
   
-  console.log('\n🔍 Diagnóstico:');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â DiagnÃƒÆ’Ã‚Â³stico:');
   
   if (!basicOk) {
-    console.log('❌ PROBLEMA: Arquivos críticos faltando');
-    console.log('   Solução: Execute npm run build');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ PROBLEMA: Arquivos crÃƒÆ’Ã‚Â­ticos faltando');
+    console.log('   SoluÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o: Execute npm run build');
   } else if (!htmlOk) {
-    console.log('❌ PROBLEMA: HTML malformado');
-    console.log('   Solução: Verifique o build do Vite');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ PROBLEMA: HTML malformado');
+    console.log('   SoluÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o: Verifique o build do Vite');
   } else if (!jsOk) {
-    console.log('❌ PROBLEMA: JavaScript bundle incompleto');
-    console.log('   Solução: Verifique dependências e build');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ PROBLEMA: JavaScript bundle incompleto');
+    console.log('   SoluÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o: Verifique dependÃƒÆ’Ã‚Âªncias e build');
   } else if (electronResult.hasError) {
-    console.log('❌ PROBLEMA: Erro na execução do Electron');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ PROBLEMA: Erro na execuÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do Electron');
     console.log('   Verifique o stderr acima para detalhes');
   } else if (!electronResult.hasSuccess) {
-    console.log('⚠️ PROBLEMA: Aplicação não iniciou corretamente');
-    console.log('   Possível causa: React não está renderizando');
+    console.log('ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â PROBLEMA: AplicaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o nÃƒÆ’Ã‚Â£o iniciou corretamente');
+    console.log('   PossÃƒÆ’Ã‚Â­vel causa: React nÃƒÆ’Ã‚Â£o estÃƒÆ’Ã‚Â¡ renderizando');
   } else {
-    console.log('✅ NENHUM PROBLEMA DETECTADO');
-    console.log('   Se ainda há tela branca, verifique as DevTools');
+    console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ NENHUM PROBLEMA DETECTADO');
+    console.log('   Se ainda hÃƒÆ’Ã‚Â¡ tela branca, verifique as DevTools');
   }
   
-  console.log('\n📋 RECOMENDAÇÕES\n');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ RECOMENDAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES\n');
   
   if (basicOk && htmlOk && jsOk) {
-    console.log('🔧 Próximos passos:');
+    console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â§ PrÃƒÆ’Ã‚Â³ximos passos:');
     console.log('1. Abra as DevTools no Electron (F12)');
     console.log('2. Verifique erros no console');
-    console.log('3. Verifique se o elemento #root tem conteúdo');
-    console.log('4. Verifique se há erros de CSS');
-    console.log('5. Verifique se há problemas de carregamento de recursos');
+    console.log('3. Verifique se o elemento #root tem conteÃƒÆ’Ã‚Âºdo');
+    console.log('4. Verifique se hÃƒÆ’Ã‚Â¡ erros de CSS');
+    console.log('5. Verifique se hÃƒÆ’Ã‚Â¡ problemas de carregamento de recursos');
   } else {
-    console.log('🔧 Correções necessárias:');
+    console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â§ CorreÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes necessÃƒÆ’Ã‚Â¡rias:');
     console.log('1. npm run clean:dist');
     console.log('2. npm install');
     console.log('3. npm run build');
@@ -188,9 +188,9 @@ function analyzeProblem(basicOk, htmlOk, jsOk, electronResult) {
   }
 }
 
-// Função principal
+// FunÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o principal
 async function main() {
-  console.log('🎯 INICIANDO DEBUG SIMPLES\n');
+  console.log('ÃƒÂ°Ã…Â¸Ã…Â½Ã‚Â¯ INICIANDO DEBUG SIMPLES\n');
   
   const basicOk = basicCheck();
   const htmlOk = checkHtmlContent();
@@ -199,7 +199,7 @@ async function main() {
   
   analyzeProblem(basicOk, htmlOk, jsOk, electronResult);
   
-  console.log('\n🌟 DEBUG CONCLUÍDO!');
+  console.log('\nÃƒÂ°Ã…Â¸Ã…â€™Ã…Â¸ DEBUG CONCLUÃƒÆ’Ã‚ÂDO!');
 }
 
 main().catch(console.error);

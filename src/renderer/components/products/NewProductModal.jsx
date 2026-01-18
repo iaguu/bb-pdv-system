@@ -18,7 +18,7 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
   const [pendingDraft, setPendingDraft] = useState(null);
   const [priceConfirmMessage, setPriceConfirmMessage] = useState("");
 
-  // sempre que abrir, reseta o formulário
+  // sempre que abrir, reseta o formulrio
   useEffect(() => {
     if (isOpen) {
       reset();
@@ -76,14 +76,16 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
     }
 
     if (
-      (type === "pizza" && !productDraft.priceBroto && !productDraft.priceGrande) ||
+      (type === "pizza" &&
+        !productDraft.priceBroto &&
+        !productDraft.priceGrande) ||
       (type !== "pizza" && !productDraft.price)
     ) {
       setPendingDraft(productDraft);
       setPriceConfirmMessage(
         type === "pizza"
-           "Os preços de broto e grande estão zerados. Deseja continuar mesmo assim"
-          : "O preço está zerado. Deseja continuar mesmo assim"
+          ? "Os preos de broto e grande esto zerados. Deseja continuar mesmo assim"
+          : "O preo est zerado. Deseja continuar mesmo assim"
       );
       setShowPriceConfirm(true);
       return;
@@ -114,7 +116,7 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
         isOpen={isOpen}
         onClose={handleCancel}
         title="Novo produto"
-        subtitle="Cadastre pizzas, bebidas ou adicionais do catálogo."
+        subtitle="Cadastre pizzas, bebidas ou adicionais do catlogo."
         className="product-modal"
         headerContent={<span className="product-type-badge">{typeLabel}</span>}
         bodyClassName="modal-form product-modal-body"
@@ -134,18 +136,18 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
         }
       >
       <form id={formId} className="modal-form" onSubmit={handleSubmit}>
-        {/* SEÇÃO: TIPO */}
+        {/* SEO: TIPO */}
         <div className="modal-section">
           <div className="modal-section-title">Tipo do produto</div>
           <p className="product-modal-helper">
-            Escolha se o item será uma pizza, bebida ou adicional.
+            Escolha se o item ser uma pizza, bebida ou adicional.
           </p>
           <div className="field-pill-group">
             {["pizza", "drink", "extra"].map((c) => (
               <button
                 key={c}
                 type="button"
-                className={"field-pill" + (type === c  " field-pill-active" : "")}
+                className={"field-pill" + (type === c ? " field-pill-active" : "")}
                 onClick={() => setType(c)}
               >
                 {CATEGORY_LABELS[c] || c}
@@ -154,7 +156,7 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
           </div>
         </div>
 
-        {/* SEÇÃO: DADOS PRINCIPAIS */}
+        {/* SEO: DADOS PRINCIPAIS */}
         <div className="modal-section">
           <div className="modal-section-title">Dados do produto</div>
 
@@ -187,11 +189,11 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
             </label>
           </div>
 
-          {/* Preços */}
-          {type === "pizza"  (
+          {/* Preos */}
+          {type === "pizza" ? (
             <div className="field-grid-2">
               <label className="field">
-                <span className="field-label">Preço broto</span>
+                <span className="field-label">Preo broto</span>
                 <input
                   className="field-input"
                   type="number"
@@ -204,7 +206,7 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
               </label>
 
               <label className="field">
-                <span className="field-label">Preço grande</span>
+                <span className="field-label">Preo grande</span>
                 <input
                   className="field-input"
                   type="number"
@@ -219,7 +221,7 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
           ) : (
             <div className="field-group">
               <label className="field">
-                <span className="field-label">Preço</span>
+                <span className="field-label">Preo</span>
                 <input
                   className="field-input"
                   type="number"
@@ -233,16 +235,16 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
             </div>
           )}
 
-          {/* Descrição */}
+          {/* Descrio */}
           <div className="field-group">
             <label className="field">
-              <span className="field-label">Descrição (opcional)</span>
+              <span className="field-label">Descrio (opcional)</span>
               <textarea
                 className="field-textarea"
                 rows={2}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ex: Mussarela, frango desfiado, catupiry e orégano..."
+                placeholder="Ex: Mussarela, frango desfiado, catupiry e organo..."
               />
             </label>
           </div>
@@ -256,10 +258,10 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
                 onChange={(e) => setIsActive(e.target.checked)}
               />
               <span>
-                Disponível para vendas
+                Disponvel para vendas
                 <span className="field-helper">
                   {" "}
-                  (desmarque para deixar o produto pausado no catálogo)
+                  (desmarque para deixar o produto pausado no catlogo)
                 </span>
               </span>
             </label>
@@ -270,7 +272,7 @@ export default function NewProductModal({ isOpen, onClose, onConfirm }) {
 
       <ConfirmDialog
         open={showPriceConfirm}
-        title="Preço zerado"
+        title="Preo zerado"
         message={priceConfirmMessage}
         confirmLabel="Continuar"
         cancelLabel="Revisar"

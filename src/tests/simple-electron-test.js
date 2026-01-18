@@ -50,7 +50,7 @@ exec(devCommand, {
     console.log('✅ package.json encontrado');
     console.log('📦 Versão:', packageJson.version);
     console.log('🔧 Electron:', packageJson.devDependencies.electron || 'Não encontrado');
-    console.log('🏗️ Builder:', packageJson.devDependencies.['electron-builder'] || 'Não encontrado');
+    console.log('🏗️ Builder:', packageJson.devDependencies['electron-builder'] || 'Não encontrado');
   }
 
   // Teste 4: Verificação dos arquivos de build
@@ -81,7 +81,7 @@ exec(devCommand, {
   
   console.log('✅ Arquivo executável: OK');
   console.log('📊 Tamanho: 201.17 MB');
-  console.log('🔧 Build files:', buildOk  'OK' : 'PROBLEMAS');
+  console.log('?? Build files:', buildOk ? 'OK' : 'PROBLEMAS');
   console.log('📦 Dependencies: Verificadas');
   
   if (buildOk) {

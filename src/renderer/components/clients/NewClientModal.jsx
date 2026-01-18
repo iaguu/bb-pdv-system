@@ -20,6 +20,7 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
 
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const lastCepLookupRef = useRef("");
   const autoCepTimerRef = useRef(null);
 
@@ -41,11 +42,34 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
       setCepLoading(false);
       setCepError("");
       lastCepLookupRef.current = "";
+      setIsSubmitting(false);
     }
   }, [isOpen]);
 
   const update = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
+  };
+
+  const validateForm = () => {
+    const errors = [];
+    
+    if (!form.name.trim()) {
+      errors.push("Nome é obrigatório");
+    }
+    
+    if (!form.phone.trim()) {
+      errors.push("Telefone é obrigatório");
+    }
+    
+    if (form.cpf && form.cpf.length !== 11 && form.cpf.length !== 14) {
+      errors.push("CPF inválido");
+    }
+    
+    if (form.cep && form.cep.replace(/\D/g, "").length !== 8) {
+      errors.push("CEP deve ter 8 dígitos");
+    }
+    
+    return errors;
   };
 
   const runCepLookup = async ({ auto = false } = {}) => {
@@ -67,14 +91,21 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
       setForm((f) => ({
         ...f,
         cep: addr.cep,
-        street: auto  f.street || addr.street : addr.street || f.street,
+        street: auto ? f.street || addr.street : addr.street || f.street,
         neighborhood: auto
-           f.neighborhood || addr.neighborhood
+          ? f.neighborhood || addr.neighborhood
           : addr.neighborhood || f.neighborhood,
         city: addr.city,
         state: addr.state,
       }));
       lastCepLookupRef.current = cepDigits;
+      
+      if (auto && addr.street) {
+        emitToast({
+          type: "success",
+          message: "Endereço encontrado automaticamente!",
+        });
+      }
     } catch (err) {
       setCepError(err.message || "Não foi possível buscar o CEP.");
     } finally {
@@ -101,7 +132,7 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
     }
     autoCepTimerRef.current = setTimeout(() => {
       runCepLookup({ auto: true });
-    }, 600);
+    }, 800);
 
     return () => {
       if (autoCepTimerRef.current) {
@@ -109,32 +140,64 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
       }
     };
   }, [form.cep, isOpen]);
-  const submit = (e) => {
+
+  const submit = async (e) => {
     e.preventDefault();
-    const nm = form.name.trim();
-    if (!nm) {
+    
+    const errors = validateForm();
+    if (errors.length > 0) {
       emitToast({
-        type: "warning",
-        message: "Informe o nome do cliente.",
+        type: "error",
+        message: errors[0],
       });
       return;
     }
 
-    onConfirm({
-      name: nm,
-      phone: form.phone.trim(),
-      cpf: form.cpf.trim(),
-      notes: form.notes.trim(),
-      address: {
-        cep: form.cep.trim(),
-        street: form.street.trim(),
-        number: form.number.trim(),
-        complement: form.complement.trim(),
-        neighborhood: form.neighborhood.trim(),
-        city: form.city.trim(),
-        state: form.state.trim(),
-      },
-    });
+    setIsSubmitting(true);
+    
+    try {
+      const nm = form.name.trim();
+      if (!nm) {
+        emitToast({
+          type: "warning",
+          message: "Informe o nome do cliente.",
+        });
+        return;
+      }
+
+      const clientData = {
+        name: nm,
+        phone: form.phone.trim(),
+        cpf: form.cpf.trim(),
+        notes: form.notes.trim(),
+        address: {
+          cep: form.cep.trim(),
+          street: form.street.trim(),
+          number: form.number.trim(),
+          complement: form.complement.trim(),
+          neighborhood: form.neighborhood.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+        },
+      };
+
+      await onConfirm(clientData);
+      
+      emitToast({
+        type: "success",
+        message: "Cliente cadastrado com sucesso!",
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error("Erro ao cadastrar cliente:", error);
+      emitToast({
+        type: "error",
+        message: "Erro ao cadastrar cliente. Tente novamente.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -145,165 +208,237 @@ export default function NewClientModal({ isOpen, onClose, onConfirm }) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Novo cliente"
-      className="modal-client"
-      bodyClassName="modal-form"
+      title="👤 Novo Cliente"
+      className="modal-client modal-client-enhanced"
+      bodyClassName="modal-form-enhanced"
       footer={
-        <>
+        <div className="modal-footer-actions">
           <button
             type="button"
-            className="btn btn-outline"
+            className="btn btn-outline btn-enhanced"
             onClick={onClose}
+            disabled={isSubmitting}
           >
-            Voltar
+            ❌ Cancelar
           </button>
-
-          <button type="submit" className="btn btn-primary" form={formId}>
-            Cadastrar
+          
+          <button type="submit" form={formId} className="btn btn-primary btn-enhanced" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <span className="btn-spinner"></span>
+                Cadastrando...
+              </>
+            ) : (
+              <>
+                ✅ Cadastrar Cliente
+              </>
+            )}
           </button>
-        </>
+        </div>
       }
     >
-      <form id={formId} className="modal-form" onSubmit={submit}>
+      <form id={formId} className="modal-form form-enhanced" onSubmit={submit}>
         {/* DADOS PRINCIPAIS */}
         <div className="modal-section">
-          <div className="modal-section-title">Dados principais</div>
-
-          <div className="modal-field-block">
-            <div className="field-label">Nome completo *</div>
-            <input
-              className="field-input"
-              placeholder="Ex: Iago Ferreira"
-              value={form.name}
-              onChange={(e) => update("name", e.target.value)}
-              autoFocus
-            />
+          <div className="modal-section-header">
+            <span className="section-icon">👤</span>
+            <h3 className="modal-section-title">Dados Principais</h3>
           </div>
 
-          <div className="modal-grid modal-grid-2-main">
-            <div>
-              <div className="field-label">Telefone</div>
+          <div className="modal-field-group">
+            <div className="modal-field">
+              <label className="field-label field-label-enhanced">
+                <span className="field-icon">👤</span>
+                Nome Completo
+                <span className="field-required">*</span>
+              </label>
               <input
-                className="field-input"
-                placeholder="Ex: (11) 99999-0000"
-                value={form.phone}
-                onChange={(e) => update("phone", e.target.value)}
+                className="field-input field-input-enhanced"
+                placeholder="Ex: Iago Ferreira"
+                value={form.name}
+                onChange={(e) => update("name", e.target.value)}
+                autoFocus
+                required
               />
             </div>
 
-            <div>
-              <div className="field-label">CPF</div>
-              <input
-                className="field-input"
-                placeholder="Ex: 123.456.789-00"
-                value={form.cpf}
-                onChange={(e) => update("cpf", e.target.value)}
-              />
+            <div className="modal-field-row">
+              <div className="modal-field">
+                <label className="field-label field-label-enhanced">
+                  <span className="field-icon">📱</span>
+                  Telefone
+                  <span className="field-required">*</span>
+                </label>
+                <input
+                  className="field-input field-input-enhanced"
+                  placeholder="Ex: (11) 99999-0000"
+                  value={form.phone}
+                  onChange={(e) => update("phone", e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="modal-field">
+                <label className="field-label field-label-enhanced">
+                  <span className="field-icon">🆔</span>
+                  CPF
+                </label>
+                <input
+                  className="field-input field-input-enhanced"
+                  placeholder="Ex: 123.456.789-00"
+                  value={form.cpf}
+                  onChange={(e) => update("cpf", e.target.value)}
+                  maxLength={14}
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* ENDEREÇO */}
         <div className="modal-section">
-          <div className="modal-section-title">Endereço</div>
-
-          <div className="modal-grid modal-grid-cep">
-            <div>
-              <div className="field-label">CEP</div>
-              <input
-                className="field-input"
-                placeholder="Ex: 01001-000"
-                value={form.cep}
-                onChange={(e) => update("cep", e.target.value)}
-              />
-            </div>
-
-            <div className="modal-cep-button-wrapper">
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={handleCepSearch}
-                disabled={cepLoading}
-              >
-                {cepLoading  "Buscando..." : "Buscar CEP"}
-              </button>
-            </div>
+          <div className="modal-section-header">
+            <span className="section-icon">📍</span>
+            <h3 className="modal-section-title">Endereço</h3>
           </div>
 
-          {cepError && <div className="field-error">{cepError}</div>}
-
-          <div className="modal-grid modal-grid-street">
-            <div>
-              <div className="field-label">Rua</div>
-              <input
-                className="field-input"
-                value={form.street}
-                onChange={(e) => update("street", e.target.value)}
-              />
+          <div className="modal-field-group">
+            <div className="modal-field cep-field">
+              <label className="field-label field-label-enhanced">
+                <span className="field-icon">📮</span>
+                CEP
+              </label>
+              <div className="cep-input-wrapper">
+                <input
+                  className="field-input field-input-enhanced"
+                  placeholder="Ex: 01001-000"
+                  value={form.cep}
+                  onChange={(e) => update("cep", e.target.value)}
+                  maxLength={9}
+                />
+                <button
+                  type="button"
+                  className="cep-search-btn"
+                  onClick={handleCepSearch}
+                  disabled={cepLoading}
+                  title="Buscar CEP"
+                >
+                  {cepLoading ? (
+                    <span className="cep-spinner"></span>
+                  ) : (
+                    "🔍"
+                  )}
+                </button>
+              </div>
+              {cepError && <div className="field-error field-error-enhanced">{cepError}</div>}
             </div>
 
-            <div>
-              <div className="field-label">Número</div>
-              <input
-                className="field-input"
-                value={form.number}
-                onChange={(e) => update("number", e.target.value)}
-                placeholder="Ex: 123"
-              />
-            </div>
-          </div>
+            <div className="modal-field-row address-row">
+              <div className="modal-field">
+                <label className="field-label field-label-enhanced">
+                  <span className="field-icon">🏠</span>
+                  Rua
+                </label>
+                <input
+                  className="field-input field-input-enhanced"
+                  placeholder="Ex: Rua das Flores"
+                  value={form.street}
+                  onChange={(e) => update("street", e.target.value)}
+                />
+              </div>
 
-          <div className="modal-grid modal-grid-complement">
-            <div>
-              <div className="field-label">Complemento</div>
-              <input
-                className="field-input"
-                value={form.complement}
-                onChange={(e) => update("complement", e.target.value)}
-              />
-            </div>
-
-            <div>
-              <div className="field-label">Bairro</div>
-              <input
-                className="field-input"
-                value={form.neighborhood}
-                onChange={(e) => update("neighborhood", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="modal-grid modal-grid-city">
-            <div>
-              <div className="field-label">Cidade</div>
-              <input
-                className="field-input"
-                value={form.city}
-                onChange={(e) => update("city", e.target.value)}
-              />
+              <div className="modal-field">
+                <label className="field-label field-label-enhanced">
+                  <span className="field-icon">🏢</span>
+                  Número
+                </label>
+                <input
+                  className="field-input field-input-enhanced"
+                  placeholder="Ex: 123"
+                  value={form.number}
+                  onChange={(e) => update("number", e.target.value)}
+                />
+              </div>
             </div>
 
-            <div>
-              <div className="field-label">UF</div>
-              <input
-                className="field-input"
-                value={form.state}
-                onChange={(e) => update("state", e.target.value)}
-                maxLength={2}
-              />
+            <div className="modal-field-row">
+              <div className="modal-field">
+                <label className="field-label field-label-enhanced">
+                  <span className="field-icon">📝</span>
+                  Complemento
+                </label>
+                <input
+                  className="field-input field-input-enhanced"
+                  placeholder="Ex: Apto 101"
+                  value={form.complement}
+                  onChange={(e) => update("complement", e.target.value)}
+                />
+              </div>
+
+              <div className="modal-field">
+                <label className="field-label field-label-enhanced">
+                  <span className="field-icon">🏘</span>
+                  Bairro
+                </label>
+                <input
+                  className="field-input field-input-enhanced"
+                  placeholder="Ex: Centro"
+                  value={form.neighborhood}
+                  onChange={(e) => update("neighborhood", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="modal-field-row">
+              <div className="modal-field">
+                <label className="field-label field-label-enhanced">
+                  <span className="field-icon">🏙️</span>
+                  Cidade
+                </label>
+                <input
+                  className="field-input field-input-enhanced"
+                  placeholder="Ex: São Paulo"
+                  value={form.city}
+                  onChange={(e) => update("city", e.target.value)}
+                />
+              </div>
+
+              <div className="modal-field">
+                <label className="field-label field-label-enhanced">
+                  <span className="field-icon">🗺️</span>
+                  UF
+                </label>
+                <input
+                  className="field-input field-input-enhanced uf-input"
+                  placeholder="Ex: SP"
+                  value={form.state}
+                  onChange={(e) => update("state", e.target.value)}
+                  maxLength={2}
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* OBSERVAÇÕES */}
         <div className="modal-section">
-          <div className="modal-section-title">Observações</div>
-          <textarea
-            className="field-textarea"
-            rows={2}
-            value={form.notes}
-            onChange={(e) => update("notes", e.target.value)}
-          />
+          <div className="modal-section-header">
+            <span className="section-icon">📋</span>
+            <h3 className="modal-section-title">Observações</h3>
+          </div>
+          <div className="modal-field">
+            <label className="field-label field-label-enhanced">
+              <span className="field-icon">💬</span>
+              Observações (opcional)
+            </label>
+            <textarea
+              className="field-textarea field-textarea-enhanced"
+              rows={3}
+              placeholder="Informações adicionais sobre o cliente..."
+              value={form.notes}
+              onChange={(e) => update("notes", e.target.value)}
+            />
+          </div>
         </div>
       </form>
     </Modal>

@@ -11,9 +11,9 @@ const MotoboyRow = ({
   const isActive = motoboy.active !== false && motoboy.isActive !== false;
   const tipsTotal =
     typeof motoboy.tipsTotal === "number"
-       motoboy.tipsTotal
+      ? motoboy.tipsTotal
       : Array.isArray(motoboy.tips)
-       motoboy.tips.reduce(
+      ? motoboy.tips.reduce(
           (sum, tip) => sum + (Number(tip.amount) || 0),
           0
         )
@@ -22,34 +22,34 @@ const MotoboyRow = ({
 
   const handleEdit = (event) => {
     event.stopPropagation();
-    onEdit.(motoboy);
+    onEdit(motoboy);
   };
 
   const handleToggle = (event) => {
     event.stopPropagation();
-    onToggleActive.(motoboy.id, !isActive);
+    onToggleActive(motoboy.id, !isActive);
   };
 
   const handleQr = (event) => {
     event.stopPropagation();
-    onGenerateQr.(motoboy);
+    onGenerateQr(motoboy);
   };
 
   const handleTip = (event) => {
     event.stopPropagation();
-    onAddTip.(motoboy);
+    onAddTip(motoboy);
   };
 
   return (
     <div
-      className={`motoboy-row${!isActive  " motoboy-row--inactive" : ""}`}
-      onClick={() => onEdit.(motoboy)}
+      className={`motoboy-row${!isActive ? " motoboy-row--inactive" : ""}`}
+      onClick={() => onEdit(motoboy)}
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          onEdit.(motoboy);
+          onEdit(motoboy);
         }
       }}
     >
@@ -58,10 +58,10 @@ const MotoboyRow = ({
           <div className="motoboy-row-name">{motoboy.name || "(Sem nome)"}</div>
           <span
             className={`status-pill ${
-              isActive  "status-pill--success" : "status-pill--danger"
+              isActive ? "status-pill--success" : "status-pill--danger"
             }`}
           >
-            {isActive  "Ativo" : "Inativo"}
+            {isActive ? "Ativo" : "Inativo"}
           </span>
           {motoboy.qrToken && (
             <span className="status-pill status-pill--warning">QR ativo</span>
@@ -92,7 +92,7 @@ const MotoboyRow = ({
           className="btn btn-ghost btn-ghost--small"
           onClick={handleToggle}
         >
-          {isActive  "Desativar" : "Ativar"}
+          {isActive ? "Desativar" : "Ativar"}
         </button>
         <button
           type="button"

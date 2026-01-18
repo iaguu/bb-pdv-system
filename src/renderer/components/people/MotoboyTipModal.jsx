@@ -14,23 +14,23 @@ const MotoboyTipModal = ({ motoboy, onClose, onSave }) => {
     setDate("");
   }, [motoboy]);
 
-  const tips = Array.isArray(motoboy.tips)  motoboy.tips : [];
+  const tips = Array.isArray(motoboy.tips) ? motoboy.tips : [];
   const tipsTotal =
     typeof motoboy.tipsTotal === "number"
-       motoboy.tipsTotal
+      ? motoboy.tipsTotal
       : tips.reduce((sum, tip) => sum + (Number(tip.amount) || 0), 0);
 
   const parsedAmount = useMemo(() => {
     const value = Number(String(amount).replace(",", "."));
-    return Number.isNaN(value)  0 : value;
+    return Number.isNaN(value) ? 0 : value;
   }, [amount]);
 
   const canSave = parsedAmount > 0;
 
   const handleSubmit = () => {
     if (!canSave) return;
-    const at = date  new Date(date).toISOString() : new Date().toISOString();
-    onSave.(motoboy.id, {
+    const at = date ? new Date(date).toISOString() : new Date().toISOString();
+    onSave(motoboy.id, {
       amount: parsedAmount,
       note: note.trim(),
       at,
@@ -114,7 +114,7 @@ const MotoboyTipModal = ({ motoboy, onClose, onSave }) => {
                 <div key={tip.id} className="motoboy-tip-history-item">
                   <div>
                     <strong>{formatCurrencyBR(tip.amount || 0)}</strong>
-                    {tip.note  (
+                    {tip.note ? (
                       <span className="motoboy-tip-history-note">
                         {tip.note}
                       </span>
@@ -122,7 +122,7 @@ const MotoboyTipModal = ({ motoboy, onClose, onSave }) => {
                   </div>
                   <span className="motoboy-tip-history-date">
                     {tip.at
-                       new Date(tip.at).toLocaleDateString("pt-BR")
+                      ? new Date(tip.at).toLocaleDateString("pt-BR")
                       : "--"}
                   </span>
                 </div>

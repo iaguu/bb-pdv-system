@@ -104,7 +104,7 @@ async function checkBrowserConsole() {
       const root = document.getElementById('root');
       if (root) {
         console.log('✅ Elemento #root encontrado');
-        console.log('📊 Conteúdo do root:', root.innerHTML.length > 0  'Tem conteúdo' : 'Vazio');
+        console.log('📊 Conteúdo do root:', root.innerHTML.length > 0 ? 'Tem conteúdo' : 'Vazio');
         
         // Verifica se React foi carregado
         if (window.React) {
@@ -149,14 +149,14 @@ async function checkBrowserConsole() {
         const scripts = document.querySelectorAll('script');
         console.log('📊 Scripts encontrados:', scripts.length);
         scripts.forEach((script, index) => {
-          console.log(`  Script ${index}: ${script.src || 'inline'}`);
+          console.log('  Script ' + index + ': ' + (script.src || 'inline'));
         });
         
         // Verifica se há estilos carregados
         const links = document.querySelectorAll('link[rel="stylesheet"]');
         console.log('📊 CSS encontrados:', links.length);
         links.forEach((link, index) => {
-          console.log(`  CSS ${index}: ${link.href}`);
+          console.log('  CSS ' + index + ': ' + link.href);
         });
       }
     }, 5000);
@@ -195,7 +195,7 @@ function analyzeJsBundle() {
     console.log('🔍 Verificando componentes críticos:');
     checks.forEach(({ name, pattern }) => {
       const found = pattern.test(jsContent);
-      console.log(\`\${found  '✅' : '❌'} \${name}\`);
+      console.log(`${found ? '?' : '?'} ${name}`);
     });
     
     // Verifica se há erros de importação
@@ -259,7 +259,7 @@ async function main() {
     if (result.exitCode === 0) {
       console.log('✅ APLICAÇÃO FINALIZOU NORMALMENTE');
     } else {
-      console.log(\`⚠️ APLICAÇÃO FINALIZOU COM CÓDIGO \${result.exitCode}\`);
+      console.log(`?? APLICA??O FINALIZOU COM C?DIGO ${result.exitCode}`);
     }
     
     // Recomendações finais

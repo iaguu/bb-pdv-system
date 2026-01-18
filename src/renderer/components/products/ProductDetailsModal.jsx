@@ -54,14 +54,14 @@ export default function ProductDetailsModal({ product, onClose, onSave }) {
             Voltar
           </button>
           <button type="submit" className="btn btn-primary" form={formId}>
-            Salvar alterações
+            Salvar alteraes
           </button>
         </div>
       }
     >
       <form id={formId} className="modal-form" onSubmit={handleSubmit}>
         <div className="modal-section">
-          <div className="modal-section-title">Informações</div>
+          <div className="modal-section-title">Informaes</div>
 
           <div style={{ marginTop: 6 }}>
             <div className="field-label">Nome</div>
@@ -72,7 +72,7 @@ export default function ProductDetailsModal({ product, onClose, onSave }) {
             />
           </div>
 
-          {editing.type === "pizza"  (
+          {editing.type === "pizza" ? (
             <div
               style={{
                 display: "grid",
@@ -82,22 +82,22 @@ export default function ProductDetailsModal({ product, onClose, onSave }) {
               }}
             >
               <div>
-                <div className="field-label">Preço broto</div>
+                <div className="field-label">Preo broto</div>
                 <input
                   className="field-input"
                   type="number"
-                  value={editing.priceBroto  0}
+                  value={editing.priceBroto ?? 0}
                   onChange={(e) =>
                     handleChange("priceBroto", Number(e.target.value) || 0)
                   }
                 />
               </div>
               <div>
-                <div className="field-label">Preço grande</div>
+                <div className="field-label">Preo grande</div>
                 <input
                   className="field-input"
                   type="number"
-                  value={editing.priceGrande  0}
+                  value={editing.priceGrande ?? 0}
                   onChange={(e) =>
                     handleChange("priceGrande", Number(e.target.value) || 0)
                   }
@@ -106,18 +106,18 @@ export default function ProductDetailsModal({ product, onClose, onSave }) {
             </div>
           ) : (
             <div style={{ marginTop: 8 }}>
-              <div className="field-label">Preço único</div>
+              <div className="field-label">Preo nico</div>
               <input
                 className="field-input"
                 type="number"
-                value={editing.price  0}
+                value={editing.price ?? 0}
                 onChange={(e) => handleChange("price", Number(e.target.value) || 0)}
               />
             </div>
           )}
 
           <div style={{ marginTop: 8 }}>
-            <div className="field-label">Descrição</div>
+            <div className="field-label">Descrio</div>
             <textarea
               className="field-textarea"
               rows={2}

@@ -45,17 +45,17 @@ export function normalizeProductsCollections(raw) {
     const description = p.description || p.descricao || "";
     const categoria = p.categoria || p.category || "";
 
-    const priceBroto = p.priceBroto  p.preco_broto  null;
-    const priceGrande = p.priceGrande  p.preco_grande  p.preco  null;
+    const priceBroto = p.priceBroto ?? p.preco_broto ?? null;
+    const priceGrande = p.priceGrande ?? p.preco_grande ?? p.preco ?? null;
 
     const prices = {
       broto:
         priceBroto != null && !Number.isNaN(Number(priceBroto))
-           Number(priceBroto)
+          ? Number(priceBroto)
           : 0,
       grande:
         priceGrande != null && !Number.isNaN(Number(priceGrande))
-           Number(priceGrande)
+          ? Number(priceGrande)
           : 0,
     };
 

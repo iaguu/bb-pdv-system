@@ -5,7 +5,7 @@ const CashSessionRow = ({ session, onClick }) => {
     <div className="cash-row" onClick={() => onClick(session)}>
       <div className="cash-row-main">
         <div className="cash-row-title">
-          {session.id} - {session.status === "open"  "Aberto" : "Fechado"}
+          {session.id} - {session.status === "open" ? "Aberto" : "Fechado"}
         </div>
         <div className="cash-row-meta">
           <span>Abertura: {session.openedAt}</span>

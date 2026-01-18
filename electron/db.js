@@ -1,5 +1,4 @@
-﻿
-// electron/db.js
+﻿// electron/db.js
 // DataEngine unificado para o app da pizzaria.
 // Lê e escreve coleções em arquivos JSON no diretório de dados.
 //
@@ -11,7 +10,7 @@ const path = require('path');
 const os = require('os');
 const { logError, logWarn } = require('./utils/logger');
 const fetchFn = global.fetch
-   global.fetch
+  ? global.fetch
   : (...args) =>
       import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
@@ -67,7 +66,7 @@ function resolveStoredDataDir() {
       electronApp.getPath('appData')) ||
     process.env.APPDATA ||
     (process.platform === 'darwin'
-       path.join(os.homedir(), 'Library', 'Application Support')
+      ? path.join(os.homedir(), 'Library', 'Application Support')
       : path.join(os.homedir(), 'AppData', 'Roaming'));
 
   return path.join(appData, APPDATA_SCOPE, 'data');
@@ -194,7 +193,7 @@ async function writeRawFile(filePath, data) {
 function ensureItemsWrapper(data) {
   const meta =
     data && typeof data === 'object' && data.meta && typeof data.meta === 'object'
-       data.meta
+      ? data.meta
       : { deleted: [] };
   if (Array.isArray(data)) {
     return { items: data, meta };
@@ -269,7 +268,7 @@ async function readSyncQueue() {
   try {
     const raw = await fs.promises.readFile(getSyncQueuePath(), 'utf8');
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed)  parsed : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch (err) {
     if (err.code === 'ENOENT') return [];
     logError('db', '[sync] Erro lendo fila:', err);
@@ -389,7 +388,7 @@ async function flushSyncQueue() {
     success: !failed,
     flushed,
     remaining: queue.length,
-    error: failed  'push_failed' : null
+    error: failed ? 'push_failed' : null
   };
 }
 
@@ -419,7 +418,7 @@ async function addItem(collection, item, options = null) {
   const wrapper = ensureItemsWrapper(current);
   const now = getNowIso();
 
-  // Se nao vier id, gera um simples
+  // Se não vier id, gera um simples
   if (!item.id) {
     item.id = `${collection}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   }

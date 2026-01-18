@@ -1,5 +1,5 @@
-﻿// Estilos para o sistema de mÃºltiplos pedidos e rascunhos
-// Melhorias de Design: Indicadores visuais, micro-interaÃ§Ãµes, hierarquia
+// Estilos para o sistema de mltiplos pedidos e rascunhos
+// Melhorias de Design: Indicadores visuais, micro-interaes, hierarquia
 
 .order-drafts-panel {
   width: 320px;
@@ -58,6 +58,32 @@
   border-radius: 14px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   height: 100%;
+}
+
+.order-drafts-list .order-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order-drafts-list .order-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.order-drafts-list__btn,
+.order-drafts-list__clear-search,
+.order-drafts-list__clear-all,
+.order-drafts-list__action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.order-drafts-list__empty-icon .order-icon {
+  width: 28px;
+  height: 28px;
 }
 
 .order-drafts-list__header {
@@ -385,4 +411,5 @@
     flex: 1;
   }
 }
+
 

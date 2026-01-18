@@ -14,7 +14,7 @@ const ConfirmDialog = ({
 }) => {
   if (!open) return null;
 
-  const confirmVariant = tone === "danger"  "danger" : "primary";
+  const confirmVariant = tone === "danger" ? "danger" : "primary";
 
   return (
     <Modal

@@ -112,20 +112,20 @@ try {
     
     // Verificação final
     const success = testResults.started && !testResults.error;
-    console.log('\n🎯 Status final:', success  '✅ APROVADO' : '❌ REPROVADO');
+    console.log('\n🎯 Status final:', success ? '✅ APROVADO' : '❌ REPROVADO');
     
     // Salva log
     const logContent = `
 Teste Electron - ${new Date().toISOString()}
 Executável: ${exePath}
 Resultados: ${JSON.stringify(testResults, null, 2)}
-Status: ${success  'APROVADO' : 'REPROVADO'}
+Status: ${success ? 'APROVADO' : 'REPROVADO'}
 `;
     
     fs.writeFileSync(logPath, logContent);
     console.log('📄 Log salvo em:', logPath);
     
-    process.exit(success  0 : 1);
+    process.exit(success ? 0 : 1);
   });
 
   // Timeout de 30 segundos

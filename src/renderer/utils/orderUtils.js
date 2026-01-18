@@ -129,28 +129,30 @@ export const formatCurrencyBR = (value) => {
 export const getOrderTotal = (order) => {
   if (!order) return 0;
 
-  const subtotal = Number(order.totals.subtotal  order.subtotal  0);
+  const subtotal = Number(
+    order.totals?.subtotal ?? order.subtotal ?? 0
+  );
   const deliveryFee = Number(
-    order.delivery.fee 
-      order.totals.deliveryFee 
-      order.deliveryFee 
+    order.delivery?.fee ??
+      order.totals?.deliveryFee ??
+      order.deliveryFee ??
       0
   );
   const discountAmount = Number(
-    order.totals.discount 
+    order.totals?.discount ??
       (typeof order.discount === "object"
-         order.discount.amount
-        : order.discount) 
+        ? order.discount.amount
+        : order.discount) ??
       0
   );
 
   const total =
     Number(
-      order.totals.finalTotal 
-        order.total 
-        order.grandTotal 
-        order.amount 
-        order.valorTotal 
+      order.totals?.finalTotal ??
+        order.total ??
+        order.grandTotal ??
+        order.amount ??
+        order.valorTotal ??
         order.amountTotal
     ) || subtotal + deliveryFee - discountAmount;
 

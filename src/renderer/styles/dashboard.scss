@@ -1,4 +1,4 @@
-﻿/* ============================================================================
+/* ============================================================================
    DASHBOARD PAGE
    ============================================================================ */
 
@@ -15,22 +15,22 @@ $dash-accent-soft: rgba(230, 57, 70, 0.1);
 $dash-success: #16a34a;
 $dash-warning: #f59e0b;
 
-/* Container geral da página */
+/* Container geral da pgina */
 .dashboard-shell {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding-top: 4px;
+  gap: 28px;
+  padding-top: 12px;
 }
 
 /* ============================================================================
-   TOPO (TÍTULO + PERÍODO + EXPORT)
+   TOPO (TTULO + PERODO + EXPORT)
    ============================================================================ */
 .dashboard-top-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
+  gap: 32px;
 
   @media (max-width: 900px) {
     flex-direction: column;
@@ -39,20 +39,20 @@ $dash-warning: #f59e0b;
 }
 
 .dashboard-top-text {
-  max-width: 520px;
+  max-width: 640px;
 
   .dashboard-main-title {
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 700;
     color: $dash-text-main;
-    margin: 0 0 4px;
+    margin: 0 0 8px;
   }
 
   .dashboard-main-subtitle {
     margin: 0;
     font-size: 14px;
     color: $dash-text-muted;
-    line-height: 1.5;
+    line-height: 1.6;
   }
 }
 
@@ -96,7 +96,7 @@ $dash-warning: #f59e0b;
   border-radius: $dash-radius-pill;
 }
 
-/* Botões de período */
+/* Botes de perodo */
 .dashboard-period-btn {
   border: none;
   border-radius: $dash-radius-pill;
@@ -119,7 +119,7 @@ $dash-warning: #f59e0b;
   }
 }
 
-/* Botão export */
+/* Boto export */
 .dashboard-export-btn {
   font-size: 13px;
   padding-inline: 14px;
@@ -223,7 +223,7 @@ $dash-warning: #f59e0b;
 }
 
 /* ============================================================================
-   GRID SECUNDÁRIO (INSIGHTS + RECENTES)
+   GRID SECUNDRIO (INSIGHTS + RECENTES)
    ============================================================================ */
 .dashboard-secondary-grid {
   display: grid;
@@ -244,28 +244,37 @@ $dash-warning: #f59e0b;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
-/* Cabeçalho das seções (Insights + Últimos pedidos) */
+/* Cabealho das sees (Insights + ltimos pedidos) */
 .dashboard-section-header {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 16px;
 }
 
 .dashboard-section-title {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: $dash-text-main;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-section-title .order-icon {
+  width: 16px;
+  height: 16px;
+  color: rgba(17, 24, 39, 0.7);
 }
 
 .dashboard-section-subtitle {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: $dash-text-muted;
 }
 
-/* ----------------- Insights rápidos ----------------- */
+/* ----------------- Insights rpidos ----------------- */
 .dashboard-insights-main {
   display: flex;
   flex-wrap: wrap;
@@ -290,7 +299,7 @@ $dash-warning: #f59e0b;
   color: $dash-text-main;
 }
 
-/* ----------------- Gráfico de canais ----------------- */
+/* ----------------- Grfico de canais ----------------- */
 .dashboard-insights-chart {
   border-top: 1px solid $dash-border;
   padding-top: 12px;
@@ -359,18 +368,69 @@ $dash-warning: #f59e0b;
   margin: 4px 0 0;
 }
 
-/* ----------------- Últimos pedidos ----------------- */
+/* ----------------- ltimos pedidos ----------------- */
 .dashboard-recent-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 320px;
+  gap: 10px;
+  max-height: 360px;
   overflow-y: auto;
 }
 
-/* Se você quiser dar um leve fundo para o OrderRow quando isNew=true,
+.dashboard-recent-list .order-row {
+  grid-template-columns: 1fr;
+  padding: 12px 14px;
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+.dashboard-recent-list .order-row:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+.dashboard-recent-list .order-row-left {
+  gap: 6px;
+}
+
+.dashboard-recent-list .order-row-summary {
+  font-size: 12px;
+  color: $dash-text-muted;
+}
+
+.dashboard-recent-list .order-row-meta {
+  gap: 6px;
+}
+
+.dashboard-recent-list .order-row-chip {
+  font-size: 10px;
+  padding: 5px 8px;
+}
+
+.dashboard-recent-list .order-row-right {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.dashboard-recent-list .order-row-total {
+  font-size: 14px;
+  padding: 8px 10px;
+}
+
+.dashboard-recent-list .order-row-time,
+.dashboard-recent-list .order-row-elapsed {
+  font-size: 10px;
+  padding: 4px 8px;
+}
+
+/* Se voc quiser dar um leve fundo para o OrderRow quando isNew=true,
    pode fazer isso usando uma classe interna em OrderRow.
-   Aqui mantemos só o container. */
+   Aqui mantemos s o container. */
 
 /* ============================================================================
    CARD DE CANAIS (CONTAGEM ABSOLUTA)
@@ -431,11 +491,12 @@ $dash-warning: #f59e0b;
 }
 
 /* ============================================================================
-   AJUSTES DE BACKGROUND PARA A PÁGINA
+   AJUSTES DE BACKGROUND PARA A PGINA
    (caso queira diferenciar levemente da base)
    ============================================================================ */
 .dashboard-shell {
   background: transparent;
 }
+
 
 

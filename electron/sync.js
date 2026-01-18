@@ -8,7 +8,7 @@ const syncEvents = new EventEmitter();
 
 // Helper fetch no processo main (Node/Electron)
 const fetchFn = global.fetch
-   global.fetch
+  ? global.fetch
   : (...args) =>
       import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
@@ -54,6 +54,8 @@ let syncStatus = {
 let syncRetryTimer = null;
 let syncRetryAttempt = 0;
 let notificationsEnabled = true;
+let notificationsSoundEnabled = true;
+let notificationsDesktopEnabled = true;
 let lastNotifyAt = 0;
 const NEW_ORDER_NOTIFY_COOLDOWN_MS = Number(
   process.env.NEW_ORDER_NOTIFY_COOLDOWN_MS || 2000
@@ -117,6 +119,12 @@ async function loadSyncSettings() {
     if (parsed && typeof parsed.notificationsEnabled === "boolean") {
       notificationsEnabled = parsed.notificationsEnabled;
     }
+    if (parsed && typeof parsed.notificationsSoundEnabled === "boolean") {
+      notificationsSoundEnabled = parsed.notificationsSoundEnabled;
+    }
+    if (parsed && typeof parsed.notificationsDesktopEnabled === "boolean") {
+      notificationsDesktopEnabled = parsed.notificationsDesktopEnabled;
+    }
   } catch (err) {
     if (err.code !== "ENOENT") {
       console.error("[sync] Erro lendo sync-settings:", err);
@@ -128,7 +136,15 @@ async function saveSyncSettings() {
   try {
     await fs.promises.writeFile(
       getSyncSettingsPath(),
-      JSON.stringify({ notificationsEnabled }, null, 2),
+      JSON.stringify(
+        {
+          notificationsEnabled,
+          notificationsSoundEnabled,
+          notificationsDesktopEnabled,
+        },
+        null,
+        2
+      ),
       "utf8"
     );
   } catch (err) {
@@ -265,7 +281,7 @@ async function fetchJsonWithTimeout(url, options = {}) {
       } catch (err) {
         bodyText = "";
       }
-      const detail = bodyText  `: ${bodyText}` : "";
+      const detail = bodyText ? `: ${bodyText}` : "";
       throw new Error(`HTTP ${response.status}${detail}`);
     }
     return response.json();
@@ -299,7 +315,7 @@ function normalizeWrapper(data) {
       items: data.items,
       meta:
         data.meta && typeof data.meta === "object"
-           data.meta
+          ? data.meta
           : { deleted: [] },
     };
   }
@@ -318,10 +334,10 @@ function isIncomingNewer(incoming, current) {
 function buildDeltaFromWrapper(wrapper) {
   if (!wrapper) return { items: [], meta: { deleted: [] } };
   return {
-    items: Array.isArray(wrapper.items)  wrapper.items : [],
+    items: Array.isArray(wrapper.items) ? wrapper.items : [],
     meta:
       wrapper.meta && typeof wrapper.meta === "object"
-         wrapper.meta
+        ? wrapper.meta
         : { deleted: [] },
   };
 }
@@ -329,8 +345,8 @@ function buildDeltaFromWrapper(wrapper) {
 async function applyDeltaToLocal(collection, delta) {
   const current = await db.getCollection(collection);
   const wrapper = normalizeWrapper(current) || { items: [], meta: { deleted: [] } };
-  const incomingItems = Array.isArray(delta.items)  delta.items : [];
-  const deletedItems = Array.isArray(delta.meta.deleted)  delta.meta.deleted : [];
+  const incomingItems = Array.isArray(delta.items) ? delta.items : [];
+  const deletedItems = Array.isArray(delta.meta.deleted) ? delta.meta.deleted : [];
 
   for (const item of incomingItems) {
     const index = wrapper.items.findIndex(
@@ -421,7 +437,7 @@ async function pullCollectionsFromRemote() {
       const isInitialSync = !since;
       let url = `${baseUrl}/sync/collection/${encodeURIComponent(name)}`;
       if (since && isItemCollection) {
-        url += `since=${encodeURIComponent(since)}`;
+        url += `?since=${encodeURIComponent(since)}`;
       }
 
       const payload = await fetchJsonWithTimeout(url, {
@@ -573,7 +589,30 @@ function getNotificationStatus() {
 
 function setNotificationStatus(value) {
   notificationsEnabled = Boolean(value);
+  void saveSyncSettings();
   return notificationsEnabled;
+}
+
+function getNotificationSettings() {
+  return {
+    enabled: notificationsEnabled,
+    audioEnabled: notificationsSoundEnabled,
+    desktopEnabled: notificationsDesktopEnabled,
+  };
+}
+
+function setNotificationSettings(values = {}) {
+  if (typeof values.enabled === "boolean") {
+    notificationsEnabled = values.enabled;
+  }
+  if (typeof values.audioEnabled === "boolean") {
+    notificationsSoundEnabled = values.audioEnabled;
+  }
+  if (typeof values.desktopEnabled === "boolean") {
+    notificationsDesktopEnabled = values.desktopEnabled;
+  }
+  void saveSyncSettings();
+  return getNotificationSettings();
 }
 
 module.exports = {
@@ -586,5 +625,7 @@ module.exports = {
   stopSyncPull,
   hasSyncBaseUrl,
   getNotificationStatus,
-  setNotificationStatus
+  setNotificationStatus,
+  getNotificationSettings,
+  setNotificationSettings
 };

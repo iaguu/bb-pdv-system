@@ -364,7 +364,7 @@ async function runTests() {
 
 // Executa os testes
 runTests().then(success => {
-  process.exit(success  0 : 1);
+  process.exit(success ? 0 : 1);
 }).catch(error => {
   console.error('Test runner error:', error);
   process.exit(1);

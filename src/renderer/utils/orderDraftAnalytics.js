@@ -374,8 +374,8 @@ class DraftAnalyticsEngine {
     const createdEvents = events.filter(e => e.event === 'draft_created');
     const convertedEvents = events.filter(e => e.event === 'draft_converted');
 
-    const conversionRate = createdEvents.length > 0 
-       (convertedEvents.length / createdEvents.length) * 100 
+    const conversionRate = createdEvents.length > 0
+      ? (convertedEvents.length / createdEvents.length) * 100
       : 0;
 
     const conversionTimes = convertedEvents
@@ -383,7 +383,7 @@ class DraftAnalyticsEngine {
       .filter(t => t && t > 0);
 
     const avgConversionTime = conversionTimes.length > 0
-       conversionTimes.reduce((a, b) => a + b, 0) / conversionTimes.length
+      ? conversionTimes.reduce((a, b) => a + b, 0) / conversionTimes.length
       : 0;
 
     return {
@@ -410,7 +410,8 @@ class DraftAnalyticsEngine {
     Object.keys(stages).forEach(stage => {
       funnel[stage] = {
         count: stages[stage],
-        percentage: total > 0  ((stages[stage] / total) * 100).toFixed(1) : 0
+        percentage:
+          total > 0 ? ((stages[stage] / total) * 100).toFixed(1) : 0
       };
     });
 
@@ -494,14 +495,16 @@ class DraftHeatmapAnalytics {
 
   // Gera heatmap data
   generateHeatmap(type = 'click') {
-    const data = type === 'click'  this.clickData : 
-                 type === 'scroll'  this.scrollData : 
-                 this.dwellData;
+    const data = type === 'click'
+      ? this.clickData
+      : type === 'scroll'
+      ? this.scrollData
+      : this.dwellData;
 
     return data.map(point => ({
       x: point.x,
       y: point.y,
-      value: type === 'dwell'  point.duration : 1,
+      value: type === 'dwell' ? point.duration : 1,
       timestamp: point.timestamp
     }));
   }
@@ -682,7 +685,7 @@ class DraftAnalyticsDashboard {
     window.addEventListener('scroll', () => {
       if (this.isTracking) {
         const currentScrollY = window.scrollY;
-        const direction = currentScrollY > lastScrollY  'down' : 'up';
+        const direction = currentScrollY > lastScrollY ? 'down' : 'up';
         this.heatmap.trackScroll(currentScrollY, direction);
         lastScrollY = currentScrollY;
       }

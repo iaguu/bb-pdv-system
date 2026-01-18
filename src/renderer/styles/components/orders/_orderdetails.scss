@@ -1,7 +1,7 @@
-﻿/* ==========================================================================
-   ORDER DETAILS MODAL — AXION PDV (PREMIUM / WHITE)
+/* ==========================================================================
+   ORDER DETAILS MODAL  AXION PDV (PREMIUM / WHITE)
    Target: OrderDetailsModal.jsx
-   - NÃO muda nomes de classes
+   - NO muda nomes de classes
    - Layout 2 colunas com scroll interno
    - Visual premium + chips de status + lista de itens organizada
    ========================================================================== */ /* :contentReference[oaicite:0]{index=0} */
@@ -59,6 +59,28 @@
   color: var(--ink);
 }
 
+.modal-window.order-details-modal {
+  width: min(1200px, 96vw);
+  max-height: min(94vh, 1040px);
+}
+
+.order-details-modal .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-details-modal .order-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order-details-modal .order-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
 /* --------------------------------------------------------------------------
    BODY LAYOUT (2 colunas + scroll interno)
 --------------------------------------------------------------------------- */
@@ -79,6 +101,18 @@
   padding: 20px 20px 8px;
 
   background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.order-details__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(2, 6, 23, 0.08);
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.06);
 }
 
 /* cada coluna com scroll */
@@ -584,7 +618,7 @@
   color: var(--t-cancel-ink);
 }
 
-/* active refinements (mais “premium”) */
+/* active refinements (mais premium) */
 .status-chip--active.status-chip--open {
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
 }
@@ -660,7 +694,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   AÇÕES (impressão)
+   AES (impresso)
 --------------------------------------------------------------------------- */
 
 .order-actions {
@@ -769,5 +803,6 @@
     flex: 1 1 auto;
   }
 }
+
 
 

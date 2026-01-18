@@ -93,7 +93,7 @@ export default function DeliveriesPage() {
       }
 
       const list = await window.db.orders.getAll();
-      const arr = Array.isArray(list)  list : [];
+  const arr = Array.isArray(list) ? list : [];
 
       // ordena do mais novo para o mais antigo
       arr.sort((a, b) => {
@@ -205,11 +205,10 @@ export default function DeliveriesPage() {
   const isInitialLoading = loading && !hasLoadedRef.current;
 
   // helper pra salvar array de pedidos
-  const persistOrders = useCallback(
-    (updater) => {
-      setOrders((prev) => {
-        const next = typeof updater === 'function'  updater(prev) : updater;
-        const list = Array.isArray(next)  next : [];
+  const persistOrders = useCallback((updater) => {
+    setOrders((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      const list = Array.isArray(next) ? next : [];
 
         if (window.db.orders.saveAll) {
           window.db.orders.saveAll(list).catch((err) => {
@@ -226,11 +225,9 @@ export default function DeliveriesPage() {
         });
         setKnownDrivers(Array.from(drivers));
 
-        return list;
-      });
-    },
-    []
-  );
+      return list;
+    });
+  }, []);
 
   // métricas
   const metrics = useMemo(() => {
@@ -279,8 +276,8 @@ export default function DeliveriesPage() {
       }
     });
 
-    const avgFee = total > 0  fees / total : 0;
-    const avgTimeMinutes = timeCount > 0  timeSumMinutes / timeCount : 0;
+    const avgFee = total > 0 ? fees / total : 0;
+    const avgTimeMinutes = timeCount > 0 ? timeSumMinutes / timeCount : 0;
 
     return {
       totalDeliveries: total,
@@ -329,7 +326,7 @@ export default function DeliveriesPage() {
       persistOrders((prev) =>
         prev.map((o) =>
           o.id === orderId
-             {
+            ? {
                 ...o,
                 driverName: name || null
               }
@@ -345,7 +342,7 @@ export default function DeliveriesPage() {
     const name = driverInput.trim();
     if (!name) return;
     setKnownDrivers((prev) =>
-      prev.includes(name)  prev : [...prev, name]
+      prev.includes(name) ? prev : [...prev, name]
     );
     setDriverInput('');
   }, [driverInput]);
@@ -413,7 +410,7 @@ export default function DeliveriesPage() {
                 type="button"
                 className={
                   'deliveries-pill' +
-                  (period === 'today'  ' deliveries-pill-active' : '')
+                  (period === 'today' ? ' deliveries-pill-active' : '')
                 }
                 onClick={() => setPeriod('today')}
               >
@@ -423,7 +420,7 @@ export default function DeliveriesPage() {
                 type="button"
                 className={
                   'deliveries-pill' +
-                  (period === '7d'  ' deliveries-pill-active' : '')
+                  (period === '7d' ? ' deliveries-pill-active' : '')
                 }
                 onClick={() => setPeriod('7d')}
               >
@@ -433,7 +430,7 @@ export default function DeliveriesPage() {
                 type="button"
                 className={
                   'deliveries-pill' +
-                  (period === '30d'  ' deliveries-pill-active' : '')
+                  (period === '30d' ? ' deliveries-pill-active' : '')
                 }
                 onClick={() => setPeriod('30d')}
               >
@@ -443,7 +440,7 @@ export default function DeliveriesPage() {
                 type="button"
                 className={
                   'deliveries-pill' +
-                  (period === 'all'  ' deliveries-pill-active' : '')
+                  (period === 'all' ? ' deliveries-pill-active' : '')
                 }
                 onClick={() => setPeriod('all')}
               >
@@ -476,7 +473,7 @@ export default function DeliveriesPage() {
             onClick={loadOrders}
             disabled={loading || isRefreshing}
           >
-            {loading || isRefreshing  'Atualizando...' : 'Atualizar'}
+            {loading || isRefreshing ? 'Atualizando...' : 'Atualizar'}
           </button>
         </div>
       </div>
@@ -490,7 +487,7 @@ export default function DeliveriesPage() {
               type="button"
               className={
                 'status-chip' +
-                (statusFilter === 'in_progress'  ' active' : '')
+                (statusFilter === 'in_progress' ? ' active' : '')
               }
               onClick={() => setStatusFilter('in_progress')}
             >
@@ -500,7 +497,7 @@ export default function DeliveriesPage() {
               type="button"
               className={
                 'status-chip' +
-                (statusFilter === 'pending'  ' active' : '')
+                (statusFilter === 'pending' ? ' active' : '')
               }
               onClick={() => setStatusFilter('pending')}
             >
@@ -510,7 +507,7 @@ export default function DeliveriesPage() {
               type="button"
               className={
                 'status-chip' +
-                (statusFilter === 'delivered'  ' active' : '')
+                (statusFilter === 'delivered' ? ' active' : '')
               }
               onClick={() => setStatusFilter('delivered')}
             >
@@ -520,7 +517,7 @@ export default function DeliveriesPage() {
               type="button"
               className={
                 'status-chip' +
-                (statusFilter === 'problem'  ' active' : '')
+                (statusFilter === 'problem' ? ' active' : '')
               }
               onClick={() => setStatusFilter('problem')}
             >
@@ -530,7 +527,7 @@ export default function DeliveriesPage() {
               type="button"
               className={
                 'status-chip' +
-                (statusFilter === 'all'  ' active' : '')
+                (statusFilter === 'all' ? ' active' : '')
               }
               onClick={() => setStatusFilter('all')}
             >
@@ -686,7 +683,7 @@ export default function DeliveriesPage() {
               </div>
               <div className="deliveries-card-value">
                 {metrics.avgTimeMinutes > 0
-                   `${metrics.avgTimeMinutes.toFixed(1)} min`
+                  ? `${metrics.avgTimeMinutes.toFixed(1)} min`
                   : '--'}
               </div>
               <div className="deliveries-card-helper">
@@ -729,7 +726,7 @@ export default function DeliveriesPage() {
                     const dRaw = o.createdAtISO || o.createdAt;
                     const d = normalizeDate(dRaw);
                     const dtText = d
-                       d.toLocaleString('pt-BR', {
+                      ? d.toLocaleString('pt-BR', {
                           dateStyle: 'short',
                           timeStyle: 'short'
                         })
@@ -744,7 +741,7 @@ export default function DeliveriesPage() {
                       addr.neighborhood || addr.bairro || '';
 
                     return (
-                      <tr key={o.id  dRaw}>
+                      <tr key={`${o.id}-${dRaw}`}>
                         <td>{o.id}</td>
                         <td>{dtText}</td>
                         <td>{o.customerName || 'Cliente'}</td>

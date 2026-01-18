@@ -161,7 +161,7 @@ function debugAppState() {
   
   return {
     hasRoot: !!root,
-    rootHasContent: root  root.innerHTML.length > 0 : false,
+    rootHasContent: root ? root.innerHTML.length > 0 : false,
     hasReact: !!window.React,
     hasDataEngine: !!window.dataEngine,
     hasVisibleContent,

@@ -86,8 +86,8 @@ class DraftEventBus {
   }
 
   getEventHistory(eventType = null) {
-    return eventType 
-       this.eventHistory.filter(e => e.type === eventType)
+    return eventType
+      ? this.eventHistory.filter(e => e.type === eventType)
       : this.eventHistory;
   }
 
@@ -161,7 +161,7 @@ class DraftStateMachine {
 
   async transition(action, data = null) {
     const currentStateTransitions = this.transitions[this.currentState];
-    const nextState = currentStateTransitions.[action];
+    const nextState = currentStateTransitions[action];
     
     if (!nextState) {
       throw new Error(`Invalid transition: ${action} from ${this.currentState}`);
@@ -664,7 +664,7 @@ class LocalStorageDraftStorage {
   async getAll() {
     try {
       const stored = localStorage.getItem(this.storageKey);
-      return stored  JSON.parse(stored) : [];
+      return stored ? JSON.parse(stored) : [];
     } catch (error) {
       console.error('Storage error:', error);
       return [];

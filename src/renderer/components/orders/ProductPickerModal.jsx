@@ -16,6 +16,12 @@ function getDefaultType(pizzas, drinks) {
   return "pizza";
 }
 
+function getPriceForSize(prices = {}, size = "grande") {
+  if (!prices || typeof prices !== "object") return 0;
+  if (size === "broto") return Number(prices.broto || prices.grande || 0);
+  return Number(prices.grande || prices.broto || 0);
+}
+
 const ProductPickerModal = ({
   isOpen,
   onClose,
@@ -24,13 +30,14 @@ const ProductPickerModal = ({
   drinks = [],
   extras = [],
   formatCurrency,
+  initialType,
 }) => {
   const [type, setType] = useState("pizza");
   const [size, setSize] = useState("grande");
   const [quantity, setQuantity] = useState(1);
   const [drinkQuantity, setDrinkQuantity] = useState(1);
   const [search, setSearch] = useState("");
-  const [flavorCount, setFlavorCount] = useState(1);
+  const [flavorCount, setFlavorCount] = useState(3);
   const [activeFlavorSlot, setActiveFlavorSlot] = useState(1);
   const [flavors, setFlavors] = useState({ 1: "", 2: "", 3: "" });
   const [selectedDrinkId, setSelectedDrinkId] = useState("");
@@ -40,31 +47,37 @@ const ProductPickerModal = ({
   useEffect(() => {
     if (!isOpen) return;
     const defaultType = getDefaultType(pizzas, drinks);
-    setType(defaultType);
+    const preferredType =
+      initialType === "drink" && drinks.length > 0
+        ? "drink"
+        : initialType === "pizza" && pizzas.length > 0
+          ? "pizza"
+          : null;
+    setType(preferredType || defaultType);
     setSearch("");
     setSize("grande");
     setQuantity(1);
     setDrinkQuantity(1);
-    setFlavorCount(1);
+    setFlavorCount(3);
     setActiveFlavorSlot(1);
     setSelectedExtras([]);
-    setSelectedDrinkId(drinks[0].id || "");
+    setSelectedDrinkId(drinks[0]?.id || "");
     setFlavors({
-      1: pizzas[0].id || "",
+      1: pizzas[0]?.id || "",
       2: "",
       3: "",
     });
     if (searchRef.current) {
       searchRef.current.focus();
     }
-  }, [isOpen, pizzas, drinks]);
+  }, [isOpen, pizzas, drinks, initialType]);
 
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose.();
+        onClose();
         return;
       }
       if (event.key === "Enter") {
@@ -104,10 +117,7 @@ const ProductPickerModal = ({
     return selectedExtras.reduce((acc, extraId) => {
       const extra = findById(extraId, extras);
       if (!extra) return acc;
-      const price =
-        size === "broto"
-           extra.prices.broto || extra.prices.grande || 0
-          : extra.prices.grande || extra.prices.broto || 0;
+      const price = getPriceForSize(extra?.prices, size);
       return acc + (price || 0);
     }, 0);
   }, [selectedExtras, extras, size]);
@@ -116,14 +126,14 @@ const ProductPickerModal = ({
     const pizza1 = findById(flavors[1], pizzas);
     if (!pizza1) return 0;
 
-    const prices = [pizza1.prices[size] || 0];
+    const prices = [getPriceForSize(pizza1?.prices, size)];
     if (flavorCount >= 2 && flavors[2]) {
       const pizza2 = findById(flavors[2], pizzas);
-      if (pizza2) prices.push(pizza2.prices[size] || 0);
+      if (pizza2) prices.push(getPriceForSize(pizza2?.prices, size));
     }
     if (flavorCount === 3 && flavors[3]) {
       const pizza3 = findById(flavors[3], pizzas);
-      if (pizza3) prices.push(pizza3.prices[size] || 0);
+      if (pizza3) prices.push(getPriceForSize(pizza3?.prices, size));
     }
 
     return Math.max(...prices) + extrasUnitTotal;
@@ -132,7 +142,7 @@ const ProductPickerModal = ({
   const unitDrinkPrice = useMemo(() => {
     const drink = findById(selectedDrinkId, drinks);
     if (!drink) return 0;
-    return drink.prices.grande || drink.prices.broto || 0;
+    return getPriceForSize(drink?.prices, "grande");
   }, [selectedDrinkId, drinks]);
 
   const selectedDrink = useMemo(
@@ -158,7 +168,7 @@ const ProductPickerModal = ({
   const handleToggleExtra = (extraId) => {
     setSelectedExtras((prev) =>
       prev.includes(extraId)
-         prev.filter((id) => id !== extraId)
+        ? prev.filter((id) => id !== extraId)
         : [...prev, extraId]
     );
   };
@@ -227,15 +237,12 @@ const ProductPickerModal = ({
         }
       }
 
-      const sizeLabel = size === "broto"  "Broto" : "Grande";
+      const sizeLabel = size === "broto" ? "Broto" : "Grande";
       const extrasDetail = selectedExtras
         .map((extraId) => {
           const extra = findById(extraId, extras);
           if (!extra) return null;
-          const price =
-            size === "broto"
-               extra.prices.broto || extra.prices.grande || 0
-              : extra.prices.grande || extra.prices.broto || 0;
+          const price = getPriceForSize(extra?.prices, size);
           return {
             id: extra.id,
             name: extra.name,
@@ -263,7 +270,7 @@ const ProductPickerModal = ({
         total: unitPizzaPrice * q,
       };
 
-      onAddItem.(newItem);
+      onAddItem?.(newItem);
       setQuantity(1);
       setFlavorCount(1);
       setActiveFlavorSlot(1);
@@ -294,7 +301,7 @@ const ProductPickerModal = ({
       });
       return;
     }
-    const unit = drink.prices.grande || drink.prices.broto || 0;
+    const unit = getPriceForSize(drink?.prices, "grande");
     if (!unit) {
       emitToast({
         type: "warning",
@@ -312,7 +319,7 @@ const ProductPickerModal = ({
       unitPrice: unit,
       total: unit * q,
     };
-    onAddItem.(newItem);
+    onAddItem?.(newItem);
     setDrinkQuantity(1);
   };
 
@@ -325,7 +332,6 @@ const ProductPickerModal = ({
       className="product-picker-modal"
       bodyClassName="product-picker-body"
       title="Adicionar item"
-      subtitle="Selecione o produto e ajuste os detalhes antes de incluir no pedido."
       footer={
         <div className="product-picker-footer">
           <button type="button" className="btn btn-outline" onClick={onClose}>
@@ -333,7 +339,7 @@ const ProductPickerModal = ({
           </button>
           <div className="product-picker-footer-summary">
             <span className="chip chip-outline">
-              Unitario {formatCurrency(type === "pizza"  unitPizzaPrice : unitDrinkPrice)}
+              Unitario {formatCurrency(type === "pizza" ? unitPizzaPrice : unitDrinkPrice)}
             </span>
             <span className="chip">
               Total {formatCurrency(lineTotal)}
@@ -343,7 +349,7 @@ const ProductPickerModal = ({
             type="button"
             className="btn btn-primary"
             onClick={handleAddItem}
-            disabled={type === "pizza"  !pizzas.length : !drinks.length}
+            disabled={type === "pizza" ? !pizzas.length : !drinks.length}
           >
             Adicionar ao pedido
           </button>
@@ -353,7 +359,7 @@ const ProductPickerModal = ({
       <div className="product-picker-tabs">
         <button
           type="button"
-          className={`product-picker-tab${type === "pizza"  " active" : ""}`}
+          className={`product-picker-tab${type === "pizza" ? " active" : ""}`}
           onClick={() => setType("pizza")}
           disabled={!pizzas.length}
         >
@@ -361,7 +367,7 @@ const ProductPickerModal = ({
         </button>
         <button
           type="button"
-          className={`product-picker-tab${type === "drink"  " active" : ""}`}
+          className={`product-picker-tab${type === "drink" ? " active" : ""}`}
           onClick={() => setType("drink")}
           disabled={!drinks.length}
         >
@@ -377,7 +383,7 @@ const ProductPickerModal = ({
             className="field-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={type === "pizza"  "Nome, categoria ou ingrediente..." : "Ex: Coca, Guarana..."}
+            placeholder={type === "pizza" ? "Nome, categoria ou ingrediente..." : "Ex: Coca, Guarana..."}
           />
 
           <div className="product-picker-panel product-picker-panel--list">
@@ -385,7 +391,7 @@ const ProductPickerModal = ({
               className={
                 "product-picker-list " +
                 (type === "pizza"
-                   "product-picker-list--pizza"
+                  ? "product-picker-list--pizza"
                   : "product-picker-list--drink")
               }
             >
@@ -395,7 +401,7 @@ const ProductPickerModal = ({
                     <div className="empty small">Nenhuma pizza encontrada.</div>
                   )}
                   {filteredPizzas.map((pizza) => {
-                    const price = pizza.prices[size] || pizza.prices.grande || pizza.prices.broto || 0;
+                    const price = getPriceForSize(pizza?.prices, size);
                     const isSelected =
                       String(pizza.id) === String(flavors[1]) ||
                       String(pizza.id) === String(flavors[2]) ||
@@ -404,7 +410,7 @@ const ProductPickerModal = ({
                       <button
                         key={pizza.id}
                         type="button"
-                        className={`product-card${isSelected  " selected" : ""}`}
+                        className={`product-card${isSelected ? " selected" : ""}`}
                         onClick={() => handleSelectFlavorCard(pizza.id)}
                       >
                         <div className="product-card-main">
@@ -426,13 +432,13 @@ const ProductPickerModal = ({
                     <div className="empty small">Nenhuma bebida encontrada.</div>
                   )}
                   {filteredDrinks.map((drink) => {
-                    const unit = drink.prices.grande || drink.prices.broto || 0;
+                    const unit = getPriceForSize(drink?.prices, "grande");
                     const selected = String(drink.id) === String(selectedDrinkId);
                     return (
                       <button
                         key={drink.id}
                         type="button"
-                        className={`product-card${selected  " selected" : ""}`}
+                        className={`product-card${selected ? " selected" : ""}`}
                         onClick={() => setSelectedDrinkId(drink.id)}
                       >
                         <div className="product-card-main">
@@ -460,14 +466,14 @@ const ProductPickerModal = ({
                   <div className="field-pill-group">
                     <button
                       type="button"
-                      className={`field-pill${size === "broto"  " field-pill-active" : ""}`}
+                      className={`field-pill${size === "broto" ? " field-pill-active" : ""}`}
                       onClick={() => setSize("broto")}
                     >
                       Broto
                     </button>
                     <button
                       type="button"
-                      className={`field-pill${size === "grande"  " field-pill-active" : ""}`}
+                      className={`field-pill${size === "grande" ? " field-pill-active" : ""}`}
                       onClick={() => setSize("grande")}
                     >
                       Grande
@@ -487,37 +493,37 @@ const ProductPickerModal = ({
                 </div>
 
                 <div className="product-picker-block">
-                  <div className="field-label">Sabores</div>
+                  <div className="field-label">Quantidade de sabores</div>
                   <div className="field-pill-group">
                     {[1, 2, 3].map((count) => (
                       <button
                         key={count}
                         type="button"
-                        className={`field-pill${flavorCount === count  " field-pill-active" : ""}`}
+                        className={`field-pill${flavorCount === count ? " field-pill-active" : ""}`}
                         onClick={() => {
                           setFlavorCount(count);
                           setActiveFlavorSlot(count);
                           setFlavors((prev) => ({
                             ...prev,
-                            2: count >= 2  prev[2] : "",
-                            3: count === 3  prev[3] : "",
+                            2: count >= 2 ? prev[2] : "",
+                            3: count === 3 ? prev[3] : "",
                           }));
                         }}
                       >
-                        {count} sabor{count > 1  "es" : ""}
+                        {count} sabor{count > 1 ? "es" : ""}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div className="product-picker-block">
-                  <div className="field-label">Selecionados</div>
+                  <div className="field-label">Sabores selecionados</div>
                   <div className="field-pill-group">
                     {[1, 2, 3].slice(0, flavorCount).map((slot) => (
                       <button
                         key={slot}
                         type="button"
-                        className={`field-pill flavor-slot-pill${activeFlavorSlot === slot  " field-pill-active" : ""}`}
+                        className={`field-pill flavor-slot-pill${activeFlavorSlot === slot ? " field-pill-active" : ""}`}
                         onClick={() => setActiveFlavorSlot(slot)}
                       >
                         {slot}o sabor
@@ -538,9 +544,6 @@ const ProductPickerModal = ({
                     <div className="product-picker-block-head">
                       <div>
                         <div className="field-label">Adicionais</div>
-                        <div className="field-helper">
-                          Selecionados por pizza.
-                        </div>
                       </div>
                       <button
                         type="button"
@@ -553,14 +556,11 @@ const ProductPickerModal = ({
                     <div className="extras-list">
                       {extras.map((extra) => {
                         const checked = selectedExtras.includes(extra.id);
-                        const price =
-                          size === "broto"
-                             extra.prices.broto || extra.prices.grande || 0
-                            : extra.prices.grande || extra.prices.broto || 0;
+                        const price = getPriceForSize(extra?.prices, size);
                         return (
                           <label
                             key={extra.id}
-                            className={`extras-item${checked  " extras-item-active" : ""}`}
+                            className={`extras-item${checked ? " extras-item-active" : ""}`}
                           >
                             <input
                               type="checkbox"
@@ -574,6 +574,9 @@ const ProductPickerModal = ({
                           </label>
                         );
                       })}
+                    </div>
+                    <div className="extras-summary">
+                      Adicionais: {formatCurrency(extrasUnitTotal)}
                     </div>
                   </div>
                 </div>

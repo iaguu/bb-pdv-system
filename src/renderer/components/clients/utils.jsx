@@ -30,18 +30,30 @@ export async function lookupCep(cepRaw) {
     throw new Error("CEP deve ter 8 dígitos.");
   }
 
-  const url = `https://viacep.com.br/ws/${cepDigits}/json/`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Erro ao consultar CEP.");
+  try {
+    const url = `https://viacep.com.br/ws/${cepDigits}/json/`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Erro ao consultar CEP.");
 
-  const data = await res.json();
-  if (data.erro) throw new Error("CEP não encontrado.");
+    const data = await res.json();
+    if (data.erro) throw new Error("CEP não encontrado.");
 
-  return {
-    cep: cepDigits,
-    street: data.logradouro || "",
-    neighborhood: data.bairro || "",
-    city: data.localidade || "",
-    state: data.uf || "",
-  };
+    return {
+      cep: cepDigits,
+      street: data.logradouro || "",
+      neighborhood: data.bairro || "",
+      city: data.localidade || "",
+      state: data.uf || "",
+    };
+  } catch (error) {
+    console.error("Erro ao buscar CEP:", error);
+    // Retorna objeto vazio em caso de falha para não quebrar a aplicação
+    return {
+      cep: cepDigits,
+      street: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+    };
+  }
 }

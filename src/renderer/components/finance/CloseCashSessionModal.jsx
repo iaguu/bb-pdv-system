@@ -15,12 +15,12 @@ const formatCurrency = (value) =>
  * - open / isOpen: boolean
  * - onClose: () => void
  * - hasOpenSession: boolean
- * - openingAmount: number        (valor de abertura da sessão atual)
- * - orderCount: number           (qtd de pedidos no período)
- * - paidTotal: number            (total recebido em todos os meios)
- * - cashPaid: number             (total recebido em dinheiro)
+ * - openingAmount: number ? (valor de abertura da sessão atual)
+ * - orderCount: number ? (qtd de pedidos no período)
+ * - paidTotal: number ? (total recebido em todos os meios)
+ * - cashPaid: number ? (total recebido em dinheiro)
  * - expectedCashInDrawer: number (abertura + dinheiro de pedidos pagos)
- * - closingDifference: number    (valor contado - expectedCashInDrawer)
+ * - closingDifference: number ? (valor contado - expectedCashInDrawer)
  * - closeForm: { countedAmount, notes }
  * - onChangeField: (field: "countedAmount" | "notes", value: string) => void
  * - onConfirm: () => void
@@ -40,7 +40,7 @@ const CloseCashSessionModal = ({
   onChangeField,
   onConfirm,
 }) => {
-  const visible = typeof open === "boolean"  open : isOpen || false;
+  const visible = typeof open === "boolean" ? open : isOpen || false;
 
   const handleChange =
     (field) =>
@@ -56,7 +56,7 @@ const CloseCashSessionModal = ({
       title="Fechar sessão de caixa"
     >
       <div className="cash-modal">
-        {hasOpenSession  (
+        {hasOpenSession ? (
           <>
             <p className="cash-modal-description">
               Confira os valores do dia, conte o dinheiro em caixa e
@@ -106,9 +106,9 @@ const CloseCashSessionModal = ({
               <strong
                 className={
                   closingDifference === 0
-                     "cash-diff-zero"
+                    ? "cash-diff-zero"
                     : closingDifference > 0
-                     "cash-diff-positive"
+                    ? "cash-diff-positive"
                     : "cash-diff-negative"
                 }
               >

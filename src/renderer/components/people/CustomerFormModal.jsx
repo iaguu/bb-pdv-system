@@ -63,7 +63,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
   const editingData = initialData || customer || null;
 
   const displayName = editingData
-     editingData.name.trim() || "Cliente sem nome"
+    ? editingData.name.trim() || "Cliente sem nome"
     : "Novo cliente";
 
   const [form, setForm] = useState(() => ({
@@ -74,12 +74,12 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
     notes: editingData.notes || "",
     deliveryMinMinutes:
       typeof editingData.deliveryMinMinutes === "number"
-         editingData.deliveryMinMinutes
+        ? editingData.deliveryMinMinutes
         : null,
     deliveryMetrics: editingData.deliveryMetrics || null,
     deliveryFee:
       typeof editingData.deliveryFee === "number"
-         String(editingData.deliveryFee)
+        ? String(editingData.deliveryFee)
         : "",
     address: {
       cep: editingData.address.cep || "",
@@ -136,12 +136,12 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
       notes: editingData.notes || "",
       deliveryMinMinutes:
         typeof editingData.deliveryMinMinutes === "number"
-           editingData.deliveryMinMinutes
+          ? editingData.deliveryMinMinutes
           : null,
       deliveryMetrics: editingData.deliveryMetrics || null,
       deliveryFee:
         typeof editingData.deliveryFee === "number"
-           String(editingData.deliveryFee)
+          ? String(editingData.deliveryFee)
           : "",
       address: {
         cep: editingData.address.cep || "",
@@ -281,11 +281,11 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
           cep: digitsOnly(prev.address.cep),
           street:
             auto && prev.address.street
-               prev.address.street
+               ? prev.address.street
               : data.logradouro || prev.address.street,
           neighborhood:
             auto && prev.address.neighborhood
-               prev.address.neighborhood
+               ? prev.address.neighborhood
               : data.bairro || prev.address.neighborhood,
           city: data.localidade || prev.address.city,
           state: data.uf || prev.address.state,
@@ -296,7 +296,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
       setCepStatus("ok");
       setCepMessage(
         auto
-           "Cidade e estado atualizados pelo CEP."
+           ? "Cidade e estado atualizados pelo CEP."
           : "Endereço atualizado pelo CEP."
       );
     } catch (err) {
@@ -415,10 +415,10 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
       notes: form.notes.trim(),
       deliveryMinMinutes:
         typeof form.deliveryMinMinutes === "number"
-           form.deliveryMinMinutes
+          ? form.deliveryMinMinutes
           : null,
       deliveryMetrics: form.deliveryMetrics || null,
-      deliveryFee: form.deliveryFee  Number(form.deliveryFee) : null,
+      deliveryFee: form.deliveryFee ? Number(form.deliveryFee) : null,
       address: {
         cep: digitsOnly(form.address.cep),
         street: form.address.street.trim(),
@@ -458,7 +458,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
   return (
     <>
       <Modal
-        title={editingData  "Editar cliente" : "Novo cliente"}
+        title={editingData ? "Editar cliente" : "Novo cliente"}
         onClose={onClose}
         footer={
           <div className="modal-footer-actions">
@@ -485,24 +485,24 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
             <span
               className={
                 "customer-pill " +
-                (editingData  "customer-pill-edit" : "customer-pill-new")
+                (editingData ? "customer-pill-edit" : "customer-pill-new")
               }
             >
-              {editingData  "Em edição" : "Novo cadastro"}
+              {editingData ? "Em edição" : "Novo cadastro"}
             </span>
           </div>
           <p className="customer-form-subtitle">
             {editingData
-               "Revise contato, endereço e observações antes de salvar."
+               ? "Revise contato, endereço e observações antes de salvar."
               : "Preencha os campos de contato e endereço para cadastrar."}
           </p>
           <div className="customer-form-meta">
             <span className="customer-pill-soft">
-              {form.phone  "Telefone informado" : "Telefone pendente"}
+              {form.phone ? "Telefone informado" : "Telefone pendente"}
             </span>
             <span className="customer-pill-soft">
               {form.address.city || form.address.street
-                 "Endereço preenchido"
+                 ? "Endereço preenchido"
                 : "Endereço pendente"}
             </span>
           </div>
@@ -511,7 +511,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
 
       <div className="customer-form-top-actions">
         <Button variant="primary" type="submit" form="customer-form">
-          {editingData  "Salvar alterações" : "Cadastrar cliente"}
+          {editingData ? "Salvar alterações" : "Cadastrar cliente"}
         </Button>
         {editingData.id && (
           <Button variant="danger" type="button" onClick={handleDelete}>
@@ -583,7 +583,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
               <div className="customer-cep-inline">
                 <input
                   ref={cepRef}
-                  className={"input" + (formErrors["address.cep"]  " input-error" : "")}
+                  className={"input" + (formErrors["address.cep"] ? " input-error" : "")}
                   value={form.address.cep}
                   onChange={(e) => handleAddressChange("cep", e.target.value)}
                   placeholder="Somente números"
@@ -602,7 +602,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
                   className={
                     "cep-status" +
                     (cepStatus === "error"
-                       " cep-status-error"
+                      ? " cep-status-error"
                       : " cep-status-ok")
                   }
                 >
@@ -615,7 +615,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
               <span className="field-label">Rua</span>
               <input
                 ref={streetRef}
-                className={"input" + (formErrors["address.street"]  " input-error" : "")}
+                className={"input" + (formErrors["address.street"] ? " input-error" : "")}
                 value={form.address.street}
                 onChange={(e) =>
                   handleAddressChange("street", e.target.value)
@@ -627,7 +627,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
               <span className="field-label">Número</span>
               <input
                 ref={numberRef}
-                className={"input" + (formErrors["address.number"]  " input-error" : "")}
+                className={"input" + (formErrors["address.number"] ? " input-error" : "")}
                 value={form.address.number}
                 onChange={(e) =>
                   handleAddressChange("number", e.target.value)
@@ -641,7 +641,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
               <span className="field-label">Bairro</span>
               <input
                 ref={neighborhoodRef}
-                className={"input" + (formErrors["address.neighborhood"]  " input-error" : "")}
+                className={"input" + (formErrors["address.neighborhood"] ? " input-error" : "")}
                 value={form.address.neighborhood}
                 onChange={(e) =>
                   handleAddressChange("neighborhood", e.target.value)
@@ -653,7 +653,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
               <span className="field-label">Cidade</span>
               <input
                 ref={cityRef}
-                className={"input" + (formErrors["address.city"]  " input-error" : "")}
+                className={"input" + (formErrors["address.city"] ? " input-error" : "")}
                 value={form.address.city}
                 onChange={(e) =>
                   handleAddressChange("city", e.target.value)
@@ -665,7 +665,7 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
               <span className="field-label">Estado</span>
               <input
                 ref={stateRef}
-                className={"input" + (formErrors["address.state"]  " input-error" : "")}
+                className={"input" + (formErrors["address.state"] ? " input-error" : "")}
                 value={form.address.state}
                 onChange={(e) =>
                   handleAddressChange("state", e.target.value)

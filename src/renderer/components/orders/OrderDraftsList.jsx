@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useOrderDrafts } from "../../utils/orderDraftManager";
+import { OrderIcon } from "./OrderIcons";
 
 export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) {
   const { drafts: allDrafts, activeDraftId, removeDraft, clearAllDrafts } = useOrderDrafts();
@@ -68,9 +69,9 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
         let newIndex;
         
         if (e.key === 'ArrowDown') {
-          newIndex = currentIndex < filteredAndSortedDrafts.length - 1  currentIndex + 1 : 0;
+          newIndex = currentIndex < filteredAndSortedDrafts.length - 1 ? currentIndex + 1 : 0;
         } else {
-          newIndex = currentIndex > 0  currentIndex - 1 : filteredAndSortedDrafts.length - 1;
+          newIndex = currentIndex > 0 ? currentIndex - 1 : filteredAndSortedDrafts.length - 1;
         }
         
         setSelectedDraftId(filteredAndSortedDrafts[newIndex].id || null);
@@ -131,7 +132,7 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
 
     // Rascunhos urgentes (mais de 2 horas ou alto valor)
     if (ageHours > 2 || total > 200) {
-      return ageHours > 4  "urgent" : "high-value";
+      return ageHours > 4 ? "urgent" : "high-value";
     }
     return "normal";
   }, []);
@@ -192,11 +193,11 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
       )}
 
       {/* Lista de rascunhos */}
-      {filteredAndSortedDrafts.length === 0  (
+      {filteredAndSortedDrafts.length === 0 ? (
         <div className="order-drafts-list__empty">
-          <div className="order-drafts-list__empty-icon">📝</div>
+          <div className="order-drafts-list__empty-icon"><OrderIcon name="summary" /></div>
           <div className="order-drafts-list__empty-text">
-            {searchTerm  "Nenhum rascunho encontrado" : "Nenhum rascunho ainda"}
+            {searchTerm ? "Nenhum rascunho encontrado" : "Nenhum rascunho ainda"}
           </div>
           {!searchTerm && (
             <button
@@ -217,7 +218,7 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
             return (
               <div
                 key={draft.id}
-                className={`order-draft-item ${isActive  'order-draft-item--active' : ''} ${priority  `order-draft-item--${priority}` : ''} ${isSelected  'order-draft-item--selected' : ''}`}
+                className={`order-draft-item ${isActive ? 'order-draft-item--active' : ''} ${priority ? `order-draft-item--${priority}` : ''} ${isSelected ? 'order-draft-item--selected' : ''}`}
                 onClick={() => handleSelectDraft(draft)}
                 data-testid="draft-item"
               >
@@ -259,14 +260,14 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
                       className="order-draft-item__action-btn"
                       title="Visualizar"
                     >
-                      👁️
+                      <OrderIcon name="search" />
                     </button>
                     <button
                       onClick={(e) => handleRemoveDraft(e, draft.id)}
                       className="order-draft-item__action-btn order-draft-item__action-btn--remove"
                       title="Remover rascunho"
                     >
-                      🗑️
+                      <OrderIcon name="trash" />
                     </button>
                   </div>
                 </div>
@@ -305,7 +306,7 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
             onClick={() => setConfirmClearAll(true)}
             className="order-drafts-list__btn order-drafts-list__btn--danger"
           >
-            🗑️ Limpar Todos
+            <OrderIcon name="trash" /> Limpar Todos
           </button>
         </div>
       )}

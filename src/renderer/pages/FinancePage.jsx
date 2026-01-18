@@ -1158,9 +1158,7 @@ const FinancePage = () => {
           {hasOpenSession && currentOpenSession && (
             <div className="finance-open-badge">
               Caixa aberto desde{" "}
-              {parseSessionDate(
-                currentOpenSession
-              ).toLocaleString("pt-BR", {
+              {parseSessionDate(currentOpenSession).toLocaleString("pt-BR", {
                 dateStyle: "short",
                 timeStyle: "short",
               }) || "-"}

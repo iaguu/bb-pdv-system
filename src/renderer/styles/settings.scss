@@ -1,6 +1,6 @@
-﻿/* ============================================================================
+/* ============================================================================
    SETTINGS PAGE
-   ConfiguraÃ§Ãµes gerais, API, entrega e impressÃ£o
+   Configuraes gerais, API, entrega e impresso
    ============================================================================ */
 
 $settings-border: #e3e3ea;
@@ -10,7 +10,7 @@ $settings-text-main: #111827;
 $settings-text-muted: #6b7280;
 $settings-text-soft: #9ca3af;
 
-/* Layout base da pÃ¡gina de configuraÃ§Ãµes */
+/* Layout base da pgina de configuraes */
 .settings-layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1.6fr);
@@ -84,7 +84,7 @@ $settings-text-soft: #9ca3af;
 }
 
 /* ========================================================================== */
-/* SEÃ‡Ã•ES                                                                    */
+/* SEES                                                                    */
 /* ========================================================================== */
 
 .settings-section {
@@ -302,11 +302,26 @@ $settings-text-soft: #9ca3af;
   color: #1d4ed8;
 }
 
-/* Labels padrÃ£o da aplicaÃ§Ã£o (jÃ¡ usados em outras telas) */
+/* Labels padro da aplicao (j usados em outras telas) */
 .field {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.field-with-action {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  
+  .input {
+    flex: 1;
+  }
+  
+  .btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
 }
 
 .field-label {
@@ -321,7 +336,7 @@ $settings-text-soft: #9ca3af;
   color: $settings-text-muted;
 }
 
-/* Inputs genÃ©ricos (tambÃ©m usados em outras pÃ¡ginas) */
+/* Inputs genricos (tambm usados em outras pginas) */
 .input {
   border-radius: 8px;
   border: 1px solid $settings-border;
@@ -576,7 +591,7 @@ $settings-text-soft: #9ca3af;
   }
 }
 
-/* IMPRESSÃƒO â€“ GRID DE IMPRESSORAS                                           */
+/* IMPRESSO  GRID DE IMPRESSORAS                                           */
 /* ========================================================================== */
 
 .settings-printing-grid {
@@ -609,7 +624,7 @@ $settings-text-soft: #9ca3af;
   }
 }
 
-/* OpÃ§Ãµes de impressÃ£o (checkboxes) */
+/* Opes de impresso (checkboxes) */
 .settings-printing-options {
   margin-top: 10px;
   padding-top: 8px;
@@ -995,7 +1010,7 @@ $settings-text-soft: #9ca3af;
 }
 
 /* ========================================================================== */
-/* AJUSTES DE BOTÃ•ES E TEXTO INLINE                                          */
+/* AJUSTES DE BOTES E TEXTO INLINE                                          */
 /* ========================================================================== */
 
 .settings-section .btn,
@@ -1003,12 +1018,13 @@ $settings-text-soft: #9ca3af;
   font-size: 12px;
 }
 
-/* Texto auxiliar perto dos botÃµes de impressora jÃ¡ estÃ¡ inline,
-   aqui sÃ³ garantimos legibilidade no contexto da pÃ¡gina */
+/* Texto auxiliar perto dos botes de impressora j est inline,
+   aqui s garantimos legibilidade no contexto da pgina */
 .settings-section span {
   &.settings-inline-hint {
     font-size: 12px;
     color: $settings-text-muted;
   }
 }
+
 

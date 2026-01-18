@@ -1,10 +1,15 @@
-﻿// electron/main.js
+﻿ // electron/main.js
 const { app, BrowserWindow, ipcMain, shell, Notification } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const dotenv = require("dotenv");
 const QRCode = require("qrcode"); // QR Code para tickets HTML
 const isDev = !app.isPackaged;
+app.commandLine.appendSwitch(
+  "disable-features",
+  "Autofill,AutofillAssistant,AutofillServerCommunication"
+);
+app.commandLine.appendSwitch("disable-blink-features", "Autofill");
 const packagedEnvPath = path.join(process.resourcesPath || "", ".env");
 const devEnvPath = path.join(__dirname, "..", ".env");
 const devEnvOverridePath = path.join(__dirname, "..", ".env.development");
@@ -214,10 +219,33 @@ sync.syncEvents.on("updated-order", (order) => {
 
 sync.syncEvents.on("new-orders-notification", (count) => {
   try {
-    if (typeof app.beep === "function") {
+    const notificationSettings =
+      typeof sync.getNotificationSettings === "function"
+        ? sync.getNotificationSettings()
+        : { enabled: true, audioEnabled: true, desktopEnabled: true };
+    if (notificationSettings.audioEnabled && typeof app.beep === "function") {
       app.beep();
     }
-    console.log(`[sync] Notificação de ${count} novos pedidos.`);
+    if (
+      notificationSettings.desktopEnabled &&
+      Notification &&
+      typeof Notification.isSupported === "function" &&
+      Notification.isSupported()
+    ) {
+      const iconPath = path.join(app.getAppPath(), "AXIONPDV.png");
+      const title = "Novo pedido";
+      const body =
+        count === 1
+          ? "Um novo pedido chegou."
+          : `${count} novos pedidos chegaram.`;
+      const winNotification = new Notification({
+        title,
+        body,
+        icon: iconPath,
+      });
+      winNotification.show();
+    }
+    console.log(`[sync] Notificacao de ${count} novos pedidos.`);
   } catch (err) {
     console.error("[sync] Erro ao notificar:", err);
   }
@@ -345,7 +373,7 @@ async function getDistanceKmFromGoogle(origin, destination) {
       ? Math.round(durationSeconds / 60)
       : null;
   const durationText = element.duration.text || null;
-  console.log("[distance] Distncia calculada (km):", km);
+  console.log("[distance] Distância calculada (km):", km);
   return {
     distanceKm: km,
     durationMinutes,
@@ -667,10 +695,13 @@ function resolveDeviceNameFromRole(
 // Funções utilitárias de impressão
 // -------------------------------------
 async function printTextTicket(text, { silent = true, deviceName } = {}) {
+  // Criar janela de impressão fora do processo principal para não travar
   const win = new BrowserWindow({
     show: false,
     webPreferences: {
       sandbox: false,
+      nodeIntegration: false,
+      contextIsolation: true,
     },
   });
 
@@ -712,15 +743,26 @@ async function printTextTicket(text, { silent = true, deviceName } = {}) {
   return new Promise((resolve) => {
     win.webContents.print(
       {
-        silent,
+        silent: silent,
         printBackground: false,
         deviceName: deviceName || undefined,
+        scaleFactor: 1.0,
+        margins: {
+          marginType: 'custom',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0
+        }
       },
       (success, failureReason) => {
         if (!success) {
           console.error("Falha ao imprimir ticket:", failureReason);
         }
-        win.close();
+        // Forçar fechamento da janela para não travar processos
+        setTimeout(() => {
+          win.close();
+        }, 1000);
         resolve(success);
       }
     );
@@ -728,10 +770,13 @@ async function printTextTicket(text, { silent = true, deviceName } = {}) {
 }
 
 async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
+  // Criar janela de impressão fora do processo principal para não travar
   const win = new BrowserWindow({
     show: false,
     webPreferences: {
       sandbox: false,
+      nodeIntegration: false,
+      contextIsolation: true,
     },
   });
 
@@ -742,6 +787,7 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
         <style>
           @page {
             margin: 0;
+            size: 58mm auto;
           }
           * {
             box-sizing: border-box;
@@ -749,12 +795,13 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
             padding: 0;
           }
           body {
-            font-family: "Consolas", "Courier New", monospace;
-            font-size: 13px;
-            line-height: 1.4;
-            padding: 6px 10px;
-            width: 260px; /* bobina 58/80mm */
+            font-family: "Courier New", monospace;
+            font-size: 12px;
+            line-height: 1.3;
+            padding: 8px;
+            width: 240px; /* bobina 58mm */
             background: #ffffff;
+            color: #000000;
           }
 
           .ticket {
@@ -782,22 +829,27 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
           }
 
           .ticket-header {
-            text-align: left;
-            margin-bottom: 6px;
+            text-align: center;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 2px solid #000000;
           }
           .ticket-title {
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
           }
           .ticket-subtitle {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 600;
             margin-top: 2px;
+            color: #666666;
           }
           .ticket-meta {
-            font-size: 11px;
-            color: #374151;
-            margin-top: 1px;
+            font-size: 10px;
+            color: #666666;
+            margin-top: 2px;
           }
 
           .ticket-tag {
@@ -836,9 +888,9 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
 
           /* ITENS (cozinha / balcão) */
           .tk-item {
-            padding: 4px 0;
-            border-bottom: 1px dashed #e5e7eb;
-            margin-bottom: 2px;
+            padding: 6px 0;
+            border-bottom: 1px dotted #666666;
+            margin-bottom: 4px;
           }
           .tk-item:last-child {
             border-bottom: 0;
@@ -848,20 +900,29 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
             flex-wrap: wrap;
             gap: 4px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
+            line-height: 1.2;
           }
           .tk-qty {
-            font-weight: 700;
+            font-weight: 800;
+            background: #000000;
+            color: #ffffff;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 10px;
           }
           .tk-size {
             font-weight: 600;
+            color: #666666;
+            font-style: italic;
           }
           .tk-flavors {
             font-weight: 600;
           }
           .tk-item-row {
-            font-size: 11px;
-            margin-top: 1px;
+            font-size: 10px;
+            margin-top: 2px;
+            color: #666666;
           }
 
           .tk-item-price {
@@ -902,51 +963,67 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
 
           /* RESUMO (totais) – balcão */
           .ticket-summary {
-            margin-top: 2px;
+            margin-top: 8px;
+            border-top: 2px solid #000000;
+            padding-top: 6px;
           }
           .ticket-summary-row {
             display: flex;
             justify-content: space-between;
             font-size: 12px;
+            margin-bottom: 2px;
           }
           .ticket-summary-row + .ticket-summary-row {
             margin-top: 2px;
           }
           .ticket-summary-row--total {
-            margin-top: 3px;
-            padding-top: 3px;
-            border-top: 1px dashed #9ca3af;
-            font-weight: 700;
+            margin-top: 6px;
+            padding-top: 4px;
+            border-top: 2px solid #000000;
+            font-weight: 800;
+            font-size: 14px;
           }
           .ticket-summary-label {
             flex: 1;
+            text-transform: uppercase;
+            font-weight: 600;
           }
           .ticket-summary-value {
-            margin-left: 6px;
+            margin-left: 8px;
+            font-weight: 700;
           }
 
           /* QR / BALCÃO */
           .ticket-section-qr {
             text-align: center;
+            margin-top: 12px;
+            border-top: 2px solid #000000;
+            padding-top: 8px;
           }
           .ticket-qr {
-            margin-top: 4px;
+            margin: 8px 0;
           }
           .ticket-qr img {
-            max-width: 180px;
-            max-height: 180px;
+            max-width: 160px;
+            max-height: 160px;
+            border: 2px solid #000000;
           }
           .ticket-qr-link {
-            font-size: 10px;
-            margin-top: 2px;
+            font-size: 9px;
+            margin-top: 4px;
             word-break: break-all;
+            font-weight: 600;
+            color: #000000;
           }
 
           .ticket-footer {
-            margin-top: 8px;
-            font-size: 10px;
+            margin-top: 16px;
+            padding-top: 8px;
+            border-top: 1px solid #000000;
+            font-size: 9px;
             text-align: center;
-            color: #6b7280;
+            color: #666666;
+            font-weight: 600;
           }
         </style>
       </head>
@@ -960,18 +1037,30 @@ async function printHtmlTicket(innerHtml, { silent = true, deviceName } = {}) {
     "data:text/html;charset=utf-8," + encodeURIComponent(html)
   );
 
+  // Melhorar configuração de impressão para não travar
   return new Promise((resolve) => {
     win.webContents.print(
       {
-        silent,
-        printBackground: true,
+        silent: silent,
+        printBackground: false,
         deviceName: deviceName || undefined,
+        scaleFactor: 1.0,
+        margins: {
+          marginType: 'custom',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0
+        }
       },
       (success, failureReason) => {
         if (!success) {
           console.error("Falha ao imprimir ticket HTML:", failureReason);
         }
-        win.close();
+        // Forçar fechamento da janela para não travar processos
+        setTimeout(() => {
+          win.close();
+        }, 1000);
         resolve(success);
       }
     );
@@ -1214,7 +1303,7 @@ const SOURCE_LABELS = {
   ifood: "iFood",
   phone: "Telefone",
   local: "Balcão / Local",
-  balcão: "Balcão / Local",
+  balcao: "Balcão / Local",
   counter: "Balcão / Local",
   desktop: "Sistema",
 };
@@ -1452,7 +1541,7 @@ function buildKitchenTicket(order) {
         unitPrice * qty;
 
       const extrasNames = Array.isArray(item.extras)
-         ? item.extras
+        ? item.extras
             .map(
               (ex) =>
                 (ex && (ex.name || ex.label || ex.descricao)) || ""
@@ -1630,9 +1719,9 @@ function buildCounterTicket(order) {
     const state = addressObj.state || addressObj.uf || "";
 
     const main = [
-      street && (street + (number  ", " + number : "")),
+      street && (street + (number ? ", " + number : "")),
       neighborhood,
-      city && (state  city + " / " + state : city),
+      city && (state ? city + " / " + state : city),
     ]
       .filter(Boolean)
       .join(" • ");
@@ -1669,34 +1758,34 @@ function buildCounterTicket(order) {
   }
 
   const subtotal = Number(
-    order.totals.subtotal  order.subtotal  0
+    order.totals.subtotal || order.subtotal || 0
   );
 
   const deliveryFee = Number(
-    order.delivery.fee 
-      order.totals.deliveryFee 
-      order.deliveryFee 
+    order.delivery.fee ||
+      order.totals.deliveryFee ||
+      order.deliveryFee ||
       0
   );
 
   const discountAmount = Number(
-    order.totals.discount 
+    order.totals.discount ||
       (typeof order.discount === "object"
-         order.discount.amount
-        : order.discount) 
+        ? order.discount.amount
+        : order.discount) ||
       0
   );
 
   const total = Number(
-    order.totals.finalTotal 
-      order.total 
+    order.totals.finalTotal ||
+      order.total ||
       subtotal + deliveryFee - discountAmount
   );
 
   const changeAmount =
-    cashGiven > 0  Math.max(cashGiven - total, 0) : 0;
+    cashGiven > 0 ? Math.max(cashGiven - total, 0) : 0;
 
-  const items = Array.isArray(order.items)  order.items : [];
+  const items = Array.isArray(order.items) ? order.items : [];
 
   const trackingUrl = getTrackingUrlFromOrder(order);
 
@@ -1929,9 +2018,9 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
     const state = addressObj.state || addressObj.uf || "";
 
     const main = [
-      street && (street + (number  ", " + number : "")),
+      street && (street + (number ? ", " + number : "")),
       neighborhood,
-      city && (state  city + " / " + state : city),
+      city && (state ? city + " / " + state : city),
     ]
       .filter(Boolean)
       .join(" • ");
@@ -1968,40 +2057,40 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
   }
 
   const subtotal = Number(
-    order.totals.subtotal  order.subtotal  0
+    order.totals.subtotal || order.subtotal || 0
   );
 
   const deliveryFee = Number(
-    order.delivery.fee 
-      order.totals.deliveryFee 
-      order.deliveryFee 
+    order.delivery.fee ||
+      order.totals.deliveryFee ||
+      order.deliveryFee ||
       0
   );
 
   const discountAmount = Number(
-    order.totals.discount 
+    order.totals.discount ||
       (typeof order.discount === "object"
-         order.discount.amount
-        : order.discount) 
+        ? order.discount.amount
+        : order.discount) ||
       0
   );
 
   const total = Number(
-    order.totals.finalTotal 
-      order.total 
+    order.totals.finalTotal ||
+      order.total ||
       subtotal + deliveryFee - discountAmount
   );
 
   const changeAmount =
-    cashGiven > 0  Math.max(cashGiven - total, 0) : 0;
+    cashGiven > 0 ? Math.max(cashGiven - total, 0) : 0;
 
-  const items = Array.isArray(order.items)  order.items : [];
+  const items = Array.isArray(order.items) ? order.items : [];
 
   const trackingUrl = getTrackingUrlFromOrder(order);
 
   // ITENS – reuso do estilo da cozinha
   const itensHtml = items.length
-     items
+    ? items
         .map((item) => {
           const qty = Number(item.quantity || item.qty || 1);
           const sizeLabel = (item.sizeLabel || item.size || "").toString();
@@ -2025,7 +2114,7 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
             unitPrice * qty;
 
           const extrasNames = Array.isArray(item.extras)
-             item.extras
+            ? item.extras
                 .map(
                   (ex) =>
                     (ex && (ex.name || ex.label || ex.descricao)) || ""
@@ -2093,7 +2182,7 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
   // OBS GERAIS
   const hasObs = Boolean(order.orderNotes);
   const obsHtml = hasObs
-     `
+    ? `
       <div class="ticket-section">
         <div class="ticket-section-title">OBSERVAÇÕES</div>
         <div class="ticket-body">${escapeHtml(order.orderNotes)}</div>
@@ -2104,14 +2193,14 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
   // ENTREGA / MOTOBOY
   const isDelivery = orderTypeKey === "delivery";
   const entregaHtml = isDelivery
-     `
+    ? `
       <div class="ticket-section">
         <div class="ticket-section-title">ENTREGA / MOTOBOY</div>
         <div class="ticket-body">
-          ${courierName  "Entregador: " + escapeHtml(courierName) + "<br/>" : "Entregador: A definir<br/>"}
+          ${courierName ? "Entregador: " + escapeHtml(courierName) + "<br/>" : "Entregador: A definir<br/>"}
           ${
             courierPhone
-               "Fone mot.: " + escapeHtml(courierPhone) + "<br/>"
+              ? "Fone mot.: " + escapeHtml(courierPhone) + "<br/>"
               : ""
           }
           Valor na porta: ${escapeHtml(formatCurrencyBR(total))}
@@ -2148,18 +2237,18 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
         <div class="ticket-body">
           ${
             customerMode === "counter" && counterLabel
-               "Atendimento: " + escapeHtml(counterLabel) + "<br/>"
+              ? "Atendimento: " + escapeHtml(counterLabel) + "<br/>"
               : "Nome: " + escapeHtml(customerName) + "<br/>"
           }
           ${
             customerPhone
-               "Fone: " + escapeHtml(customerPhone) + "<br/>"
+              ? "Fone: " + escapeHtml(customerPhone) + "<br/>"
               : ""
           }
-          ${customerCpf  "CPF: " + escapeHtml(customerCpf) + "<br/>" : ""}
+          ${customerCpf ? "CPF: " + escapeHtml(customerCpf) + "<br/>" : ""}
           ${
             addressText && isDelivery
-               "Endereço: " + escapeHtml(addressText)
+              ? "Endereço: " + escapeHtml(addressText)
               : ""
           }
         </div>
@@ -2211,7 +2300,7 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
           Status: ${escapeHtml(paymentStatusLabel)}<br/>
           ${
             cashGiven > 0
-               "Valor pago: " +
+              ? "Valor pago: " +
                 escapeHtml(formatCurrencyBR(cashGiven)) +
                 "<br/>Troco: " +
                 escapeHtml(formatCurrencyBR(changeAmount)) +
@@ -2226,22 +2315,28 @@ function buildCounterHtmlTicket(order, qrCodeDataUrl) {
 
       ${
         qrCodeDataUrl || trackingUrl
-           `
+          ? `
       <div class="ticket-divider"></div>
       <div class="ticket-section ticket-section-qr">
-        <div class="ticket-section-title">QR para motoboy / cliente</div>
+        <div class="ticket-section-title">QR CODE - ACOMPANHE SEU PEDIDO</div>
+        <div class="ticket-body" style="text-align: center; margin-bottom: 6px;">
+          Escaneie para acompanhar a entrega em tempo real
+        </div>
         ${
           qrCodeDataUrl
-             `<div class="ticket-qr"><img src="${escapeHtml(
+            ? `<div class="ticket-qr"><img src="${escapeHtml(
                 qrCodeDataUrl
               )}" alt="QR Code" /></div>`
             : ""
         }
         ${
           trackingUrl
-             `<div class="ticket-qr-link">${escapeHtml(trackingUrl)}</div>`
+            ? `<div class="ticket-qr-link" style="margin-top: 8px; font-size: 10px;">${escapeHtml(trackingUrl)}</div>`
             : ""
         }
+        <div class="ticket-body" style="text-align: center; margin-top: 8px; font-size: 9px; font-weight: 600;">
+          📱 motoboy.annetom.com
+        </div>
       </div>
       `
           : ""
@@ -2266,6 +2361,7 @@ ipcMain.handle("print:tickets", async (event, payload) => {
     requestedPrinterName,
     kitchenPrinterName,
     counterPrinterName,
+    async: asyncMode = false,
   } = payload || {};
 
   if (!kitchenText && !counterText) {
@@ -2286,7 +2382,7 @@ ipcMain.handle("print:tickets", async (event, payload) => {
       systemPrinters,
     };
 
-    const silentFlag = silent  true;
+    const silentFlag = silent ? true : false;
 
     if (kitchenText) {
       const deviceNameKitchen = resolveDeviceNameFromRole("kitchen", ctx);
@@ -2297,6 +2393,7 @@ ipcMain.handle("print:tickets", async (event, payload) => {
       `;
       await printHtmlTicket(kitchenInnerHtml, {
         silent: silentFlag,
+        async: asyncMode,
         deviceName: deviceNameKitchen,
       });
     }
@@ -2305,6 +2402,7 @@ ipcMain.handle("print:tickets", async (event, payload) => {
       const deviceNameCounter = resolveDeviceNameFromRole("counter", ctx);
       await printTextTicket(counterText, {
         silent: silentFlag,
+        async: asyncMode,
         deviceName: deviceNameCounter,
       });
     }
@@ -2329,8 +2427,13 @@ ipcMain.handle("print:order", async (event, { order, options } = {}) => {
     const mode = (options && options.mode) || "full";
     const silent =
       options && typeof options.silent === "boolean"
-         options.silent
+        ? options.silent
         : true;
+    
+    // Suporte para modo assíncrono
+    const asyncMode = options && typeof options.async === "boolean"
+      ? options.async
+      : false;
 
     const settingsPrinters = await getPrinterSettingsSafe();
     const systemPrinters = await getSystemPrintersSafe(event.sender);
@@ -2356,6 +2459,7 @@ ipcMain.handle("print:order", async (event, { order, options } = {}) => {
       const deviceNameKitchen = resolveDeviceNameFromRole("kitchen", ctx);
       await printHtmlTicket(kitchenHtml, {
         silent,
+        async: asyncMode,
         deviceName: deviceNameKitchen,
       });
     }
@@ -2364,6 +2468,7 @@ ipcMain.handle("print:order", async (event, { order, options } = {}) => {
       const deviceNameCounter = resolveDeviceNameFromRole("counter", ctx);
       await printHtmlTicket(counterHtml, {
         silent,
+        async: asyncMode,
         deviceName: deviceNameCounter,
       });
     }
@@ -2406,7 +2511,7 @@ ipcMain.handle("print:test", async (event, { role } = {}) => {
     let deviceName;
     if (systemPrinters && systemPrinters.length > 0 && settingsName) {
       const match = findBestPrinterMatch(systemPrinters, settingsName);
-      deviceName = match  match.name : undefined;
+      deviceName = match ? match.name : undefined;
     }
 
     const text = `TESTE DE IMPRESSAO - ${
@@ -2430,7 +2535,7 @@ ipcMain.handle("print:test", async (event, { role } = {}) => {
 // -------------------------------------
 ipcMain.handle("sync:pull", async () => {
   if (!sync.hasSyncBaseUrl()) {
-    return { success: false, error: "SYNC_BASE_URL nao configurado." };
+    return { success: false, error: "SYNC_BASE_URL não configurado." };
   }
 
   try {
@@ -2447,11 +2552,21 @@ ipcMain.handle("sync:status", async () => {
 });
 
 ipcMain.handle("sync:notifications:get", async () => {
+  if (typeof sync.getNotificationSettings === "function") {
+    return sync.getNotificationSettings();
+  }
   return { enabled: sync.getNotificationStatus() };
 });
 
-ipcMain.handle("sync:notifications:set", async (_event, enabled) => {
-  const updated = sync.setNotificationStatus(enabled);
+ipcMain.handle("sync:notifications:set", async (_event, payload) => {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    typeof sync.setNotificationSettings === "function"
+  ) {
+    return sync.setNotificationSettings(payload);
+  }
+  const updated = sync.setNotificationStatus(Boolean(payload));
   await sync.saveSyncSettings();
   return { enabled: updated };
 });
@@ -2499,6 +2614,9 @@ ipcMain.handle("cash:export-report-pdf", async (_event, reportPayload) => {
 // Lifecycle do app
 // -------------------------------------
 app.whenReady().then(() => {
+  if (process.platform === "win32") {
+    app.setAppUserModelId("com.axion.pdv");
+  }
   createMainWindow();
   void sync.loadSyncSettings();
   sync.startSyncPull();

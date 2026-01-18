@@ -100,13 +100,15 @@ class DraftSanitizer {
 
     const sanitized = {
       id: this.sanitizeString(draft.id || ''),
-      customerSnapshot: draft.customerSnapshot  {
-        name: this.sanitizeString(draft.customerSnapshot.name || ''),
-        phone: this.sanitizeString(draft.customerSnapshot.phone || ''),
-        address: this.sanitizeString(draft.customerSnapshot.address || '')
-      } : null,
-      items: Array.isArray(draft.items) 
-         draft.items.slice(0, this.maxItems).map(item => ({
+      customerSnapshot: draft.customerSnapshot
+        ? {
+            name: this.sanitizeString(draft.customerSnapshot.name || ''),
+            phone: this.sanitizeString(draft.customerSnapshot.phone || ''),
+            address: this.sanitizeString(draft.customerSnapshot.address || '')
+          }
+        : null,
+      items: Array.isArray(draft.items)
+        ? draft.items.slice(0, this.maxItems).map(item => ({
             productName: this.sanitizeString(item.productName || ''),
             quantity: Math.max(0, Math.min(999, parseInt(item.quantity) || 0)),
             price: Math.max(0, parseFloat(item.price) || 0)

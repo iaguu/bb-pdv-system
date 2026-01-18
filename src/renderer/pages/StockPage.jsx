@@ -4,85 +4,12 @@ import Page from "../components/layout/Page";
 import Tabs from "../components/layout/Tabs";
 import Button from "../components/common/Button";
 import SearchInput from "../components/common/SearchInput";
-
-/**
- * Normaliza qualquer formato da coleção de produtos do DataEngine:
- * - { items: [...] }
- * - { products: [...] }
- * - [ ... ]
- */
-const normalizeProductsData = (data) => {
-  if (!data) return [];
-  if (Array.isArray(data.items)) return data.items;
-  if (Array.isArray(data.products)) return data.products;
-  if (Array.isArray(data)) return data;
-  return [];
-};
-
-/**
- * Normaliza uma string para ser usada como "chave" de ingrediente
- * (case insensitive, sem espaços extras).
- */
-const normalizeKey = (value) => {
-  if (!value) return "";
-  return String(value).trim().toLowerCase();
-};
-
-/**
- * Aplica as regras de estoque aos produtos:
- * - Pausa pizzas que possuem ingredientes marcados como indisponíveis;
- * - Mantém flag _autoPausedByStock para saber o que foi pausado pelo estoque;
- * - Respeita pausas manuais (_manualOutOfStock).
- */
-const computeProductsWithStock = (baseProducts, ingredientStockMap) => {
-  const unavailableKeys = new Set(
-    Object.values(ingredientStockMap || {})
-      .filter((item) => {
-        const q = Number(item.quantity ?? 0);
-        const minQ = Number(item.minQuantity ?? 0);
-        // Considera em falta se marcado explicitamente ou se quantidade <= 0 com mínimo > 0
-        return item.unavailable || (minQ > 0 && q <= 0);
-      })
-      .map((item) => item.key)
-  );
-
-  return (baseProducts || []).map((p) => {
-    const type = (p.type || "").toLowerCase();
-    const ingredientes = Array.isArray(p.ingredientes)
-      ? p.ingredientes
-      : [];
-
-    const hasMissingIngredient =
-      type === "pizza" &&
-      ingredientes.some((ing) => unavailableKeys.has(normalizeKey(ing)));
-
-    const manualOut = p._manualOutOfStock === true;
-    const wasAutoPaused = p._autoPausedByStock === true;
-
-    // Se estiver sem ingrediente OU manualmente marcado como sem estoque → pausa
-    if (hasMissingIngredient || manualOut) {
-      return {
-        ...p,
-        _autoPausedByStock: hasMissingIngredient,
-        active: false,
-        isAvailable: false,
-      };
-    }
-
-    // Se antes estava pausado automaticamente por estoque e agora não há mais falta → reativa
-    if (wasAutoPaused && !hasMissingIngredient && !manualOut) {
-      return {
-        ...p,
-        _autoPausedByStock: false,
-        active: true,
-        isAvailable: true,
-      };
-    }
-
-    // Sem impacto de estoque: mantém como já estava
-    return p;
-  });
-};
+import {
+  buildIngredientStockMap,
+  computeProductsWithStock,
+  normalizeKey,
+  normalizeProductsData,
+} from "../utils/stockUtils";
 
 const StockPage = () => {
   const [tab, setTab] = useState("ingredients"); // ingredients | products
@@ -103,93 +30,43 @@ const StockPage = () => {
   // -----------------------------
   // LOAD INICIAL (produtos + estoque de ingredientes)
   // -----------------------------
+  const safeGet = async (collection, fallback) => {
+    if (!window.dataEngine || typeof window.dataEngine.get !== "function") {
+      return fallback;
+    }
+
+    try {
+      return await window.dataEngine.get(collection);
+    } catch (err) {
+      console.error(`[StockPage] Falha ao carregar ${collection}:`, err);
+      return fallback;
+    }
+  };
+
   const loadAll = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      if (!window.dataEngine || typeof window.dataEngine.get !== "function") {
-        console.warn("[StockPage] window.dataEngine.get não disponível");
-        setProducts([]);
-        setIngredientStock({});
-        return;
-      }
-
       const [productsData, stockIngredientsData] = await Promise.all([
-        window.dataEngine.get("products"),
-        // se ainda não existir a coleção de estoque de ingredientes, não quebra
-        window.dataEngine.get("stock_ingredients").catch(() => null),
+        safeGet("products", { items: [] }),
+        safeGet("stock_ingredients", { items: [] }),
       ]);
 
       const items = normalizeProductsData(productsData);
       const normalizedProducts = Array.isArray(items) ? items : [];
 
-      // Constrói índice de ingredientes existentes nas pizzas
-      const ingredientIndexFromProducts = {};
-      normalizedProducts.forEach((p) => {
-        const type = (p.type || "").toLowerCase();
-        if (type !== "pizza") return;
-
-        const ingredientes = Array.isArray(p.ingredientes)
-          ? p.ingredientes
-          : [];
-
-        ingredientes.forEach((rawName) => {
-          const key = normalizeKey(rawName);
-          if (!key) return;
-
-          if (!ingredientIndexFromProducts[key]) {
-            ingredientIndexFromProducts[key] = {
-              key,
-              name: rawName,
-            };
-          }
-        });
-      });
-
-      // Normaliza estoque salvo (se existir)
-      const stockItemsRaw = Array.isArray(stockIngredientsData.items)
+      const stockItemsRaw = Array.isArray(stockIngredientsData?.items)
         ? stockIngredientsData.items
         : Array.isArray(stockIngredientsData)
         ? stockIngredientsData
         : [];
 
-      const ingredientStockMap = {};
+      const ingredientStockMap = buildIngredientStockMap(
+        normalizedProducts,
+        stockItemsRaw
+      );
 
-      // Primeiro, usa os ingredientes que existem no catálogo
-      Object.values(ingredientIndexFromProducts).forEach((ing) => {
-        const existing = stockItemsRaw.find(
-          (s) =>
-            normalizeKey(s.key || s.name || s.ingrediente) === ing.key ||
-            normalizeKey(s.name) === ing.key
-        );
-
-        ingredientStockMap[ing.key] = {
-          key: ing.key,
-          name: (existing && existing.name) || ing.name,
-          quantity: Number(existing?.quantity ?? 0),
-          minQuantity: Number(existing?.minQuantity ?? 0),
-          unavailable: Boolean(existing.unavailable),
-        };
-      });
-
-      // Depois, adiciona qualquer ingrediente salvo que não está mais no catálogo,
-      // mas que ainda pode ser útil manter no controle.
-      stockItemsRaw.forEach((s) => {
-        const key = normalizeKey(s.key || s.name || s.ingrediente);
-        if (!key) return;
-        if (ingredientStockMap[key]) return;
-
-        ingredientStockMap[key] = {
-          key,
-          name: s.name || s.ingrediente || key,
-          quantity: Number(s.quantity ?? 0),
-          minQuantity: Number(s.minQuantity ?? 0),
-          unavailable: Boolean(s.unavailable),
-        };
-      });
-
-      // Aplica regras de estoque aos produtos na memória
       const productsWithStock = computeProductsWithStock(
         normalizedProducts,
         ingredientStockMap
@@ -198,15 +75,18 @@ const StockPage = () => {
       setProducts(productsWithStock);
       setIngredientStock(ingredientStockMap);
 
-      // Garante que o estado de "products" com estoque aplicado está persistido
       if (window.dataEngine && typeof window.dataEngine.set === "function") {
-        await window.dataEngine.set("products", {
-          items: productsWithStock,
-        });
+        try {
+          await window.dataEngine.set("products", {
+            items: productsWithStock,
+          });
+        } catch (err) {
+          console.warn("[StockPage] Falha ao persistir produtos:", err);
+        }
       }
     } catch (err) {
       console.error("[StockPage] Erro ao carregar estoque:", err);
-      setError("Não foi possível carregar os dados de estoque.");
+      setError("N??o foi poss??vel carregar os dados de estoque.");
     } finally {
       setLoading(false);
     }

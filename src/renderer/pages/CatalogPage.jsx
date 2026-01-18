@@ -210,14 +210,24 @@ const CatalogPage = () => {
           // API / site trabalham com "nome" e "categoria"
           nome: p.nome || p.name || "",
           categoria: p.categoria || p.category || "",
-          ingredientes: Array.isArray(p.ingredientes)  p.ingredientes : [],
-          preco_broto: p.preco_broto  p.priceBroto  null,
-          preco_grande: p.preco_grande  p.priceGrande  null,
-          badges: Array.isArray(p.badges)  p.badges : [],
-          extras: Array.isArray(p.extras)  p.extras : [],
+          ingredientes: Array.isArray(p.ingredientes) ? p.ingredientes : [],
+          preco_broto:
+            typeof p.preco_broto === "number"
+              ? p.preco_broto
+              : typeof p.priceBroto === "number"
+              ? p.priceBroto
+              : null,
+          preco_grande:
+            typeof p.preco_grande === "number"
+              ? p.preco_grande
+              : typeof p.priceGrande === "number"
+              ? p.priceGrande
+              : null,
+          badges: Array.isArray(p.badges) ? p.badges : [],
+          extras: Array.isArray(p.extras) ? p.extras : [],
           sugestoes:
             Array.isArray(p.sugestoes) || Array.isArray(p.suggestions)
-               p.sugestoes || p.suggestions
+              ? p.sugestoes || p.suggestions
               : [],
         })),
       };
@@ -277,29 +287,31 @@ const CatalogPage = () => {
           name: p.name || p.nome || "",
           description:
             p.description ||
-            (Array.isArray(p.ingredientes)  p.ingredientes.join(", ") : ""),
+            (Array.isArray(p.ingredientes)
+              ? p.ingredientes.join(", ")
+              : ""),
           category: p.category || p.categoria || "",
           priceBroto:
             typeof p.priceBroto === "number"
-               p.priceBroto
+              ? p.priceBroto
               : typeof p.preco_broto === "number"
-               p.preco_broto
+              ? p.preco_broto
               : null,
           priceGrande:
             typeof p.priceGrande === "number"
-               p.priceGrande
+              ? p.priceGrande
               : typeof p.preco_grande === "number"
-               p.preco_grande
+              ? p.preco_grande
               : null,
-          price: typeof p.price === "number"  p.price : null,
+          price: typeof p.price === "number" ? p.price : null,
           active: p.active !== false,
           // Guardamos info extra pra outros usos (site, CardapioPage, etc.)
-          ingredientes: Array.isArray(p.ingredientes)  p.ingredientes : [],
-          badges: Array.isArray(p.badges)  p.badges : [],
-          extras: Array.isArray(p.extras)  p.extras : [],
+          ingredientes: Array.isArray(p.ingredientes) ? p.ingredientes : [],
+          badges: Array.isArray(p.badges) ? p.badges : [],
+          extras: Array.isArray(p.extras) ? p.extras : [],
           sugestoes:
             Array.isArray(p.sugestoes) || Array.isArray(p.suggestions)
-               p.sugestoes || p.suggestions
+              ? p.sugestoes || p.suggestions
               : [],
         }));
 
@@ -326,151 +338,151 @@ const CatalogPage = () => {
       console.error("Erro ao importar JSON:", err);
       setImportStatus({
         type: "error",
-        message: "Nao foi possivel importar o arquivo. Verifique o formato do JSON.",
+        message: "Não foi possível importar o arquivo. Verifique o formato do JSON.",
       });
     }
   };
 
   return (
-    <Page
-      title="Catalogo"
-      subtitle="Pizzas, bebidas e adicionais disponiveis para pedidos."
-      actions={
-        <div className="catalog-header-actions">
-          <Button variant="secondary" onClick={handleClickImport}>
-            Importar JSON
-          </Button>
-          <Button variant="ghost" onClick={handleExportJson}>
-            Exportar JSON
-          </Button>
-          <Button variant="primary" onClick={() => openForm()}>
+  <Page
+    title="Catalogo"
+    subtitle="Pizzas, bebidas e adicionais disponiveis para pedidos."
+    actions={
+      <div className="catalog-header-actions">
+        <Button variant="secondary" onClick={handleClickImport}>
+          Importar JSON
+        </Button>
+        <Button variant="ghost" onClick={handleExportJson}>
+          Exportar JSON
+        </Button>
+        <Button variant="primary" onClick={() => openForm()}>
+          Novo produto
+        </Button>
+      </div>
+    }
+  >
+    {/* input invisivel para selecionar o arquivo JSON */}
+    <input
+      type="file"
+      ref={fileInputRef}
+      accept="application/json"
+      style={{ display: "none" }}
+      onChange={handleFileChange}
+    />
+
+    {importStatus && (
+      <p
+        className={
+          "catalog-import-status" +
+          (importStatus.type === "error"
+            ? " catalog-import-status-error"
+            : " catalog-import-status-ok")
+        }
+      >
+        {importStatus.message}
+      </p>
+    )}
+
+    {/* Resumo do catalogo (cards simples) */}
+    <div className="catalog-summary-grid">
+      <div className="catalog-summary-card">
+        <div className="catalog-summary-label">Produtos totais</div>
+        <div className="catalog-summary-value">{catalogSummary.total}</div>
+      </div>
+      <div className="catalog-summary-card">
+        <div className="catalog-summary-label">Ativos</div>
+        <div className="catalog-summary-value">{catalogSummary.active}</div>
+      </div>
+      <div className="catalog-summary-card">
+        <div className="catalog-summary-label">Pausados</div>
+        <div className="catalog-summary-value">{catalogSummary.inactive}</div>
+      </div>
+      <div className="catalog-summary-card">
+        <div className="catalog-summary-label">Pizzas</div>
+        <div className="catalog-summary-value">{catalogSummary.pizzas}</div>
+      </div>
+      <div className="catalog-summary-card">
+        <div className="catalog-summary-label">Bebidas</div>
+        <div className="catalog-summary-value">{catalogSummary.drinks}</div>
+      </div>
+      <div className="catalog-summary-card">
+        <div className="catalog-summary-label">Adicionais</div>
+        <div className="catalog-summary-value">{catalogSummary.extras}</div>
+      </div>
+    </div>
+
+    {/* Barra de filtros / busca */}
+    <div className="catalog-toolbar">
+      <div className="catalog-toolbar-left">
+        <label className="field">
+          <span className="field-label">Buscar no catalogo</span>
+          <input
+            className="input"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nome, categoria, tipo ou descricao..."
+          />
+        </label>
+      </div>
+
+      <div className="catalog-toolbar-right">
+        <div className="catalog-filter-group">
+          <FilterChips
+            options={TYPE_FILTERS}
+            value={typeFilter}
+            onChange={setTypeFilter}
+          />
+        </div>
+
+        <div className="catalog-filter-group">
+          <FilterChips
+            options={STATUS_FILTERS}
+            value={statusFilter}
+            onChange={setStatusFilter}
+          />
+        </div>
+      </div>
+    </div>
+
+    {loading && products.length === 0 ? (
+      <div className="product-list">
+        {[0, 1, 2, 3, 4, 5].map((idx) => (
+          <div key={`product-skeleton-${idx}`} className="skeleton skeleton-card" />
+        ))}
+      </div>
+    ) : filteredProducts.length === 0 ? (
+      <div className="empty-state">
+        <h3 className="empty-title">Nenhum produto encontrado.</h3>
+        <p className="empty-description">
+          Ajuste a busca ou filtros, ou importe um JSON de catalogo.
+        </p>
+        <div className="empty-actions">
+          <Button variant="primary" onClick={() => setShowForm(true)}>
             Novo produto
           </Button>
+          <Button variant="ghost" onClick={handleClickImport}>
+            Importar JSON
+          </Button>
         </div>
-      }
-    >
-      {/* input invisivel para selecionar o arquivo JSON */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept="application/json"
-        style={{ display: "none" }}
-        onChange={handleFileChange}
+      </div>
+    ) : (
+      <>
+        {isRefreshing && (
+          <div className="order-list-refresh">Atualizando catálogo...</div>
+        )}
+        <ProductList products={filteredProducts} onEdit={openForm} />
+      </>
+    )}
+
+    {showForm && (
+      <ProductFormModal
+        product={activeProduct}
+        onClose={handleFormClose}
+        onSave={handleFormSaved}
       />
-
-      {importStatus && (
-        <p
-          className={
-            "catalog-import-status" +
-            (importStatus.type === "error"
-               " catalog-import-status-error"
-              : " catalog-import-status-ok")
-          }
-        >
-          {importStatus.message}
-        </p>
-      )}
-
-      {/* Resumo do catalogo (cards simples) */}
-      <div className="catalog-summary-grid">
-        <div className="catalog-summary-card">
-          <div className="catalog-summary-label">Produtos totais</div>
-          <div className="catalog-summary-value">{catalogSummary.total}</div>
-        </div>
-        <div className="catalog-summary-card">
-          <div className="catalog-summary-label">Ativos</div>
-          <div className="catalog-summary-value">{catalogSummary.active}</div>
-        </div>
-        <div className="catalog-summary-card">
-          <div className="catalog-summary-label">Pausados</div>
-          <div className="catalog-summary-value">{catalogSummary.inactive}</div>
-        </div>
-        <div className="catalog-summary-card">
-          <div className="catalog-summary-label">Pizzas</div>
-          <div className="catalog-summary-value">{catalogSummary.pizzas}</div>
-        </div>
-        <div className="catalog-summary-card">
-          <div className="catalog-summary-label">Bebidas</div>
-          <div className="catalog-summary-value">{catalogSummary.drinks}</div>
-        </div>
-        <div className="catalog-summary-card">
-          <div className="catalog-summary-label">Adicionais</div>
-          <div className="catalog-summary-value">{catalogSummary.extras}</div>
-        </div>
-      </div>
-
-      {/* Barra de filtros / busca */}
-      <div className="catalog-toolbar">
-        <div className="catalog-toolbar-left">
-          <label className="field">
-            <span className="field-label">Buscar no catalogo</span>
-            <input
-              className="input"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nome, categoria, tipo ou descricao..."
-            />
-          </label>
-        </div>
-
-        <div className="catalog-toolbar-right">
-          <div className="catalog-filter-group">
-            <FilterChips
-              options={TYPE_FILTERS}
-              value={typeFilter}
-              onChange={setTypeFilter}
-            />
-          </div>
-
-          <div className="catalog-filter-group">
-            <FilterChips
-              options={STATUS_FILTERS}
-              value={statusFilter}
-              onChange={setStatusFilter}
-            />
-          </div>
-        </div>
-      </div>
-
-      {loading && products.length === 0  (
-        <div className="product-list">
-          {[0, 1, 2, 3, 4, 5].map((idx) => (
-            <div key={`product-skeleton-${idx}`} className="skeleton skeleton-card" />
-          ))}
-        </div>
-      ) : filteredProducts.length === 0  (
-        <div className="empty-state">
-          <h3 className="empty-title">Nenhum produto encontrado.</h3>
-          <p className="empty-description">
-            Ajuste a busca ou filtros, ou importe um JSON de catalogo.
-          </p>
-          <div className="empty-actions">
-            <Button variant="primary" onClick={() => setShowForm(true)}>
-              Novo produto
-            </Button>
-            <Button variant="ghost" onClick={handleClickImport}>
-              Importar JSON
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <>
-          {isRefreshing && (
-            <div className="order-list-refresh">Atualizando catálogo...</div>
-          )}
-          <ProductList products={filteredProducts} onEdit={openForm} />
-        </>
-      )}
-
-      {showForm && (
-        <ProductFormModal
-          product={activeProduct}
-          onClose={handleFormClose}
-          onSave={handleFormSaved}
-        />
-      )}
-    </Page>
-  );
+    )}
+  </Page>
+);
 };
 
 export default CatalogPage;

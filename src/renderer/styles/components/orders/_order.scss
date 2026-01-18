@@ -1,9 +1,9 @@
-﻿/* ==========================================================================
-   ORDER LIST — AXION PDV (PREMIUM / WHITE)
+/* ==========================================================================
+   ORDER LIST  AXION PDV (PREMIUM / WHITE)
    Target: src/renderer/components/orders/OrderList.jsx
-   - Não altera nomes de classes
-   - Visual limpo, hierarquia clara, leitura rápida
-   - Compatível com OrderRow já existente
+   - No altera nomes de classes
+   - Visual limpo, hierarquia clara, leitura rpida
+   - Compatvel com OrderRow j existente
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -99,7 +99,7 @@
   border-radius: 12px;
 }
 
-/* Título do grupo (Em aberto, Em preparo, etc.) */
+/* Ttulo do grupo (Em aberto, Em preparo, etc.) */
 .order-list-group-title {
   font-size: 14px;
   font-weight: 950;
@@ -129,13 +129,13 @@
   display: grid;
   gap: 12px;
 
-  /* melhora leitura quando há muitos pedidos */
+  /* melhora leitura quando h muitos pedidos */
   padding-left: 2px;
 }
 
 /* --------------------------------------------------------------------------
    STATUS VISUAL DIFERENCIADO (HEADER)
-   Apenas visual — OrderRow já trata o card
+   Apenas visual  OrderRow j trata o card
 --------------------------------------------------------------------------- */
 
 .order-list-group:has(.order-row--status-open)
@@ -164,7 +164,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   MICRO INTERAÇÕES
+   MICRO INTERAES
 --------------------------------------------------------------------------- */
 
 .order-list-group-header {
@@ -211,5 +211,6 @@
     align-self: flex-start;
   }
 }
+
 
 

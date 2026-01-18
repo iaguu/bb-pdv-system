@@ -1,5 +1,5 @@
-﻿/* ==========================================================================
-   Product & Catalog styling â€” WHITE THEME
+/* ==========================================================================
+   Product & Catalog styling  WHITE THEME
    Simplified surfaces, clear spacing, and consistent hierarchy.
    Target: Product modals, catalog list rows, and form utilities.
    ========================================================================= */
@@ -237,16 +237,16 @@
 
 /* Form fields reuse global form styles for inputs/switches/buttons */
 /* ==========================================================================
-   PRODUCT FORM MODAL â€” WHITE THEME (refeito)
+   PRODUCT FORM MODAL  WHITE THEME (refeito)
    Target: ProductFormModal.jsx
-   - NÃ£o muda nomes de classes
+   - No muda nomes de classes
    - Layout limpo, cards claros, inputs consistentes, alinhamento correto
    ========================================================================== */
 
 .product-form-modal {
-  max-width: 760px; /* um pouco mais confortÃ¡vel que 720 */
+  max-width: 760px; /* um pouco mais confortvel que 720 */
 
-  /* se o Modal aceitar conteÃºdo com padding, este bloco ajuda sem quebrar */
+  /* se o Modal aceitar contedo com padding, este bloco ajuda sem quebrar */
   .product-form__body {
     padding: 2px 2px 0;
   }
@@ -263,7 +263,7 @@
   }
 }
 
-/* --- SeÃ§Ãµes como â€œcardsâ€ claros ---------------------------------------- */
+/* --- Sees como cards claros ---------------------------------------- */
 .form-section {
   background: #ffffff;
   border: 1px solid rgba(227, 227, 234, 0.95);
@@ -275,14 +275,14 @@
   flex-direction: column;
   gap: 12px;
 
-  /* seÃ§Ã£o compacta (switch) */
+  /* seo compacta (switch) */
   &.form-section--compact {
     padding: 12px 14px;
     gap: 10px;
   }
 }
 
-/* TÃ­tulo das seÃ§Ãµes (ex.: â€œPrecosâ€) */
+/* Ttulo das sees (ex.: Precos) */
 .form-section__title {
   margin: 0;
   font-size: 13px;
@@ -291,7 +291,7 @@
   color: rgba(2, 6, 23, 0.88);
 }
 
-/* Header da seÃ§Ã£o Ingredientes */
+/* Header da seo Ingredientes */
 .form-section__header {
   display: flex;
   align-items: baseline;
@@ -317,7 +317,7 @@
   gap: 12px;
 }
 
-/* bloco â€œNome + Tipoâ€ no topo: 2 colunas com wide */
+/* bloco Nome + Tipo no topo: 2 colunas com wide */
 .form-grid:has(.form-field--wide) {
   grid-template-columns: minmax(0, 1fr) minmax(0, 220px);
 
@@ -413,7 +413,7 @@ textarea.field-input,
   }
 }
 
-/* botÃ£o ghost ao lado do input (usa classes jÃ¡ existentes) */
+/* boto ghost ao lado do input (usa classes j existentes) */
 .ingredients-input .btn.btn-ghost {
   height: 40px;
   padding: 0 14px;
@@ -451,7 +451,7 @@ textarea.field-input,
   color: rgba(71, 85, 105, 0.65);
 }
 
-/* badges de ingrediente (tema white, verde â€œsafeâ€) */
+/* badges de ingrediente (tema white, verde safe) */
 .badge.badge--ingredient {
   display: inline-flex;
   align-items: center;
@@ -556,12 +556,12 @@ textarea.field-input,
   border-top: 1px solid rgba(227, 227, 234, 0.85);
 }
 
-/* se quiser â€œCancelarâ€ Ã  esquerda e â€œSalvarâ€ Ã  direita */
+/* se quiser Cancelar  esquerda e Salvar  direita */
 .product-form__footer {
   justify-content: space-between;
 }
 
-/* BotÃµes do footer (sem depender do Button interno) */
+/* Botes do footer (sem depender do Button interno) */
 .product-form__footer :where(button, a, .btn, .button) {
   height: 42px;
   padding: 0 16px;
@@ -569,4 +569,5 @@ textarea.field-input,
   font-weight: 900;
   font-size: 13px;
 }
+
 

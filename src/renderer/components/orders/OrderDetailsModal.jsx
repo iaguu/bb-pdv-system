@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
+import { motion } from "framer-motion";
 import Modal from "../common/Modal";
 import Button from "../common/Button";
+import { OrderIcon } from "./OrderIcons";
 import { normalizeStatus } from "../../utils/orderUtils";
 
 function formatCurrency(value) {
@@ -31,19 +33,19 @@ const PAYMENT_TAG_COLORS = {
 const PAYMENT_LABELS = {
   money: "Dinheiro",
   pix: "Pix",
-  credit: "Cartão crédito",
-  debit: "Cartão débito",
+  credit: "Cartao credito",
+  debit: "Cartao debito",
   ifood: "iFood",
 };
 
 const SOURCE_LABELS = {
   website: "Site",
   web: "Site",
-  local: "Balcão / Local",
-  balcao: "Balcão / Local",
-  "balcão": "Balcão / Local",
-  counter: "Balcão / Local",
-  desktop: "Balcão / Local",
+  local: "Balcao / Local",
+  balcao: "Balcao / Local",
+  "balcao": "Balcao / Local",
+  counter: "Balcao / Local",
+  desktop: "Balcao / Local",
   delivery: "Delivery",
   ifood: "iFood",
   whatsapp: "WhatsApp",
@@ -96,7 +98,7 @@ function formatAddress(addr = {}) {
   if (normalized.street) {
     parts.push(
       normalized.number
-         `${normalized.street}, ${normalized.number}`
+        ? `${normalized.street}, ${normalized.number}`
         : normalized.street
     );
   }
@@ -104,7 +106,7 @@ function formatAddress(addr = {}) {
   if (normalized.city) parts.push(normalized.city);
   if (normalized.state) parts.push(normalized.state);
   if (normalized.cep) parts.push(`CEP ${normalized.cep}`);
-  return parts.filter(Boolean).join(" - ") || "Sem endereço";
+  return parts.filter(Boolean).join(" - ") || "Sem endereco";
 }
 
 function buildMapsUrl(addr = {}) {
@@ -112,12 +114,12 @@ function buildMapsUrl(addr = {}) {
   const parts = [
     normalized.street &&
       (normalized.number
-         `${normalized.street}, ${normalized.number}`
+        ? `${normalized.street}, ${normalized.number}`
         : normalized.street),
     normalized.neighborhood,
     normalized.city,
     normalized.state,
-    normalized.cep  `CEP ${normalized.cep}` : "",
+    normalized.cep ? `CEP ${normalized.cep}` : "",
   ].filter(Boolean);
   if (parts.length === 0) return "";
   return `https://www.google.com/maps/search/api=1&query=${encodeURIComponent(
@@ -127,15 +129,15 @@ function buildMapsUrl(addr = {}) {
 
 function normalizeItems(rawItems = []) {
   return rawItems.map((it, idx) => {
-    const quantity = Number(it.quantity  it.qty  1) || 1;
+    const quantity = Number(it.quantity ?? it.qty ?? 1) || 1;
     const unit =
-      it.unitPrice 
-      it.price 
+      it.unitPrice ??
+      it.price ??
       (it.total || it.lineTotal
-         Number(it.total || it.lineTotal) / quantity
+        ? Number(it.total || it.lineTotal) / quantity
         : 0);
     const total =
-      Number(it.total  it.lineTotal  it.line_total  0) ||
+      Number(it.total ?? it.lineTotal ?? it.line_total ?? 0) ||
       Number(unit || 0) * quantity;
 
     const flavor1Raw =
@@ -156,23 +158,23 @@ function normalizeItems(rawItems = []) {
     const titleBase = flavor1 || "Item sem nome";
     const title =
       flavor2 || flavor3
-         [titleBase, flavor2, flavor3].filter(Boolean).join(" / ")
+        ? [titleBase, flavor2, flavor3].filter(Boolean).join(" / ")
         : titleBase;
 
     const sizeLabel = it.sizeLabel || it.size || it.sizeName || "";
 
-    const extras = Array.isArray(it.extras)  it.extras : [];
+    const extras = Array.isArray(it.extras) ? it.extras : [];
 
     const notes = it.kitchenNotes || it.obs || it.observacao || "";
 
     const details = [
-      sizeLabel  `Tamanho: ${sizeLabel}` : "",
+      sizeLabel ? `Tamanho: ${sizeLabel}` : "",
       it.details || "",
       it.description || "",
-      notes  `Obs: ${notes}` : "",
+      notes ? `Obs: ${notes}` : "",
     ]
       .filter(Boolean)
-      .join(" · ");
+      .join("  -  ");
 
     return {
       id: it.id || it.lineId || idx,
@@ -184,7 +186,7 @@ function normalizeItems(rawItems = []) {
       total,
       sizeLabel,
       multiFlavor: Boolean(flavor2 || flavor3),
-      kind: it.kind || (it.productName  "drink" : "pizza"),
+      kind: it.kind || (it.productName ? "drink" : "pizza"),
     };
   });
 }
@@ -195,7 +197,7 @@ const OrderDetailsModal = ({
   order,
   onChangeStatus,
   onChangePayment,
-  onEditOrder, // novo fluxo de edição
+  onEditOrder, // novo fluxo de edicao
   onPrintKitchen,
   onPrintCounter,
   onPrint,
@@ -205,6 +207,11 @@ const OrderDetailsModal = ({
   if (!order) {
     return null;
   }
+  const bodyMotion = {
+    initial: { opacity: 0, y: 6 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.18, ease: "easeOut" }
+  };
 
   const customer = normalizeCustomer(order);
   const orderId = order.id || order._id;
@@ -213,15 +220,15 @@ const OrderDetailsModal = ({
     PAYMENT_LABELS[paymentMethod] ||
     order.paymentLabel ||
     order.payment.label ||
-    "Não definido";
+    "Nao definido";
   const paymentStatus =
     order.payment.status || order.paymentStatus || "to_define";
 
   const paymentNotes = order.payment.notes || order.paymentNotes || "";
   const changeFor =
-    order.payment.changeFor 
-    order.changeFor 
-    order.payment.troco 
+    order.payment.changeFor ??
+    order.changeFor ??
+    order.payment.troco ??
     null;
 
   const items = normalizeItems(order.items || []);
@@ -232,17 +239,18 @@ const OrderDetailsModal = ({
   );
 
   const deliveryFee = Number(
-    order.delivery.fee 
-      order.deliveryFee 
-      order.totals.deliveryFee 
+    order.delivery.fee ??
+      order.deliveryFee ??
+      order.totals.deliveryFee ??
       0
   );
 
-  const discount = Number(order.totals.discount  order.discount  0);
+  const discount = Number(order.totals.discount ?? order.discount ?? 0);
 
   const grandTotal = subtotal + deliveryFee - discount;
 
   const normalizedStatus = normalizeStatus(order.status || "open");
+  const statusLabel = STATUS_OPTIONS.find((s) => s.key == normalizedStatus)?.label || "Em aberto";
   const sourceKey = (order.source || "local").toString().toLowerCase();
   const sourceLabel = SOURCE_LABELS[sourceKey] || SOURCE_LABELS.local;
   const mapsUrl = buildMapsUrl(customer.address);
@@ -290,7 +298,13 @@ const OrderDetailsModal = ({
       title={`Pedido #${order.shortId || order.id || order._id || ""}`}
       className="order-details-modal"
     >
-      <div className="order-details__body">
+      <motion.div className="order-details__body" {...bodyMotion}>
+        <div className="order-details__meta">
+          <span className="modal-badge modal-badge--accent">{sourceLabel}</span>
+          <span className="modal-badge modal-badge--info">{paymentLabel}</span>
+          <span className="modal-badge">{statusLabel}</span>
+          <span className="hint-dot" data-tooltip="Resumo rapido do pedido.">?</span>
+        </div>
         <div className="order-details__column order-details__column--main">
           <section className="order-section">
             <div className="order-section__header">
@@ -309,7 +323,7 @@ const OrderDetailsModal = ({
               <div>
                 <span className="order-kv__label">Telefone</span>
                 <span className="order-kv__value">
-                  {customer.phone || "Não informado"}
+                  {customer.phone || "Nao informado"}
                 </span>
                 {customer.phone && (
                   <button
@@ -317,6 +331,7 @@ const OrderDetailsModal = ({
                     className="order-section__link"
                     onClick={handleCopyPhone}
                   >
+                    <OrderIcon name="copy" />
                     Copiar
                   </button>
                 )}
@@ -325,7 +340,7 @@ const OrderDetailsModal = ({
 
             <div className="order-kv">
               <div>
-                <span className="order-kv__label">Endereço</span>
+                <span className="order-kv__label">Endereco</span>
                 <span className="order-kv__value">
                   {formatAddress(customer.address)}
                 </span>
@@ -350,7 +365,7 @@ const OrderDetailsModal = ({
                   <span className="order-kv__value">
                     {[customer.address.reference, customer.address.complement]
                       .filter(Boolean)
-                      .join(" • ")}
+                      .join("  ")}
                   </span>
                 </div>
               )}
@@ -381,8 +396,8 @@ const OrderDetailsModal = ({
                   <option value="">Selecione</option>
                   <option value="money">Dinheiro</option>
                   <option value="pix">PIX</option>
-                  <option value="credit">Crédito</option>
-                  <option value="debit">Débito</option>
+                  <option value="credit">Credito</option>
+                  <option value="debit">Debito</option>
                   <option value="ifood">iFood</option>
                 </select>
               </div>
@@ -392,13 +407,13 @@ const OrderDetailsModal = ({
               <div>
                 <span className="order-kv__label">Troco para</span>
                 <span className="order-kv__value">
-                  {changeFor  formatCurrency(changeFor) : "Não informado"}
+                  {changeFor ? formatCurrency(changeFor) : "Nao informado"}
                 </span>
               </div>
               <div>
-                <span className="order-kv__label">Observações</span>
+                <span className="order-kv__label">Observacoes</span>
                 <span className="order-kv__value">
-                  {paymentNotes || "Nenhuma observação"}
+                  {paymentNotes || "Nenhuma observacao"}
                 </span>
               </div>
             </div>
@@ -412,6 +427,7 @@ const OrderDetailsModal = ({
                 className="order-section__link"
                 onClick={() => onEditOrder && onEditOrder(order)}
               >
+                <OrderIcon name="edit" />
                 Editar pedido
               </button>
             </div>
@@ -426,7 +442,7 @@ const OrderDetailsModal = ({
                           <span className="chip">{item.sizeLabel}</span>
                         )}
                         <span className="chip chip--outline">
-                          Unitário {formatCurrency(item.unitPrice)}
+                          Unitario {formatCurrency(item.unitPrice)}
                         </span>
                       </div>
                     </div>
@@ -441,7 +457,7 @@ const OrderDetailsModal = ({
                         {item.extras.map((ex, i) => (
                           <span key={i} className="chip chip--extra">
                             {ex.label || ex.name}{" "}
-                            {ex.price  `+ ${formatCurrency(ex.price)}` : ""}
+                            {ex.price ? `+ ${formatCurrency(ex.price)}` : ""}
                           </span>
                         ))}
                       </div>
@@ -467,7 +483,7 @@ const OrderDetailsModal = ({
                   type="button"
                   className={
                     "status-chip " +
-                    (normalizedStatus === s.key  "status-chip--active" : "") +
+                    (normalizedStatus === s.key ? "status-chip--active" : "") +
                     " status-chip--" +
                     s.tone
                   }
@@ -485,7 +501,7 @@ const OrderDetailsModal = ({
 
           {(orderNotes || kitchenNotes) && (
             <section className="order-section">
-              <h3 className="order-section__title">Observações</h3>
+              <h3 className="order-section__title">Observacoes</h3>
               {orderNotes && (
                 <div className="order-kv">
                   <span className="order-kv__label">Pedido</span>
@@ -546,11 +562,13 @@ const OrderDetailsModal = ({
                   variant="secondary"
                   onClick={() => onDuplicate(order)}
                 >
+                  <OrderIcon name="copy" />
                   Duplicar
                 </Button>
               )}
               {typeof onPrint === "function" && (
                 <Button variant="outline" onClick={() => onPrint(order)}>
+                  <OrderIcon name="print" />
                   Imprimir pedido
                 </Button>
               )}
@@ -559,6 +577,7 @@ const OrderDetailsModal = ({
                   variant="outline"
                   onClick={() => onPrintKitchen(order)}
                 >
+                  <OrderIcon name="print" />
                   Imprimir cozinha
                 </Button>
               )}
@@ -567,7 +586,8 @@ const OrderDetailsModal = ({
                   variant="outline"
                   onClick={() => onPrintCounter(order)}
                 >
-                  Imprimir balcão
+                  <OrderIcon name="print" />
+                  Imprimir balcao
                 </Button>
               )}
               {typeof onDelete === "function" && (
@@ -575,21 +595,23 @@ const OrderDetailsModal = ({
                   variant="outline"
                   onClick={() => {
                     const confirmed = window.confirm(
-                      "Deseja realmente excluir este pedido Esta ação não pode ser desfeita."
+                      "Deseja realmente excluir este pedido Esta acao nao pode ser desfeita."
                     );
                     if (confirmed) onDelete(order);
                   }}
                 >
+                  <OrderIcon name="trash" />
                   Excluir
                 </Button>
               )}
             </div>
           </section>
         </div>
-      </div>
+      </motion.div>
 
       <div className="order-details__footer">
         <Button variant="outline" onClick={onClose}>
+          <OrderIcon name="close" />
           Fechar
         </Button>
       </div>
@@ -598,3 +620,4 @@ const OrderDetailsModal = ({
 };
 
 export default OrderDetailsModal;
+

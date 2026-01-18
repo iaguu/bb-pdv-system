@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useOrderDrafts } from "../../utils/orderDraftManager";
+import { OrderIcon } from "./OrderIcons";
 
 export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) {
   const { drafts: allDrafts, activeDraftId, removeDraft, clearAllDrafts } = useOrderDrafts();
@@ -247,9 +248,9 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
         let newIndex;
         
         if (e.key === 'ArrowDown') {
-          newIndex = currentIndex < filteredAndSortedDrafts.length - 1  currentIndex + 1 : 0;
+          newIndex = currentIndex < filteredAndSortedDrafts.length - 1 ? currentIndex + 1 : 0;
         } else {
-          newIndex = currentIndex > 0  currentIndex - 1 : filteredAndSortedDrafts.length - 1;
+          newIndex = currentIndex > 0 ? currentIndex - 1 : filteredAndSortedDrafts.length - 1;
         }
         
         setSelectedDraftId(filteredAndSortedDrafts[newIndex].id || null);
@@ -308,7 +309,7 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
     const ageHours = age / 3600000;
 
     if (ageHours > 2 || total > 200) {
-      return ageHours > 4  "urgent" : "high-value";
+      return ageHours > 4 ? "urgent" : "high-value";
     }
     return "normal";
   }, []);
@@ -325,16 +326,16 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
         <h3 className="order-drafts-list__title">
           Rascunhos
           <span className={`order-drafts-list__auto-save ${autoSaveStatus}`}>
-            {autoSaveStatus === 'saving'  '💾' : '✓'}
+            {autoSaveStatus === "saving" ? <OrderIcon name="refresh" /> : <OrderIcon name="check" />}
           </span>
         </h3>
         <div className="order-drafts-list__actions">
           <button
             onClick={toggleBulkMode}
-            className={`order-drafts-list__btn ${bulkMode  'active' : ''}`}
+            className={`order-drafts-list__btn ${bulkMode ? 'active' : ''}`}
             title="Modo de seleção múltipla"
           >
-            ☑️
+            <OrderIcon name="check" />
           </button>
           <button
             onClick={undo}
@@ -342,14 +343,14 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
             className="order-drafts-list__btn"
             title="Desfazer (Ctrl+Z)"
           >
-            ↶
+            <OrderIcon name="back" />
           </button>
           <button
             onClick={() => setVoiceMode(!voiceMode)}
-            className={`order-drafts-list__btn ${voiceMode  'active' : ''}`}
+            className={`order-drafts-list__btn ${voiceMode ? 'active' : ''}`}
             title="Comandos de voz (Ctrl+V)"
           >
-            🎤
+            <OrderIcon name="mic" />
           </button>
           <select
             value={sortBy}
@@ -395,7 +396,8 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
                 onClick={() => handleSuggestionClick(suggestion)}
                 className="order-drafts-list__suggestion"
               >
-                💡 {suggestion}
+                <OrderIcon name="summary" /> 
+                {suggestion}
               </div>
             ))}
           </div>
@@ -407,7 +409,8 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
         <div className="order-drafts-list__bulk-toolbar">
           <span>{selectedDrafts.size} selecionado(s)</span>
           <button onClick={bulkDelete} className="order-drafts-list__btn danger">
-            🗑️ Remover selecionados
+            <OrderIcon name="trash" />
+            Remover selecionados
           </button>
         </div>
       )}
@@ -421,11 +424,11 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
       )}
 
       {/* Lista de rascunhos com drag & drop */}
-      {filteredAndSortedDrafts.length === 0  (
+      {filteredAndSortedDrafts.length === 0 ? (
         <div className="order-drafts-list__empty">
-          <div className="order-drafts-list__empty-icon">📝</div>
+          <div className="order-drafts-list__empty-icon"><OrderIcon name="summary" /></div>
           <div className="order-drafts-list__empty-text">
-            {searchTerm  "Nenhum rascunho encontrado" : "Nenhum rascunho ainda"}
+            {searchTerm ? "Nenhum rascunho encontrado" : "Nenhum rascunho ainda"}
           </div>
           {!searchTerm && (
             <button
@@ -447,8 +450,8 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
             return (
               <div
                 key={draft.id}
-                className={`order-draft-item ${isActive  'order-draft-item--active' : ''} ${priority  `order-draft-item--${priority}` : ''} ${isSelected  'order-draft-item--selected' : ''} ${isBulkSelected  'order-draft-item--bulk-selected' : ''} ${draggedDraftId === draft.id  'order-draft-item--dragging' : ''}`}
-                onClick={() => bulkMode  toggleDraftSelection(draft.id) : handleSelectDraft(draft)}
+                className={`order-draft-item ${isActive ? 'order-draft-item--active' : ''} ${priority ? `order-draft-item--${priority}` : ''} ${isSelected ? 'order-draft-item--selected' : ''} ${isBulkSelected ? 'order-draft-item--bulk-selected' : ''} ${draggedDraftId === draft.id ? 'order-draft-item--dragging' : ''}`}
+                onClick={() => bulkMode ? toggleDraftSelection(draft.id) : handleSelectDraft(draft)}
                 onContextMenu={(e) => handleContextMenu(e, draft)}
                 draggable={!bulkMode}
                 onDragStart={(e) => handleDragStart(e, draft.id)}
@@ -510,14 +513,14 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
                       className="order-draft-item__action-btn"
                       title="Visualizar"
                     >
-                      👁️
+                      <OrderIcon name="search" />
                     </button>
                     <button
                       onClick={(e) => handleRemoveDraft(e, draft.id)}
                       className="order-draft-item__action-btn order-draft-item__action-btn--remove"
                       title="Remover rascunho"
                     >
-                      🗑️
+                      <OrderIcon name="trash" />
                     </button>
                   </div>
                 </div>
@@ -538,25 +541,25 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
             handleSelectDraft(contextMenu.draft);
             setContextMenu(null);
           }}>
-            📝 Editar
+            <OrderIcon name="edit" /> Editar
           </button>
           <button onClick={() => {
             handlePreview(contextMenu.draft);
             setContextMenu(null);
           }}>
-            👁️ Visualizar
+            <OrderIcon name="search" /> Visualizar
           </button>
           <button onClick={() => {
             handleRemoveDraft({ stopPropagation: () => {} }, contextMenu.draft.id);
             setContextMenu(null);
           }}>
-            🗑️ Remover
+            <OrderIcon name="trash" /> Remover
           </button>
           <button onClick={() => {
             navigator.clipboard.writeText(JSON.stringify(contextMenu.draft, null, 2));
             setContextMenu(null);
           }}>
-            📋 Copiar
+            <OrderIcon name="copy" /> Copiar
           </button>
         </div>
       )}
@@ -590,7 +593,7 @@ export default function OrderDraftsList({ onSelectDraft, onNewDraft, onClose }) 
             onClick={() => setConfirmClearAll(true)}
             className="order-drafts-list__btn order-drafts-list__btn--danger"
           >
-            🗑️ Limpar Todos
+            <OrderIcon name="trash" /> Limpar Todos
           </button>
         </div>
       )}

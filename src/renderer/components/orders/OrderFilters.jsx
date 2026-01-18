@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ORDER_STATUS_PRESETS } from "../../utils/orderUtils";
+import { OrderIcon } from "./OrderIcons";
 
 const SOURCE_OPTIONS = [
   { value: "all", label: "Todos os canais" },
@@ -8,6 +9,16 @@ const SOURCE_OPTIONS = [
   { value: "ifood", label: "iFood" },
   { value: "local", label: "Balcão / Sistema" },
 ];
+
+const STATUS_ICONS = {
+  all: "summary",
+  open: "status",
+  preparing: "options",
+  out_for_delivery: "send",
+  done: "check",
+  cancelled: "trash",
+  late: "status",
+};
 
 const OrderFilters = ({ value = {}, onChange, searchInputRef }) => {
   const currentStatus = value.status || "open";
@@ -44,7 +55,7 @@ const OrderFilters = ({ value = {}, onChange, searchInputRef }) => {
           const classes = [
             "order-status-tab",
             `order-status-tab--tone-${tab.tone}`,
-            isActive  "order-status-tab--active" : "",
+            isActive ? "order-status-tab--active" : "",
           ]
             .filter(Boolean)
             .join(" ");
@@ -56,6 +67,7 @@ const OrderFilters = ({ value = {}, onChange, searchInputRef }) => {
             className={classes}
             onClick={() => handleChange("status", tab.key)}
           >
+            <OrderIcon name={STATUS_ICONS[tab.key] || "status"} />
             <span>{tab.label}</span>
             </button>
           );
@@ -80,23 +92,28 @@ const OrderFilters = ({ value = {}, onChange, searchInputRef }) => {
 
         <div className="order-filters-field order-filters-field--search">
           <label className="order-filters-label">Buscar (ID ou cliente)</label>
-          <input
-            className="order-filters-input"
-            type="search"
-            placeholder="Ex: 123 ou Joao"
-            value={localSearch}
-            onChange={(e) => setLocalSearch(e.target.value)}
-            ref={searchInputRef}
-          />
-          {localSearch && (
-            <button
-              type="button"
-              className="order-filters-clear"
-              onClick={() => setLocalSearch("")}
-            >
-              Limpar
-            </button>
-          )}
+          <div className="order-filters-input-wrap">
+            <OrderIcon name="search" />
+            <input
+              className="order-filters-input"
+              type="search"
+              placeholder="Ex: 123 ou Joao"
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              ref={searchInputRef}
+            />
+            {localSearch && (
+              <button
+                type="button"
+                className="order-filters-clear"
+                onClick={() => setLocalSearch("")}
+                aria-label="Limpar busca"
+                title="Limpar"
+              >
+                <OrderIcon name="close" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

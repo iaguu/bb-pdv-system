@@ -1,6 +1,6 @@
-﻿// Estilos para o sistema de mÃºltiplos pedidos e rascunhos
+// Estilos para o sistema de mltiplos pedidos e rascunhos
 
-// Header com aÃ§Ãµes de rascunho
+// Header com aes de rascunho
 .modal-header {
   display: flex;
   align-items: flex-start;
@@ -117,7 +117,7 @@
   margin-left: 0.5rem;
 }
 
-// Wrapper de conteÃºdo com painel lateral
+// Wrapper de contedo com painel lateral
 .orderform-content-wrapper {
   display: flex;
   position: relative;
@@ -204,7 +204,7 @@
   }
 }
 
-// AnimaÃ§Ãµes
+// Animaes
 @keyframes slideInRight {
   from {
     transform: translateX(100%);
@@ -254,7 +254,7 @@
   border-bottom: 2px solid var(--primary-color);
 }
 
-// Tooltip para botÃµes
+// Tooltip para botes
 .draft-action-btn[title]:hover::after {
   content: attr(title);
   position: absolute;
@@ -271,4 +271,5 @@
   margin-bottom: 0.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
+
 

@@ -2,7 +2,7 @@
 import React, { useEffect, useCallback } from "react";
 
 /**
- * Modal genérico
+ * Modal generico
  *
  * Modo 1 (controlado externamente):
  *   {isOpen && <Modal title="..." onClose={...}>...}
@@ -27,10 +27,10 @@ const Modal = ({
   const hasControlProp =
     typeof open === "boolean" || typeof isOpen === "boolean";
 
-  // Se tiver open/isOpen -> usa; senão, considera sempre visível
+  // Se tiver open/isOpen -> usa; senao, considera sempre visivel
   const visible = hasControlProp
-     typeof open === "boolean"
-       open
+    ? typeof open === "boolean"
+      ? open
       : Boolean(isOpen)
     : true;
 
@@ -98,7 +98,18 @@ const Modal = ({
                 onClick={onClose}
                 aria-label="Fechar"
               >
-                ×
+                <svg
+                  viewBox="0 0 24 24"
+                  role="img"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M6 6l12 12M18 6l-12 12" />
+                </svg>
               </button>
             )}
           </div>

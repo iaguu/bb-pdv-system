@@ -39,11 +39,11 @@ function normalizePhoneLocal(phone) {
  * Normaliza qualquer formato de customer (antigo ou novo) para o schema oficial:
  * {
  *   id, name, phone, phoneRaw,
- *   address: { cep, street, number, complement, neighborhood, city, state, reference },
- *   tags: string[],
+ * ? address: { cep, street, number, complement, neighborhood, city, state, reference },
+ * ? tags: string[],
  *   notes,
- *   meta: { createdAt, updatedAt, lastOrderAt, totalOrders, totalSpent },
- *   // aliases de conveniência:
+ * ? meta: { createdAt, updatedAt, lastOrderAt, totalOrders, totalSpent },
+ * ? // aliases de conveniência:
  *   totalOrders,
  *   totalSpent
  * }
@@ -263,7 +263,7 @@ const PeoplePage = () => {
   };
 
   const handleImportCustomersChange = async (event) => {
-    const file = event.target.files.[0];
+    const file = event.target.files[0];
     if (!file) return;
 
     try {
@@ -351,7 +351,7 @@ const PeoplePage = () => {
         const neighborhood = (addr.neighborhood || "").toLowerCase();
         const notes = (c.notes || "").toLowerCase();
         const tagsText = Array.isArray(c.tags)
-           c.tags.join(" ").toLowerCase()
+          ? c.tags.join(" ").toLowerCase()
           : "";
 
         const matchesText =
@@ -410,15 +410,15 @@ const PeoplePage = () => {
         (b.totalOrders || 0) >= 20 ||
         (Array.isArray(b.tags) && b.tags.includes("VIP"));
 
-      if (aVip !== bVip) return aVip  -1 : 1;
+      if (aVip !== bVip) return aVip ? -1 : 1;
 
       const aDate =
         a.meta.lastOrderAt || a.lastOrderAt || a.meta.createdAt;
       const bDate =
         b.meta.lastOrderAt || b.lastOrderAt || b.meta.createdAt;
 
-      const aTime = aDate  new Date(aDate).getTime() : 0;
-      const bTime = bDate  new Date(bDate).getTime() : 0;
+      const aTime = aDate ? new Date(aDate).getTime() : 0;
+      const bTime = bDate ? new Date(bDate).getTime() : 0;
 
       if (aTime !== bTime) return bTime - aTime; // mais recente primeiro
 
@@ -577,7 +577,7 @@ const PeoplePage = () => {
       emitToast({
         type: "success",
         message: nextActive
-           "Motoboy ativado com sucesso."
+          ? "Motoboy ativado com sucesso."
           : "Motoboy desativado.",
       });
       loadMotoboys();
@@ -659,17 +659,17 @@ const PeoplePage = () => {
   const isCustomersTab = tab === "customers";
 
   const isLoading = isCustomersTab
-     loadingCustomers
+    ? loadingCustomers
     : loadingMotoboys;
   const isRefreshing = isCustomersTab
-     loadingCustomers && customers.length > 0
+    ? loadingCustomers && customers.length > 0
     : loadingMotoboys && motoboys.length > 0;
   const isInitialLoading = isCustomersTab
-     loadingCustomers && customers.length === 0
+    ? loadingCustomers && customers.length === 0
     : loadingMotoboys && motoboys.length === 0;
 
   const hasItems = isCustomersTab
-     filteredCustomers.length > 0
+    ? filteredCustomers.length > 0
     : filteredMotoboys.length > 0;
 
   return (
@@ -677,7 +677,7 @@ const PeoplePage = () => {
       title="Pessoas"
       subtitle="Clientes e entregadores da pizzaria."
       actions={
-        isCustomersTab  (
+        isCustomersTab ? (
           <div className="people-actions">
             <Button
               variant="ghost"
@@ -743,7 +743,7 @@ const PeoplePage = () => {
           <SearchInput
             placeholder={
               isCustomersTab
-                 "Buscar cliente por nome, telefone, CPF, bairro, tags ou observações..."
+                ? "Buscar cliente por nome, telefone, CPF, bairro, tags ou observações..."
                 : "Buscar motoboy por nome, telefone, veículo, placa, bairro base ou QR..."
             }
             value={search}
@@ -756,7 +756,7 @@ const PeoplePage = () => {
           <div className="people-filters">
             <Button
               variant={
-                customerFilter === "all"  "primary" : "outline"
+                customerFilter === "all" ? "primary" : "outline"
               }
               onClick={() => setCustomerFilter("all")}
             >
@@ -764,7 +764,7 @@ const PeoplePage = () => {
             </Button>
             <Button
               variant={
-                customerFilter === "vip"  "primary" : "outline"
+                customerFilter === "vip" ? "primary" : "outline"
               }
               onClick={() => setCustomerFilter("vip")}
             >
@@ -772,7 +772,7 @@ const PeoplePage = () => {
             </Button>
             <Button
               variant={
-                customerFilter === "frequent"  "primary" : "outline"
+                customerFilter === "frequent" ? "primary" : "outline"
               }
               onClick={() => setCustomerFilter("frequent")}
             >
@@ -780,7 +780,7 @@ const PeoplePage = () => {
             </Button>
             <Button
               variant={
-                customerFilter === "new"  "primary" : "outline"
+                customerFilter === "new" ? "primary" : "outline"
               }
               onClick={() => setCustomerFilter("new")}
             >
@@ -788,7 +788,7 @@ const PeoplePage = () => {
             </Button>
             <Button
               variant={
-                customerFilter === "inactive"  "primary" : "outline"
+                customerFilter === "inactive" ? "primary" : "outline"
               }
               onClick={() => setCustomerFilter("inactive")}
             >
@@ -802,7 +802,7 @@ const PeoplePage = () => {
           <div className="people-filters">
             <Button
               variant={
-                motoboyFilter === "all"  "primary" : "outline"
+                motoboyFilter === "all" ? "primary" : "outline"
               }
               onClick={() => setMotoboyFilter("all")}
             >
@@ -810,7 +810,7 @@ const PeoplePage = () => {
             </Button>
             <Button
               variant={
-                motoboyFilter === "available"  "primary" : "outline"
+                motoboyFilter === "available" ? "primary" : "outline"
               }
               onClick={() => setMotoboyFilter("available")}
             >
@@ -818,7 +818,7 @@ const PeoplePage = () => {
             </Button>
             <Button
               variant={
-                motoboyFilter === "delivering"  "primary" : "outline"
+                motoboyFilter === "delivering" ? "primary" : "outline"
               }
               onClick={() => setMotoboyFilter("delivering")}
             >
@@ -826,7 +826,7 @@ const PeoplePage = () => {
             </Button>
             <Button
               variant={
-                motoboyFilter === "offline"  "primary" : "outline"
+                motoboyFilter === "offline" ? "primary" : "outline"
               }
               onClick={() => setMotoboyFilter("offline")}
             >
@@ -837,7 +837,7 @@ const PeoplePage = () => {
 
         {/* Resumo rápido */}
         <div className="people-summary">
-          {isCustomersTab  (
+          {isCustomersTab ? (
             <div className="people-summary-grid">
               <div className="people-summary-card">
                 <span className="people-summary-label">Clientes</span>
@@ -890,9 +890,9 @@ const PeoplePage = () => {
                   {formatCurrencyBR(
                     motoboys.reduce((acc, m) => {
                       const fromTotal =
-                        typeof m.tipsTotal === "number"  m.tipsTotal : 0;
+                        typeof m.tipsTotal === "number" ? m.tipsTotal : 0;
                       const fromList = Array.isArray(m.tips)
-                         m.tips.reduce(
+                        ? m.tips.reduce(
                             (sum, t) => sum + (Number(t.amount) || 0),
                             0
                           )
@@ -912,7 +912,7 @@ const PeoplePage = () => {
       )}
 
       {isInitialLoading && (
-        <div className={isCustomersTab  "customer-list" : "motoboy-list"}>
+        <div className={isCustomersTab ? "customer-list" : "motoboy-list"}>
           {[0, 1, 2].map((idx) => (
             <div key={`people-skeleton-${idx}`} className="skeleton skeleton-card" />
           ))}
@@ -921,9 +921,9 @@ const PeoplePage = () => {
 
       {!isInitialLoading && (
         <>
-          {isCustomersTab  (
+          {isCustomersTab ? (
             <>
-              {!hasItems  (
+              {!hasItems ? (
                 <EmptyState
                   title="Nenhum cliente"
                   description="Cadastre clientes para facilitar os proximos pedidos."
@@ -952,7 +952,7 @@ const PeoplePage = () => {
             </>
           ) : (
             <>
-              {!hasItems  (
+              {!hasItems ? (
                 <EmptyState
                   title="Nenhum entregador"
                   description="Cadastre seus motoboys para controlar as entregas."

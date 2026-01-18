@@ -1,18 +1,18 @@
 // src/tests/comprehensive-analysis.js
-// Análise completa e correções automáticas
+// AnÃƒÆ’Ã‚Â¡lise completa e correÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes automÃƒÆ’Ã‚Â¡ticas
 
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-console.log('🔍 ANÁLISE COMPLETA E CORREÇÕES\n');
+console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â ANÃƒÆ’Ã‚ÂLISE COMPLETA E CORREÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES\n');
 
-// Configurações
+// ConfiguraÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes
 const projectRoot = path.join(__dirname, '../..');
 
-// Análise 1: Verificação crítica de arquivos
+// AnÃƒÆ’Ã‚Â¡lise 1: VerificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o crÃƒÆ’Ã‚Â­tica de arquivos
 function criticalFileAnalysis() {
-  console.log('📋 1. ANÁLISE CRÍTICA DE ARQUIVOS');
+  console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 1. ANÃƒÆ’Ã‚ÂLISE CRÃƒÆ’Ã‚ÂTICA DE ARQUIVOS');
   
   const criticalFiles = [
     'dist/index.html',
@@ -28,26 +28,26 @@ function criticalFileAnalysis() {
   criticalFiles.forEach(file => {
     const filePath = path.join(projectRoot, file);
     const exists = fs.existsSync(filePath);
-    console.log(`${exists  '✅' : '❌'} ${file}`);
+    console.log(`${exists ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} ${file}`);
     if (!exists) allOk = false;
   });
   
   return allOk;
 }
 
-// Análise 2: Verificação de conteúdo HTML
+// AnÃƒÆ’Ã‚Â¡lise 2: VerificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o de conteÃƒÆ’Ã‚Âºdo HTML
 function htmlContentAnalysis() {
-  console.log('\n📋 2. ANÁLISE DE CONTEÚDO HTML');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 2. ANÃƒÆ’Ã‚ÂLISE DE CONTEÃƒÆ’Ã…Â¡DO HTML');
   
   const htmlPath = path.join(projectRoot, 'dist/index.html');
   if (!fs.existsSync(htmlPath)) {
-    console.log('❌ HTML não encontrado');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ HTML nÃƒÆ’Ã‚Â£o encontrado');
     return false;
   }
   
   const html = fs.readFileSync(htmlPath, 'utf8');
   
-  // Verificações críticas
+  // VerificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes crÃƒÆ’Ã‚Â­ticas
   const checks = [
     { name: 'DOCTYPE', test: html.includes('<!DOCTYPE html>') },
     { name: 'HTML lang', test: html.includes('html lang') },
@@ -59,25 +59,25 @@ function htmlContentAnalysis() {
   ];
   
   checks.forEach(({ name, test }) => {
-    console.log(`${test  '✅' : '❌'} ${name}`);
+    console.log(`${test ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} ${name}`);
   });
   
   return checks.every(c => c.test);
 }
 
-// Análise 3: Verificação do JavaScript bundle
+// AnÃƒÆ’Ã‚Â¡lise 3: VerificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do JavaScript bundle
 function jsBundleAnalysis() {
-  console.log('\n📋 3. ANÁLISE DO JAVASCRIPT BUNDLE');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 3. ANÃƒÆ’Ã‚ÂLISE DO JAVASCRIPT BUNDLE');
   
   const jsPath = path.join(projectRoot, 'dist/assets/index-DVKlQ-mq.js');
   if (!fs.existsSync(jsPath)) {
-    console.log('❌ JavaScript bundle não encontrado');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ JavaScript bundle nÃƒÆ’Ã‚Â£o encontrado');
     return false;
   }
   
   const js = fs.readFileSync(jsPath, 'utf8');
   
-  // Verificações críticas
+  // VerificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes crÃƒÆ’Ã‚Â­ticas
   const checks = [
     { name: 'React', test: js.includes('react') || js.includes('React') },
     { name: 'ReactDOM', test: js.includes('react-dom') || js.includes('ReactDOM') },
@@ -89,15 +89,15 @@ function jsBundleAnalysis() {
   ];
   
   checks.forEach(({ name, test }) => {
-    console.log(`${test  '✅' : '❌'} ${name}`);
+    console.log(`${test ? '?' : '?'} ${name}`);
   });
   
   return checks.every(c => c.test);
 }
 
-// Análise 4: Verificação dos componentes React
+// AnÃƒÆ’Ã‚Â¡lise 4: VerificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o dos componentes React
 function reactComponentsAnalysis() {
-  console.log('\n📋 4. ANÁLISE DOS COMPONENTES REACT');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 4. ANÃƒÆ’Ã‚ÂLISE DOS COMPONENTES REACT');
   
   const components = [
     'src/renderer/main.jsx',
@@ -109,11 +109,11 @@ function reactComponentsAnalysis() {
   components.forEach(comp => {
     const compPath = path.join(projectRoot, comp);
     const exists = fs.existsSync(compPath);
-    console.log(`${exists  '✅' : '❌'} ${comp}`);
+    console.log(`${exists ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} ${comp}`);
     if (!exists) allOk = false;
   });
   
-  // Verifica conteúdo do main.jsx
+  // Verifica conteÃƒÆ’Ã‚Âºdo do main.jsx
   const mainPath = path.join(projectRoot, 'src/renderer/main.jsx');
   if (fs.existsSync(mainPath)) {
     const mainContent = fs.readFileSync(mainPath, 'utf8');
@@ -125,18 +125,18 @@ function reactComponentsAnalysis() {
       { name: 'StrictMode', test: mainContent.includes('StrictMode') }
     ];
     
-    console.log('  📄 main.jsx:');
+    console.log('  ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Å¾ main.jsx:');
     checks.forEach(({ name, test }) => {
-      console.log(`    ${test  '✅' : '❌'} ${name}`);
+      console.log(`    ${test ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} ${name}`);
     });
   }
   
   return allOk;
 }
 
-// Análise 5: Verificação do Electron
+// AnÃƒÆ’Ã‚Â¡lise 5: VerificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do Electron
 function electronAnalysis() {
-  console.log('\n📋 5. ANÁLISE DO ELECTRON');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 5. ANÃƒÆ’Ã‚ÂLISE DO ELECTRON');
   
   const electronFiles = [
     'electron/main.js',
@@ -148,11 +148,11 @@ function electronAnalysis() {
   electronFiles.forEach(file => {
     const filePath = path.join(projectRoot, file);
     const exists = fs.existsSync(filePath);
-    console.log(`${exists  '✅' : '❌'} ${file}`);
+    console.log(`${exists ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} ${file}`);
     if (!exists) allOk = false;
   });
   
-  // Verifica configuração do main.js
+  // Verifica configuraÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do main.js
   const mainPath = path.join(projectRoot, 'electron/main.js');
   if (fs.existsSync(mainPath)) {
     const mainContent = fs.readFileSync(mainPath, 'utf8');
@@ -165,9 +165,9 @@ function electronAnalysis() {
       { name: 'IPC handlers', test: mainContent.includes('ipcMain.handle') }
     ];
     
-    console.log('  📄 main.js:');
+    console.log('  ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Å¾ main.js:');
     checks.forEach(({ name, test }) => {
-      console.log(`    ${test  '✅' : '❌'} ${name}`);
+      console.log(`    ${test ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} ${name}`);
     });
   }
   
@@ -181,22 +181,22 @@ function electronAnalysis() {
       { name: 'ipcRenderer', test: preloadContent.includes('ipcRenderer') }
     ];
     
-    console.log('  📄 preload.js:');
+    console.log('  ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Å¾ preload.js:');
     checks.forEach(({ name, test }) => {
-      console.log(`    ${test  '✅' : '❌'} ${name}`);
+      console.log(`    ${test ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} ${name}`);
     });
   }
   
   return allOk;
 }
 
-// Correção 1: HTML melhorado
+// CorreÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o 1: HTML melhorado
 function fixHtmlFile() {
-  console.log('\n🔧 1. APLICANDO CORREÇÕES NO HTML');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â§ 1. APLICANDO CORREÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES NO HTML');
   
   const htmlPath = path.join(projectRoot, 'dist/index.html');
   if (!fs.existsSync(htmlPath)) {
-    console.log('❌ HTML não encontrado para correção');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ HTML nÃƒÆ’Ã‚Â£o encontrado para correÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o');
     return false;
   }
   
@@ -251,7 +251,7 @@ function fixHtmlFile() {
     <div id='root'>
       <div class="loading">
         <div class="loading-spinner"></div>
-        <div>🔍 AXION PDV - Carregando...</div>
+        <div>ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â AXION PDV - Carregando...</div>
         <div style="font-size: 14px; color: #666; margin-top: 10px;">
           Sistema de Ponto de Venda
         </div>
@@ -264,7 +264,7 @@ function fixHtmlFile() {
         console.error('Erro de carregamento:', e);
         const root = document.getElementById('root');
         if (root) {
-          root.innerHTML = '<div class="loading"><div style="color: red;">❌ Erro ao carregar aplicação</div><div>Verifique o console para detalhes</div></div>';
+          root.innerHTML = '<div class="loading"><div style="color: red;">ÃƒÂ¢Ã‚ÂÃ…â€™ Erro ao carregar aplicaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o</div><div>Verifique o console para detalhes</div></div>';
         }
       });
       
@@ -272,8 +272,8 @@ function fixHtmlFile() {
       setTimeout(function() {
         const root = document.getElementById('root');
         if (root && root.innerHTML.includes('Carregando...')) {
-          console.warn('Aplicação demorando para carregar');
-          root.innerHTML = '<div class="loading"><div style="color: orange;">⚠️ Aplicação demorando para carregar</div><div>Tente recarregar a página</div></div>';
+          console.warn('AplicaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o demorando para carregar');
+          root.innerHTML = '<div class="loading"><div style="color: orange;">ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â AplicaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o demorando para carregar</div><div>Tente recarregar a pÃƒÆ’Ã‚Â¡gina</div></div>';
         }
       }, 10000);
     </script>
@@ -281,17 +281,17 @@ function fixHtmlFile() {
 </html>`;
   
   fs.writeFileSync(htmlPath, improvedHtml);
-  console.log('✅ HTML corrigido com fallbacks');
+  console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ HTML corrigido com fallbacks');
   return true;
 }
 
-// Correção 2: Verificar e corrigir main.jsx
+// CorreÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o 2: Verificar e corrigir main.jsx
 function fixMainJsx() {
-  console.log('\n🔧 2. VERIFICANDO E CORRIGINDO main.jsx');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â§ 2. VERIFICANDO E CORRIGINDO main.jsx');
   
   const mainPath = path.join(projectRoot, 'src/renderer/main.jsx');
   if (!fs.existsSync(mainPath)) {
-    console.log('❌ main.jsx não encontrado');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ main.jsx nÃƒÆ’Ã‚Â£o encontrado');
     return false;
   }
   
@@ -303,14 +303,14 @@ function fixMainJsx() {
   const hasCorrectImport = currentMain.includes('import ReactDOM from "react-dom/client"');
   
   if (!hasCreateRoot || !hasStrictMode || !hasCorrectImport) {
-    console.log('🔧 Corrigindo main.jsx...');
+    console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â§ Corrigindo main.jsx...');
     
     const correctedMain = `import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles/global.scss";
 
-// Garante que o DOM está pronto
+// Garante que o DOM estÃƒÆ’Ã‚Â¡ pronto
 const ensureRoot = () => {
   let root = document.getElementById('root');
   if (!root) {
@@ -321,7 +321,7 @@ const ensureRoot = () => {
   return root;
 };
 
-// Inicialização com tratamento de erros
+// InicializaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o com tratamento de erros
 try {
   const rootElement = ensureRoot();
   const root = ReactDOM.createRoot(rootElement);
@@ -332,31 +332,31 @@ try {
     </React.StrictMode>
   );
   
-  console.log('✅ Aplicação React inicializada com sucesso');
+  console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ AplicaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o React inicializada com sucesso');
 } catch (error) {
-  console.error('❌ Erro ao inicializar React:', error);
+  console.error('ÃƒÂ¢Ã‚ÂÃ…â€™ Erro ao inicializar React:', error);
   const root = document.getElementById('root');
   if (root) {
-    root.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">❌ Erro ao inicializar aplicação</div>';
+    root.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">ÃƒÂ¢Ã‚ÂÃ…â€™ Erro ao inicializar aplicaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o</div>';
   }
 }`;
     
     fs.writeFileSync(mainPath, correctedMain);
-    console.log('✅ main.jsx corrigido');
+    console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ main.jsx corrigido');
     return true;
   } else {
-    console.log('✅ main.jsx já está correto');
+    console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ main.jsx jÃƒÆ’Ã‚Â¡ estÃƒÆ’Ã‚Â¡ correto');
     return true;
   }
 }
 
-// Correção 3: Verificar App.jsx
+// CorreÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o 3: Verificar App.jsx
 function fixAppJsx() {
-  console.log('\n🔧 3. VERIFICANDO E CORRIGINDO App.jsx');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â§ 3. VERIFICANDO E CORRIGINDO App.jsx');
   
   const appPath = path.join(projectRoot, 'src/renderer/App.jsx');
   if (!fs.existsSync(appPath)) {
-    console.log('❌ App.jsx não encontrado');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ App.jsx nÃƒÆ’Ã‚Â£o encontrado');
     return false;
   }
   
@@ -367,7 +367,7 @@ function fixAppJsx() {
   const hasErrorBoundary = currentApp.includes('ErrorBoundary') || currentApp.includes('componentDidCatch');
   
   if (!hasErrorBoundary) {
-    console.log('🔧 Adicionando ErrorBoundary ao App.jsx...');
+    console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â§ Adicionando ErrorBoundary ao App.jsx...');
     
     const errorBoundaryComponent = `
 class ErrorBoundary extends React.Component {
@@ -388,10 +388,10 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>
-          <h2>❌ Ocorreu um erro na aplicação</h2>
-          <p>Verifique o console para detalhes técnicos</p>
+          <h2>ÃƒÂ¢Ã‚ÂÃ…â€™ Ocorreu um erro na aplicaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o</h2>
+          <p>Verifique o console para detalhes tÃƒÆ’Ã‚Â©cnicos</p>
           <button onClick={() => window.location.reload()}>
-            Recarregar Página
+            Recarregar PÃƒÆ’Ã‚Â¡gina
           </button>
         </div>
       );
@@ -413,46 +413,46 @@ class ErrorBoundary extends React.Component {
     );
     
     fs.writeFileSync(appPath, correctedApp);
-    console.log('✅ App.jsx corrigido com ErrorBoundary');
+    console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ App.jsx corrigido com ErrorBoundary');
     return true;
   } else {
-    console.log('✅ App.jsx já está correto');
+    console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ App.jsx jÃƒÆ’Ã‚Â¡ estÃƒÆ’Ã‚Â¡ correto');
     return true;
   }
 }
 
-// Correção 4: Rebuild completo
+// CorreÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o 4: Rebuild completo
 function rebuildProject() {
-  console.log('\n🔧 4. REBUILD COMPLETO');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â§ 4. REBUILD COMPLETO');
   
   return new Promise((resolve) => {
-    console.log('🔄 Limpando dist...');
+    console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Å¾ Limpando dist...');
     exec('npm run clean:dist', { cwd: projectRoot }, (error) => {
       if (error) {
-        console.log('❌ Erro ao limpar dist:', error.message);
+        console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ Erro ao limpar dist:', error.message);
         resolve(false);
         return;
       }
       
-      console.log('🔄 Fazendo build...');
+      console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Å¾ Fazendo build...');
       exec('npm run build', { cwd: projectRoot }, (error, stdout, stderr) => {
         if (error) {
-          console.log('❌ Erro no build:', error.message);
+          console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ Erro no build:', error.message);
           console.log('Stderr:', stderr);
           resolve(false);
           return;
         }
         
-        console.log('✅ Build concluído com sucesso');
-        console.log('🔄 Fazendo build do Electron...');
+        console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Build concluÃƒÆ’Ã‚Â­do com sucesso');
+        console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Å¾ Fazendo build do Electron...');
         exec('npm run electron:build', { cwd: projectRoot }, (error) => {
           if (error) {
-            console.log('❌ Erro no build do Electron:', error.message);
+            console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ Erro no build do Electron:', error.message);
             resolve(false);
             return;
           }
           
-          console.log('✅ Build do Electron concluído');
+          console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Build do Electron concluÃƒÆ’Ã‚Â­do');
           resolve(true);
         });
       });
@@ -460,27 +460,27 @@ function rebuildProject() {
   });
 }
 
-// Função principal
+// FunÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o principal
 async function main() {
-  console.log('🎯 INICIANDO ANÁLISE COMPLETA E CORREÇÕES\n');
+  console.log('ÃƒÂ°Ã…Â¸Ã…Â½Ã‚Â¯ INICIANDO ANÃƒÆ’Ã‚ÂLISE COMPLETA E CORREÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES\n');
   
-  // Análises
+  // AnÃƒÆ’Ã‚Â¡lises
   const filesOk = criticalFileAnalysis();
   const htmlOk = htmlContentAnalysis();
   const jsOk = jsBundleAnalysis();
   const reactOk = reactComponentsAnalysis();
   const electronOk = electronAnalysis();
   
-  console.log('\n📊 RESUMO DA ANÁLISE');
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã…Â  RESUMO DA ANÃƒÆ’Ã‚ÂLISE');
   console.log('='.repeat(50));
-  console.log(`Arquivos críticos: ${filesOk  '✅' : '❌'}`);
-  console.log(`HTML: ${htmlOk  '✅' : '❌'}`);
-  console.log(`JavaScript: ${jsOk  '✅' : '❌'}`);
-  console.log(`Componentes React: ${reactOk  '✅' : '❌'}`);
-  console.log(`Electron: ${electronOk  '✅' : '❌'}`);
+  console.log(`Arquivos crÃƒÆ’Ã‚Â­ticos: ${filesOk ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
+  console.log(`HTML: ${htmlOk ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
+  console.log(`JavaScript: ${jsOk ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
+  console.log(`Componentes React: ${reactOk ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
+  console.log(`Electron: ${electronOk ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
   
-  // Aplica correções
-  console.log('\n🔧 APLICANDO CORREÇÕES');
+  // Aplica correÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes
+  console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â§ APLICANDO CORREÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES');
   console.log('='.repeat(50));
   
   const htmlFixed = fixHtmlFile();
@@ -490,28 +490,28 @@ async function main() {
   // Rebuild
   const rebuildSuccess = await rebuildProject();
   
-  // Verificação final
-  console.log('\n🎯 RESULTADO FINAL');
+  // VerificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o final
+  console.log('\nÃƒÂ°Ã…Â¸Ã…Â½Ã‚Â¯ RESULTADO FINAL');
   console.log('='.repeat(50));
-  console.log(`HTML corrigido: ${htmlFixed  '✅' : '❌'}`);
-  console.log(`main.jsx corrigido: ${mainFixed  '✅' : '❌'}`);
-  console.log(`App.jsx corrigido: ${appFixed  '✅' : '❌'}`);
-  console.log(`Rebuild concluído: ${rebuildSuccess  '✅' : '❌'}`);
+  console.log(`HTML corrigido: ${htmlFixed ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
+  console.log(`main.jsx corrigido: ${mainFixed ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
+  console.log(`App.jsx corrigido: ${appFixed ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
+  console.log(`Rebuild concluÃƒÆ’Ã‚Â­do: ${rebuildSuccess ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}`);
   
   if (htmlFixed && mainFixed && appFixed && rebuildSuccess) {
-    console.log('\n🎉 TODAS AS CORREÇÕES APLICADAS COM SUCESSO!');
-    console.log('🚀 Execute o aplicativo para testar:');
+    console.log('\nÃƒÂ°Ã…Â¸Ã…Â½Ã¢â‚¬Â° TODAS AS CORREÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES APLICADAS COM SUCESSO!');
+    console.log('ÃƒÂ°Ã…Â¸Ã…Â¡Ã¢â€šÂ¬ Execute o aplicativo para testar:');
     console.log('   dist-electron\\win-unpacked\\AXION PDV.exe');
-    console.log('\n📋 Se ainda houver problemas:');
+    console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ Se ainda houver problemas:');
     console.log('   1. Abra DevTools (F12)');
     console.log('   2. Verifique o console');
     console.log('   3. Execute: debugApp()');
   } else {
-    console.log('\n❌ ALGUMAS CORREÇÕES FALHARAM');
-    console.log('📋 Verifique os erros acima e tente manualmente');
+    console.log('\nÃƒÂ¢Ã‚ÂÃ…â€™ ALGUMAS CORREÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES FALHARAM');
+    console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ Verifique os erros acima e tente manualmente');
   }
   
-  console.log('\n🌟 ANÁLISE E CORREÇÕES CONCLUÍDAS!');
+  console.log('\nÃƒÂ°Ã…Â¸Ã…â€™Ã…Â¸ ANÃƒÆ’Ã‚ÂLISE E CORREÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES CONCLUÃƒÆ’Ã‚ÂDAS!');
 }
 
 main().catch(console.error);

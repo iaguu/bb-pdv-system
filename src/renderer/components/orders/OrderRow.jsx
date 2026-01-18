@@ -53,7 +53,7 @@ export const OrderGroupHeader = ({ title, count, tone = "default" }) => {
     <div className={`order-group-header order-group-header--${tone}`}>
       <div className="order-group-header-title">{title}</div>
       <div className="order-group-header-subtitle">
-        {count} {count === 1  "pedido" : "pedidos"}
+        {count} {count === 1 ? "pedido" : "pedidos"}
       </div>
     </div>
   );
@@ -75,7 +75,7 @@ const OrderRow = ({ order, onClick, isNew }) => {
   } = order || {};
 
   const orderId = id || _id || "";
-  const orderCode = orderId  `#${String(orderId).slice(-6)}` : "#—";
+  const orderCode = orderId ? `#${String(orderId).slice(-6)}` : "#—";
 
   const customerName =
     customerSnapshot.name || order.customer.name || "Cliente";
@@ -101,20 +101,20 @@ const OrderRow = ({ order, onClick, isNew }) => {
     .toString()
     .toLowerCase();
   const paymentLabel =
-    PAYMENT_LABELS[paymentKey] || (paymentKey  paymentKey : "");
+    PAYMENT_LABELS[paymentKey] || (paymentKey ? paymentKey : "");
 
   const total =
-    totals.finalTotal  totals.total  order.total  0;
+    totals.finalTotal ?? totals.total ?? order.total ?? 0;
 
   const detailedItems =
     Array.isArray(items) && items.length > 0
-       items.map((item) => {
+      ? items.map((item) => {
           const qty = item.quantity || item.qty || 1;
           const name = item.name || item.title || "Produto";
           const size = item.sizeLabel || item.size || "";
           const extra =
             size && !String(name).toLowerCase().includes(size.toLowerCase())
-               ` (${size})`
+              ? ` (${size})`
               : "";
           return `${qty}x ${name}${extra}`;
         })
@@ -156,34 +156,34 @@ const OrderRow = ({ order, onClick, isNew }) => {
   const motoboyStatusLabel =
     MOTOBOY_STATUS_MAP[motoboyStatusKey] || null;
 
-  const createdDate = createdAt  new Date(createdAt) : null;
+  const createdDate = createdAt ? new Date(createdAt) : null;
   const minutesSince =
     createdDate && !Number.isNaN(createdDate.getTime())
-       Math.round((Date.now() - createdDate.getTime()) / 60000)
+      ? Math.round((Date.now() - createdDate.getTime()) / 60000)
       : null;
   const isOpenLike = ["open", "preparing", "out_for_delivery"].includes(
     normalizedStatusKey
   );
   const minMinutes =
     typeof order.deliveryMinMinutes === "number"
-       order.deliveryMinMinutes
+      ? order.deliveryMinMinutes
       : 0;
-  const lateThreshold = minMinutes > 0  minMinutes : 40;
+  const lateThreshold = minMinutes > 0 ? minMinutes : 40;
   const isLate =
     isOpenLike && minutesSince != null && minutesSince >= lateThreshold;
 
   const elapsedLabel =
     minutesSince == null
-       ""
+      ? ""
       : minutesSince < 60
-       `${minutesSince} min`
+      ? `${minutesSince} min`
       : `${Math.floor(minutesSince / 60)}h ${minutesSince % 60}m`;
 
   const classes = [
     "order-row",
     `order-row--status-${statusInfo.tone}`,
-    isNew  "order-row--new" : "",
-    isLate  "order-row--late" : "",
+    isNew ? "order-row--new" : "",
+    isLate ? "order-row--late" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -260,7 +260,7 @@ const OrderRow = ({ order, onClick, isNew }) => {
         {elapsedLabel && (
           <div
             className={
-              "order-row-elapsed" + (isLate  " order-row-elapsed--late" : "")
+              "order-row-elapsed" + (isLate ? " order-row-elapsed--late" : "")
             }
             title={elapsedLabel}
           >

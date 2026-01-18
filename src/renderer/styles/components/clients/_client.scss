@@ -1,9 +1,11 @@
-﻿/* ==========================================================================
-   CUSTOMER FORM MODAL â€” PREMIUM / WHITE
+/* ==========================================================================
+   CUSTOMER FORM MODAL  PREMIUM / WHITE
    Target: CustomerFormModal.jsx
-   - NÃƒO altera nomes de classes
+   - NO altera nomes de classes
    - Visual profissional, limpo e organizado
    ========================================================================== */
+
+@import '../_client-modal-enhanced.scss';
 
 /* --------------------------------------------------------------------------
    HEADER
@@ -340,4 +342,6 @@
     flex-direction: column;
   }
 }
+
+
 

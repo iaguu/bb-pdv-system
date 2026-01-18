@@ -1,4 +1,4 @@
-﻿
+
 /* ======================================================================
    Component imports (subpastas)
    ====================================================================== */
@@ -11,11 +11,15 @@
 @use "./components/forms/forms" as *;
 @use "./components/finance/finance" as *;
 @use "./components/orders/neworder" as *;
+@use "./components/orders/orderform-enhanced" as *;
 @use "./components/orders/order" as *;
 @use "./components/orders/orders" as *;
 @use "./components/orders/orderdetails" as *;
 @use "./components/pizza/pizza" as *;
 @use "./components/products/products" as *;
 @use "./components/people/people" as *;
+@use "./components/customer-history-modal" as *;
+@use "./components/map-link" as *;
+
 
 

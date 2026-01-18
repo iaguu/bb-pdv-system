@@ -1,9 +1,9 @@
-﻿@use "./mixins.scss" as *;
+@use "./mixins.scss" as *;
 
 /* ============================================================================
-   BOTÃ•ES GERAIS
+   BOTES GERAIS
    - Padroniza .btn (primary, outline, secondary, danger, ghost) e tamanhos
-   - Cobre variantes usadas em vÃ¡rias pÃ¡ginas/modais
+   - Cobre variantes usadas em vrias pginas/modais
    ============================================================================ */
 
 .btn {
@@ -115,5 +115,6 @@
   border-color: var(--border, rgba(17, 24, 39, 0.12));
   box-shadow: var(--shadow-1, 0 8px 18px rgba(17, 24, 39, 0.08));
 }
+
 
 

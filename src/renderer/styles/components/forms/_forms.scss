@@ -1,6 +1,6 @@
-﻿/* ---------------------------------------------------------------------
-   FORMS â€” refinado
-   MantÃ©m nomes das classes; melhora ritmo visual, foco e responsividade
+/* ---------------------------------------------------------------------
+   FORMS  refinado
+   Mantm nomes das classes; melhora ritmo visual, foco e responsividade
 ------------------------------------------------------------------------ */
 
 /* Field wrapper */
@@ -16,7 +16,7 @@
   }
 }
 
-/* Ãºtil em grids */
+/* til em grids */
 .form-field--wide {
   grid-column: 1 / -1;
 }
@@ -39,7 +39,7 @@
     box-shadow 140ms ease,
     transform 140ms ease;
 
-  /* feedback de interaÃ§Ã£o sem precisar de JS */
+  /* feedback de interao sem precisar de JS */
   &:focus-within {
     border-color: rgba(249, 115, 22, 0.55);
     box-shadow:
@@ -55,7 +55,7 @@
   border-radius: 10px;
 }
 
-/* header da seÃ§Ã£o */
+/* header da seo */
 .form-section__header {
   display: flex;
   align-items: center;
@@ -108,7 +108,7 @@
 }
 
 /* ---------------------------------------------------------------------
-   TEXTAREA â€” ingredientes / observaÃ§Ãµes
+   TEXTAREA  ingredientes / observaes
 ------------------------------------------------------------------------ */
 
 .textarea {
@@ -127,7 +127,7 @@
 
   resize: vertical;
 
-  /* â€œfeelâ€ mais suave */
+  /* feel mais suave */
   transition:
     border-color 140ms ease,
     box-shadow 140ms ease,
@@ -158,7 +158,7 @@
   }
 }
 
-/* opcional: se vocÃª usar atributo aria-invalid */
+/* opcional: se voc usar atributo aria-invalid */
 .textarea[aria-invalid="true"] {
   border-color: rgba(239, 68, 68, 0.9);
 
@@ -168,4 +168,5 @@
       0 10px 22px rgba(0, 0, 0, 0.22);
   }
 }
+
 

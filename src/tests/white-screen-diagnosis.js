@@ -1,36 +1,36 @@
 // src/tests/white-screen-diagnosis.js
-// Diagnóstico completo do problema de tela branca
+// DiagnÃƒÆ’Ã‚Â³stico completo do problema de tela branca
 
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔍 DIAGNÓSTICO COMPLETO - TELA BRANCA\n');
+console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â DIAGNÃƒÆ’Ã¢â‚¬Å“STICO COMPLETO - TELA BRANCA\n');
 
-// Configurações
+// ConfiguraÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes
 const projectRoot = path.join(__dirname, '../..');
 const distPath = path.join(projectRoot, 'dist');
 const electronDistPath = path.join(projectRoot, 'dist-electron');
 
-// Função auxiliar para verificar arquivos
+// FunÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o auxiliar para verificar arquivos
 function checkFile(filePath, description) {
   const exists = fs.existsSync(filePath);
-  const stats = exists  fs.statSync(filePath) : null;
+  const stats = exists ? fs.statSync(filePath) : null;
   
-  console.log(`${exists  '✅' : '❌'} ${description}`);
+  console.log(`${exists ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} ${description}`);
   if (exists && stats) {
-    console.log(`   📁 Path: ${filePath}`);
-    console.log(`   📊 Size: ${(stats.size / 1024).toFixed(2)} KB`);
-    console.log(`   📅 Modified: ${stats.mtime.toLocaleString('pt-BR')}`);
+    console.log(`   ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â Path: ${filePath}`);
+    console.log(`   ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã…Â  Size: ${(stats.size / 1024).toFixed(2)} KB`);
+    console.log(`   ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¦ Modified: ${stats.mtime.toLocaleString('pt-BR')}`);
   } else if (!exists) {
-    console.log(`   ❌ Arquivo não encontrado: ${filePath}`);
+    console.log(`   ÃƒÂ¢Ã‚ÂÃ…â€™ Arquivo nÃƒÆ’Ã‚Â£o encontrado: ${filePath}`);
   }
   return exists;
 }
 
-// Função para verificar conteúdo de arquivos críticos
+// FunÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o para verificar conteÃƒÆ’Ã‚Âºdo de arquivos crÃƒÆ’Ã‚Â­ticos
 function checkFileContent(filePath, criticalStrings = []) {
   if (!fs.existsSync(filePath)) {
-    console.log(`❌ Arquivo não existe: ${filePath}`);
+    console.log(`ÃƒÂ¢Ã‚ÂÃ…â€™ Arquivo nÃƒÆ’Ã‚Â£o existe: ${filePath}`);
     return false;
   }
   
@@ -39,20 +39,20 @@ function checkFileContent(filePath, criticalStrings = []) {
     const missingStrings = criticalStrings.filter(str => !content.includes(str));
     
     if (missingStrings.length === 0) {
-      console.log(`✅ Conteúdo crítico OK: ${path.basename(filePath)}`);
+      console.log(`ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ ConteÃƒÆ’Ã‚Âºdo crÃƒÆ’Ã‚Â­tico OK: ${path.basename(filePath)}`);
       return true;
     } else {
-      console.log(`❌ Conteúdo crítico faltando em ${path.basename(filePath)}:`);
+      console.log(`ÃƒÂ¢Ã‚ÂÃ…â€™ ConteÃƒÆ’Ã‚Âºdo crÃƒÆ’Ã‚Â­tico faltando em ${path.basename(filePath)}:`);
       missingStrings.forEach(str => console.log(`   - "${str}"`));
       return false;
     }
   } catch (error) {
-    console.log(`❌ Erro ao ler ${path.basename(filePath)}: ${error.message}`);
+    console.log(`ÃƒÂ¢Ã‚ÂÃ…â€™ Erro ao ler ${path.basename(filePath)}: ${error.message}`);
     return false;
   }
 }
 
-console.log('📋 1. VERIFICAÇÃO DE ARQUIVOS CRÍTICOS\n');
+console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 1. VERIFICAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O DE ARQUIVOS CRÃƒÆ’Ã‚ÂTICOS\n');
 
 // Verificar arquivos de build
 const buildFiles = [
@@ -69,15 +69,15 @@ buildFiles.forEach(({ path: filePath, desc }) => {
   }
 });
 
-console.log('\n📋 2. VERIFICAÇÃO DE CONTEÚDO CRÍTICO\n');
+console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 2. VERIFICAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O DE CONTEÃƒÆ’Ã…Â¡DO CRÃƒÆ’Ã‚ÂTICO\n');
 
-// Verificar conteúdo do HTML
+// Verificar conteÃƒÆ’Ã‚Âºdo do HTML
 checkFileContent(
   path.join(distPath, 'index.html'),
   ['<!DOCTYPE html>', '<div id=\'root\'>', '<script', 'index-DVKlQ-mq.js']
 );
 
-// Verificar se o JavaScript tem o conteúdo React
+// Verificar se o JavaScript tem o conteÃƒÆ’Ã‚Âºdo React
 const jsPath = path.join(distPath, 'assets', 'index-DVKlQ-mq.js');
 if (fs.existsSync(jsPath)) {
   try {
@@ -87,59 +87,59 @@ if (fs.existsSync(jsPath)) {
     const hasCreateRoot = jsContent.includes('createRoot');
     const hasApp = jsContent.includes('App');
     
-    console.log(`${hasReact  '✅' : '❌'} React encontrado no bundle`);
-    console.log(`${hasReactDOM  '✅' : '❌'} ReactDOM encontrado no bundle`);
-    console.log(`${hasCreateRoot  '✅' : '❌'} createRoot encontrado no bundle`);
-    console.log(`${hasApp  '✅' : '❌'} App component encontrado no bundle`);
+    console.log(`${hasReact ? '?' : '?'} React encontrado no bundle`);
+    console.log(`${hasReactDOM ? '?' : '?'} ReactDOM encontrado no bundle`);
+    console.log(`${hasCreateRoot ? '?' : '?'} createRoot encontrado no bundle`);
+    console.log(`${hasApp ? '?' : '?'} App component encontrado no bundle`);
     
     if (!hasReact || !hasReactDOM || !hasCreateRoot) {
-      console.log('⚠️ Possível problema no bundle do JavaScript');
+      console.log('ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â PossÃƒÆ’Ã‚Â­vel problema no bundle do JavaScript');
     }
   } catch (error) {
-    console.log(`❌ Erro ao analisar JavaScript: ${error.message}`);
+    console.log(`ÃƒÂ¢Ã‚ÂÃ…â€™ Erro ao analisar JavaScript: ${error.message}`);
   }
 }
 
-console.log('\n📋 3. VERIFICAÇÃO DO ELECTRON\n');
+console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 3. VERIFICAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O DO ELECTRON\n');
 
 // Verificar arquivos do Electron
 const electronFiles = [
   { path: path.join(projectRoot, 'electron', 'main.js'), desc: 'Main process' },
   { path: path.join(projectRoot, 'electron', 'preload.js'), desc: 'Preload script' },
   { path: path.join(projectRoot, 'electron', 'db.js'), desc: 'Database layer' },
-  { path: path.join(electronDistPath, 'win-unpacked', 'AXION PDV.exe'), desc: 'Executável' }
+  { path: path.join(electronDistPath, 'win-unpacked', 'AXION PDV.exe'), desc: 'ExecutÃƒÆ’Ã‚Â¡vel' }
 ];
 
 electronFiles.forEach(({ path: filePath, desc }) => {
   checkFile(filePath, desc);
 });
 
-console.log('\n📋 4. VERIFICAÇÃO DE CONFIGURAÇÃO\n');
+console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 4. VERIFICAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O DE CONFIGURAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O\n');
 
-// Verificar configuração do main.js
+// Verificar configuraÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do main.js
 const mainJsPath = path.join(projectRoot, 'electron', 'main.js');
 if (fs.existsSync(mainJsPath)) {
   const mainContent = fs.readFileSync(mainJsPath, 'utf8');
   
-  console.log(`${mainContent.includes('loadFile')  '✅' : '❌'} loadFile configurado`);
-  console.log(`${mainContent.includes('dist/index.html')  '✅' : '❌'} Path do index.html correto`);
-  console.log(`${mainContent.includes('preload.js')  '✅' : '❌'} Preload script configurado`);
-  console.log(`${mainContent.includes('ipcMain.handle')  '✅' : '❌'} IPC handlers configurados`);
-  console.log(`${mainContent.includes('dataEngine')  '✅' : '❌'} DataEngine configurado`);
-  console.log(`${mainContent.includes('electron')  '✅' : '❌'} Electron configurado`);
+  console.log(`${mainContent.includes('loadFile') ? '?' : '?'} loadFile configurado`);
+  console.log(`${mainContent.includes('dist/index.html') ? '?' : '?'} Path do index.html correto`);
+  console.log(`${mainContent.includes('preload.js') ? '?' : '?'} Preload script configurado`);
+  console.log(`${mainContent.includes('ipcMain.handle') ? '?' : '?'} IPC handlers configurados`);
+  console.log(`${mainContent.includes('dataEngine') ? '?' : '?'} DataEngine configurado`);
+  console.log(`${mainContent.includes('electron') ? '?' : '?'} Electron configurado`);
 }
 
-// Verificar configuração do preload.js
+// Verificar configuraÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do preload.js
 const preloadPath = path.join(projectRoot, 'electron', 'preload.js');
 if (fs.existsSync(preloadPath)) {
   const preloadContent = fs.readFileSync(preloadPath, 'utf8');
   
-  console.log(`${preloadContent.includes('contextBridge')  '✅' : '❌'} contextBridge configurado`);
-  console.log(`${preloadContent.includes('dataEngine')  '✅' : '❌'} dataEngine exposto`);
-  console.log(`${preloadContent.includes('ipcRenderer')  '✅' : '❌'} ipcRenderer configurado`);
+  console.log(`${preloadContent.includes('contextBridge') ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} contextBridge configurado`);
+  console.log(`${preloadContent.includes('dataEngine') ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} dataEngine exposto`);
+  console.log(`${preloadContent.includes('ipcRenderer') ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} ipcRenderer configurado`);
 }
 
-console.log('\n📋 5. VERIFICAÇÃO DE DEPENDÊNCIAS\n');
+console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 5. VERIFICAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O DE DEPENDÃƒÆ’Ã…Â NCIAS\n');
 
 // Verificar package.json
 const packageJsonPath = path.join(projectRoot, 'package.json');
@@ -147,21 +147,21 @@ if (fs.existsSync(packageJsonPath)) {
   try {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     
-    console.log(`${packageJson.dependencies.react  '✅' : '❌'} React nas dependências`);
-    console.log(`${packageJson.dependencies.['react-dom']  '✅' : '❌'} React DOM nas dependências`);
-    console.log(`${packageJson.dependencies.['react-router-dom']  '✅' : '❌'} React Router nas dependências`);
-    console.log(`${packageJson.devDependencies.electron  '✅' : '❌'} Electron nas devDependencies`);
-    console.log(`${packageJson.devDependencies.vite  '✅' : '❌'} Vite nas devDependencies`);
+    console.log(`${packageJson.dependencies.react ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} React nas dependÃƒÆ’Ã‚Âªncias`);
+    console.log(`${packageJson.dependencies['react-dom'] ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} React DOM nas dependÃƒÆ’Ã‚Âªncias`);
+    console.log(`${packageJson.dependencies['react-router-dom'] ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} React Router nas dependÃƒÆ’Ã‚Âªncias`);
+    console.log(`${packageJson.devDependencies.electron ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} Electron nas devDependencies`);
+    console.log(`${packageJson.devDependencies.vite ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'} Vite nas devDependencies`);
     
-    if (!packageJson.dependencies.react || !packageJson.dependencies.['react-dom']) {
-      console.log('⚠️ Dependências React faltando!');
+    if (!packageJson.dependencies.react || !packageJson.dependencies['react-dom']) {
+      console.log('ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â DependÃƒÆ’Ã‚Âªncias React faltando!');
     }
   } catch (error) {
-    console.log(`❌ Erro ao ler package.json: ${error.message}`);
+    console.log(`ÃƒÂ¢Ã‚ÂÃ…â€™ Erro ao ler package.json: ${error.message}`);
   }
 }
 
-console.log('\n📋 6. VERIFICAÇÃO DE COMPONENTES REACT\n');
+console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 6. VERIFICAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O DE COMPONENTES REACT\n');
 
 // Verificar componentes principais
 const reactComponents = [
@@ -174,66 +174,66 @@ reactComponents.forEach(({ path: filePath, desc }) => {
   checkFile(filePath, desc);
 });
 
-console.log('\n📋 7. ANÁLISE DE POSSÍVEIS CAUSAS\n');
+console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 7. ANÃƒÆ’Ã‚ÂLISE DE POSSÃƒÆ’Ã‚ÂVEIS CAUSAS\n');
 
-console.log('🔍 Possíveis causas de tela branca:');
+console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â PossÃƒÆ’Ã‚Â­veis causas de tela branca:');
 console.log('');
 
-// Análise de problemas comuns
+// AnÃƒÆ’Ã‚Â¡lise de problemas comuns
 if (!allFilesExist) {
-  console.log('❌ ARQUIVOS DE BUILD FALTANDO');
+  console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ ARQUIVOS DE BUILD FALTANDO');
   console.log('   - Execute: npm run build');
   console.log('   - Verifique se o processo de build concluiu sem erros');
 }
 
 if (!fs.existsSync(path.join(distPath, 'index.html'))) {
-  console.log('❌ HTML PRINCIPAL NÃO ENCONTRADO');
-  console.log('   - O Electron não encontra o arquivo para carregar');
+  console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ HTML PRINCIPAL NÃƒÆ’Ã†â€™O ENCONTRADO');
+  console.log('   - O Electron nÃƒÆ’Ã‚Â£o encontra o arquivo para carregar');
 }
 
 if (!fs.existsSync(path.join(distPath, 'assets', 'index-DVKlQ-mq.js'))) {
-  console.log('❌ JAVASCRIPT PRINCIPAL NÃO ENCONTRADO');
-  console.log('   - React não pode ser carregado');
+  console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ JAVASCRIPT PRINCIPAL NÃƒÆ’Ã†â€™O ENCONTRADO');
+  console.log('   - React nÃƒÆ’Ã‚Â£o pode ser carregado');
   console.log('   - Verifique o build do Vite');
 }
 
-// Verificar se há erros de importação
+// Verificar se hÃƒÆ’Ã‚Â¡ erros de importaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
 const mainJsxPath = path.join(projectRoot, 'src/renderer/main.jsx');
 if (fs.existsSync(mainJsxPath)) {
   const mainContent = fs.readFileSync(mainJsxPath, 'utf8');
   if (!mainContent.includes('createRoot')) {
-    console.log('❌ createRoot não encontrado no main.jsx');
+    console.log('ÃƒÂ¢Ã‚ÂÃ…â€™ createRoot nÃƒÆ’Ã‚Â£o encontrado no main.jsx');
     console.log('   - React 18 usa createRoot em vez de ReactDOM.render');
   }
 }
 
-console.log('\n📋 8. RECOMENDAÇÕES\n');
+console.log('\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹ 8. RECOMENDAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES\n');
 
-console.log('🔧 Soluções possíveis:');
+console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â§ SoluÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes possÃƒÆ’Ã‚Â­veis:');
 console.log('');
-console.log('1. 🔄 REBUILD COMPLETO:');
+console.log('1. ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Å¾ REBUILD COMPLETO:');
 console.log('   npm run clean:dist');
 console.log('   npm run build');
 console.log('   npm run electron:build');
 console.log('');
-console.log('2. 📦 VERIFICAR DEPENDÊNCIAS:');
+console.log('2. ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â¦ VERIFICAR DEPENDÃƒÆ’Ã…Â NCIAS:');
 console.log('   npm install');
 console.log('   npm audit fix');
 console.log('');
-console.log('3. 🧪 TESTAR EM MODO DESENVOLVIMENTO:');
+console.log('3. ÃƒÂ°Ã…Â¸Ã‚Â§Ã‚Âª TESTAR EM MODO DESENVOLVIMENTO:');
 console.log('   npm run dev');
 console.log('   Verifique o console do navegador');
 console.log('');
-console.log('4. 🔍 DEBUG DO ELECTRON:');
+console.log('4. ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â DEBUG DO ELECTRON:');
 console.log('   Abra as DevTools no Electron');
 console.log('   Verifique erros no console');
 console.log('   Verifique a aba Network');
 console.log('');
-console.log('5. 📝 VERIFICAR VARIÁVEIS DE AMBIENTE:');
+console.log('5. ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â VERIFICAR VARIÃƒÆ’Ã‚ÂVEIS DE AMBIENTE:');
 console.log('   ENV_FILE=.env.production');
-console.log('   Verifique se as variáveis estão corretas');
+console.log('   Verifique se as variÃƒÆ’Ã‚Â¡veis estÃƒÆ’Ã‚Â£o corretas');
 
-console.log('\n🎯 DIAGNÓSTICO FINAL\n');
+console.log('\nÃƒÂ°Ã…Â¸Ã…Â½Ã‚Â¯ DIAGNÃƒÆ’Ã¢â‚¬Å“STICO FINAL\n');
 
 const criticalIssues = [];
 if (!allFilesExist) criticalIssues.push('Arquivos de build faltando');
@@ -241,21 +241,21 @@ if (!fs.existsSync(path.join(distPath, 'index.html'))) criticalIssues.push('HTML
 if (!fs.existsSync(path.join(distPath, 'assets', 'index-DVKlQ-mq.js'))) criticalIssues.push('JavaScript principal ausente');
 
 if (criticalIssues.length === 0) {
-  console.log('✅ NENHUM PROBLEMA CRÍTICO DETECTADO');
+  console.log('ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ NENHUM PROBLEMA CRÃƒÆ’Ã‚ÂTICO DETECTADO');
   console.log('   - Todos os arquivos essenciais existem');
   console.log('   - Build parece estar correto');
-  console.log('   - Problema pode ser em tempo de execução');
+  console.log('   - Problema pode ser em tempo de execuÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o');
   console.log('');
-  console.log('🔍 Próximos passos:');
+  console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â PrÃƒÆ’Ã‚Â³ximos passos:');
   console.log('   1. Execute o aplicativo em modo desenvolvimento');
   console.log('   2. Abra as DevTools');
   console.log('   3. Verifique erros no console');
-  console.log('   4. Verifique se o React está sendo renderizado');
+  console.log('   4. Verifique se o React estÃƒÆ’Ã‚Â¡ sendo renderizado');
 } else {
-  console.log(`❌ ${criticalIssues.length} PROBLEMAS CRÍTICOS DETECTADOS:`);
+  console.log(`ÃƒÂ¢Ã‚ÂÃ…â€™ ${criticalIssues.length} PROBLEMAS CRÃƒÆ’Ã‚ÂTICOS DETECTADOS:`);
   criticalIssues.forEach(issue => console.log(`   - ${issue}`));
   console.log('');
-  console.log('🔧 Execute as correções recomendadas acima');
+  console.log('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â§ Execute as correÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes recomendadas acima');
 }
 
-console.log('\n🌟 Diagnóstico concluído!');
+console.log('\nÃƒÂ°Ã…Â¸Ã…â€™Ã…Â¸ DiagnÃƒÆ’Ã‚Â³stico concluÃƒÆ’Ã‚Â­do!');

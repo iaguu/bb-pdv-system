@@ -45,7 +45,7 @@ const OrderList = ({
       }
       return ns === status;
     };
-    const filtered = (Array.isArray(orders)  orders : []).filter((o) => {
+    const filtered = (Array.isArray(orders) ? orders : []).filter((o) => {
       const ns = normalizeStatus(o.status);
       const src = (o.source || "all").toString().toLowerCase();
 
@@ -104,7 +104,7 @@ const OrderList = ({
 
     filtered.forEach((o) => {
       const ns = normalizeStatus(o.status);
-      const createdAt = o.createdAt  new Date(o.createdAt) : null;
+      const createdAt = o.createdAt ? new Date(o.createdAt) : null;
       let minutesSince = null;
 
       if (createdAt && !Number.isNaN(createdAt.getTime())) {
@@ -120,24 +120,24 @@ const OrderList = ({
 
       const minMinutes =
         typeof o.deliveryMinMinutes === "number"
-           o.deliveryMinMinutes
+          ? o.deliveryMinMinutes
           : 0;
-      const lateThreshold = minMinutes > 0  minMinutes : 40;
+      const lateThreshold = minMinutes > 0 ? minMinutes : 40;
       const isLate =
         isOpenLike(o.status) &&
         minutesSince != null &&
         minutesSince >= lateThreshold;
 
-      const targetKey = isLate  "late" : groups[ns]  ns : "open";
+      const targetKey = isLate ? "late" : groups[ns] ? ns : "open";
       groups[targetKey].push({ order: o, isNew, isLate });
     });
 
     Object.keys(groups).forEach((k) => {
       groups[k].sort((a, b) => {
-        const da = a.order.createdAt  new Date(a.order.createdAt) : null;
-        const db = b.order.createdAt  new Date(b.order.createdAt) : null;
-        const ta = da  da.getTime() : 0;
-        const tb = db  db.getTime() : 0;
+        const da = a.order.createdAt ? new Date(a.order.createdAt) : null;
+        const db = b.order.createdAt ? new Date(b.order.createdAt) : null;
+        const ta = da ? da.getTime() : 0;
+        const tb = db ? db.getTime() : 0;
         return tb - ta;
       });
     });
@@ -175,7 +175,7 @@ const OrderList = ({
   return (
     <div className="order-list">
       <div className="order-list-summary">
-        {totalCount} {totalCount === 1  "pedido" : "pedidos"}
+        {totalCount} {totalCount === 1 ? "pedido" : "pedidos"}
       </div>
       {isRefreshing && (
         <div className="order-list-refresh">Atualizando pedidos...</div>

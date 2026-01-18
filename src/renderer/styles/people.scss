@@ -1,4 +1,4 @@
-﻿/* ============================================================================
+/* ============================================================================
    PEOPLE PAGE
    Clientes & Motoboys
    ============================================================================ */
@@ -11,7 +11,7 @@ $people-text-muted: #6b7280;
 $people-text-soft: #9ca3af;
 
 /* ========================================================================== */
-/* AÃ‡Ã•ES DO HEADER (EXPORT / IMPORT / NOVO)                                  */
+/* AES DO HEADER (EXPORT / IMPORT / NOVO)                                  */
 /* ========================================================================== */
 
 .people-actions {
@@ -89,7 +89,7 @@ $people-text-soft: #9ca3af;
 }
 
 /* ========================================================================== */
-/* FILTROS RÃPIDOS (CLIENTES & MOTOBOYS)                                     */
+/* FILTROS RPIDOS (CLIENTES & MOTOBOYS)                                     */
 /* ========================================================================== */
 
 .people-filters {
@@ -98,11 +98,11 @@ $people-text-soft: #9ca3af;
   gap: 8px;
   margin-bottom: 10px;
 
-  /* Usa <Button>, entÃ£o sÃ³ controla layout aqui */
+  /* Usa <Button>, ento s controla layout aqui */
 }
 
 /* ========================================================================== */
-/* RESUMO RÃPIDO                                                             */
+/* RESUMO RPIDO                                                             */
 /* ========================================================================== */
 
 .people-summary {
@@ -162,13 +162,13 @@ $people-text-soft: #9ca3af;
   gap: 10px;
 }
 
-/* Caso os rows tenham borda prÃ³pria, esse padding suaviza o container */
+/* Caso os rows tenham borda prpria, esse padding suaviza o container */
 .customer-list > *:first-child,
 .motoboy-list > *:first-child {
-  /* opcional: margin-top / border-top removal se necessÃ¡rio */
+  /* opcional: margin-top / border-top removal se necessrio */
 }
 
-/* Em telas menores, dÃ¡ um respiro lateral se o Page nÃ£o tiver */
+/* Em telas menores, d um respiro lateral se o Page no tiver */
 @media (max-width: 640px) {
   .people-panel {
     padding: 12px;
@@ -180,7 +180,7 @@ $people-text-soft: #9ca3af;
   }
 }
 /* ==========================================================================
-   PEOPLE â€” Buttons (actions + filters)
+   PEOPLE  Buttons (actions + filters)
    Target: .people-actions + .people-filters (PeoplePage)
    ========================================================================== */
 
@@ -192,7 +192,7 @@ $people-text-soft: #9ca3af;
   flex-wrap: wrap;
 }
 
-/* BotÃµes (funciona com <button>, <a>, ou libs que renderizam internamente) */
+/* Botes (funciona com <button>, <a>, ou libs que renderizam internamente) */
 .people-actions :where(button, a, .btn, .button),
 .people-filters :where(button, a, .btn, .button) {
   height: 38px;
@@ -232,7 +232,7 @@ $people-text-soft: #9ca3af;
   }
 }
 
-/* BotÃ£o primÃ¡rio (Novo cliente / filtro ativo = primary) */
+/* Boto primrio (Novo cliente / filtro ativo = primary) */
 .people-actions :where(button, a, .btn, .button)[class*="primary"],
 .people-filters :where(button, a, .btn, .button)[class*="primary"] {
   border: 0;
@@ -245,13 +245,13 @@ $people-text-soft: #9ca3af;
   }
 }
 
-/* BotÃµes outline (Exportar/Importar etc.) mais â€œtightâ€ */
+/* Botes outline (Exportar/Importar etc.) mais tight */
 .people-actions :where(button, a, .btn, .button)[class*="outline"],
 .people-filters :where(button, a, .btn, .button)[class*="outline"] {
   background: rgba(248, 250, 252, 0.92);
 }
 
-/* Responsivo: evita quebra feia e dÃ¡ respiro */
+/* Responsivo: evita quebra feia e d respiro */
 @media (max-width: 860px) {
   .people-actions,
   .people-filters {
@@ -264,4 +264,5 @@ $people-text-soft: #9ca3af;
     padding: 0 16px;
   }
 }
+
 

@@ -1,27 +1,28 @@
-﻿import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import NavIcon from "./NavIcon";
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/orders", label: "Pedidos" },
-  { to: "/catalog", label: "Catalogo" },
-  { to: "/people", label: "Pessoas" },
-  { to: "/estoque", label: "Estoque" },
-  { to: "/finance", label: "Caixa & Financeiro" },
-  { to: "/settings", label: "Configuracoes" },
+  { to: "/dashboard", label: "Dashboard", icon: "dashboard", shortcut: "Alt+1" },
+  { to: "/orders", label: "Pedidos", icon: "orders", shortcut: "Alt+2" },
+  { to: "/catalog", label: "Catalogo", icon: "catalog", shortcut: "Alt+3" },
+  { to: "/people", label: "Pessoas", icon: "people", shortcut: "Alt+4" },
+  { to: "/estoque", label: "Estoque", icon: "stock", shortcut: "Alt+5" },
+  { to: "/finance", label: "Caixa & Financeiro", icon: "finance", shortcut: "Alt+6" },
+  { to: "/settings", label: "Configuracoes", icon: "settings", shortcut: "Alt+7" },
 ];
 
 const AppLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("bb-pdv:sidebar-collapsed") === "true";
+  });
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [syncAlert, setSyncAlert] = useState(null);
-  const [syncStatus, setSyncStatus] = useState(null);
-  const [syncNowPending, setSyncNowPending] = useState(false);
-  const [syncNowError, setSyncNowError] = useState("");
   const [appToasts, setAppToasts] = useState([]);
   const lastSeenRef = useRef(
     typeof window !== "undefined"
@@ -33,13 +34,26 @@ const AppLayout = ({ children }) => {
   const toastIdRef = useRef(0);
   const toastTimersRef = useRef(new Map());
 
-  useEffect(() => {
-    const dispatchShortcut = (action) => {
-      window.dispatchEvent(
-        new CustomEvent("app:shortcut", { detail: { action } })
-      );
-    };
+  const dispatchShortcut = useCallback((action) => {
+    window.dispatchEvent(
+      new CustomEvent("app:shortcut", { detail: { action } })
+    );
+  }, []);
 
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarCollapsed((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      "bb-pdv:sidebar-collapsed",
+      isSidebarCollapsed ? "true" : "false"
+    );
+  }, [isSidebarCollapsed]);
+
+
+  useEffect(() => {
     const handleKey = (event) => {
       const target = event.target;
       const tag = target.tagName;
@@ -88,6 +102,12 @@ const AppLayout = ({ children }) => {
         return;
       }
 
+      if (isCtrl && key === "b") {
+        event.preventDefault();
+        handleToggleSidebar();
+        return;
+      }
+
       if (isCtrl && event.shiftKey && key === "p") {
         event.preventDefault();
         dispatchShortcut("print-order");
@@ -117,7 +137,7 @@ const AppLayout = ({ children }) => {
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [navigate, location.pathname]);
+  }, [dispatchShortcut, handleToggleSidebar, navigate, location.pathname]);
 
   useEffect(() => {
     if (location.pathname === "/orders") {
@@ -152,6 +172,30 @@ const AppLayout = ({ children }) => {
     loadNotificationsSetting();
     return () => {
       mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleNotificationsUpdated = (event) => {
+      const detail = event.detail || {};
+      if (typeof detail.enabled === "boolean") {
+        setNotificationsEnabled(detail.enabled);
+        if (!detail.enabled) {
+          setNewOrdersCount(0);
+          setToastVisible(false);
+        }
+      }
+    };
+
+    window.addEventListener(
+      "app:notifications-updated",
+      handleNotificationsUpdated
+    );
+    return () => {
+      window.removeEventListener(
+        "app:notifications-updated",
+        handleNotificationsUpdated
+      );
     };
   }, []);
 
@@ -194,14 +238,6 @@ const AppLayout = ({ children }) => {
       if (!window.electronAPI || !window.electronAPI.getSyncStatus) return;
       try {
         const status = await window.electronAPI.getSyncStatus();
-        setSyncStatus(status || null);
-        if (status.lastPullErrorType === "dns") {
-          setSyncAlert(
-            "Sem conexao com o servidor (DNS). Aguarde o ngrok voltar ou atualize a URL."
-          );
-        } else {
-          setSyncAlert(null);
-        }
         if (!status.lastNewOrdersAt) return;
         if (status.lastNewOrdersAt === lastProcessedRef.current) return;
         lastProcessedRef.current = status.lastNewOrdersAt;
@@ -270,41 +306,23 @@ const AppLayout = ({ children }) => {
     setAppToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const formatSyncTime = (value) => {
-    if (!value) return "nunca";
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return "nunca";
-    return parsed.toLocaleTimeString("pt-BR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const handleSyncNow = async () => {
-    if (!window.electronAPI.syncNow) return;
-    setSyncNowError("");
-    setSyncNowPending(true);
-    try {
-      const result = await window.electronAPI.syncNow();
-      if (result.success === false) {
-        setSyncNowError(result.error || "Falha ao sincronizar.");
-      }
-      const updated = await window.electronAPI.getSyncStatus();
-      setSyncStatus(updated || null);
-    } catch (err) {
-      console.error("[AppLayout] Erro ao sincronizar agora:", err);
-      setSyncNowError("Falha ao sincronizar.");
-    } finally {
-      setSyncNowPending(false);
-    }
-  };
-
   return (
     <div className="app-shell">
-      <aside className="app-sidebar">
+      <aside className={"app-sidebar" + (isSidebarCollapsed ? " app-sidebar--collapsed" : "")}>
         <div className="app-sidebar-brand">
           <img className="app-logo" src="./AXIONPDV.png" alt="AXION PDV" />
           <span className="app-brand-text">AXION PDV</span>
+          <button
+            type="button"
+            className="app-sidebar-toggle"
+            onClick={handleToggleSidebar}
+            aria-label={
+              isSidebarCollapsed ? "Expandir menu" : "Recolher menu"
+            }
+            title={isSidebarCollapsed ? "Expandir menu" : "Recolher menu"}
+          >
+            <NavIcon name={isSidebarCollapsed ? "expand" : "collapse"} />
+          </button>
         </div>
 
         <nav className="app-nav">
@@ -316,14 +334,59 @@ const AppLayout = ({ children }) => {
               className={({ isActive }) =>
                 "app-nav-link" + (isActive ? " app-nav-link-active" : "")
               }
+              title={item.label}
             >
-              <span className="app-nav-link__label">{item.label}</span>
+              <span className="app-nav-link__label">
+                <span className="app-nav-link__icon">
+                  <NavIcon name={item.icon} />
+                </span>
+                <span className="app-nav-link__text">{item.label}</span>
+              </span>
+              <span className="app-nav-link__meta">{item.shortcut}</span>
               {item.to === "/orders" && newOrdersCount > 0 && (
                 <span className="app-nav-link__badge">{newOrdersCount}</span>
               )}
             </NavLink>
           ))}
         </nav>
+
+        <div className="app-sidebar-shortcuts">
+          <div className="app-sidebar-shortcuts__title">Atalhos rapidos</div>
+          <button
+            type="button"
+            className="app-sidebar-shortcut"
+            title="Novo pedido (Ctrl+N)"
+            onClick={() => {
+              if (location.pathname !== "/orders") {
+                navigate("/orders");
+                setTimeout(() => dispatchShortcut("new-order"), 120);
+                return;
+              }
+              dispatchShortcut("new-order");
+            }}
+          >
+            <NavIcon name="plus" />
+            <span>Novo pedido</span>
+            <span className="app-sidebar-shortcut__hint">Ctrl+N</span>
+          </button>
+          <button
+            type="button"
+            className="app-sidebar-shortcut"
+            title="Buscar pedidos (/)"
+            onClick={() => {
+              if (location.pathname !== "/orders") {
+                navigate("/orders");
+                setTimeout(() => dispatchShortcut("focus-order-search"), 120);
+                return;
+              }
+              dispatchShortcut("focus-order-search");
+            }}
+          >
+            <NavIcon name="search" />
+            <span>Buscar pedidos</span>
+            <span className="app-sidebar-shortcut__hint">/</span>
+          </button>
+        </div>
       </aside>
 
       <div className="app-main">
@@ -356,58 +419,6 @@ const AppLayout = ({ children }) => {
                 </button>
               </div>
             ))}
-          </div>
-        )}
-        {syncAlert && (
-          <div className="app-sync-alert" role="alert">
-            {syncAlert}
-          </div>
-        )}
-        {syncStatus && (
-          <div className="app-sync-status" role="status" aria-live="polite">
-            <div className="app-sync-status__left">
-              <span
-                className={
-                  "app-sync-status__pill " +
-                  (syncStatus.online ? "is-online" : "is-offline")
-                }
-              >
-                {syncStatus.online ? "Online" : "Offline"}
-              </span>
-              <span>
-                Última atualização (pull): {formatSyncTime(syncStatus.lastPullAt)}
-              </span>
-              <span>
-                Último envio (push): {formatSyncTime(syncStatus.lastPushAt)}
-              </span>
-              {typeof syncStatus.queueRemaining === "number" &&
-                syncStatus.queueRemaining > 0 && (
-                  <span>Fila: {syncStatus.queueRemaining}</span>
-                )}
-              {syncStatus.lastPullError && (
-                <span className="app-sync-status__error">
-                  Erro: {syncStatus.lastPullError}
-                </span>
-              )}
-              {syncStatus.lastPushError && !syncStatus.lastPullError && (
-                <span className="app-sync-status__error">
-                  Erro push: {syncStatus.lastPushError}
-                </span>
-              )}
-            </div>
-            <div className="app-sync-status__right">
-              {syncNowError && (
-                <span className="app-sync-status__error">{syncNowError}</span>
-              )}
-              <button
-                type="button"
-                className="app-sync-status__btn"
-                onClick={handleSyncNow}
-                disabled={syncNowPending}
-              >
-                {syncNowPending ? "Sincronizando..." : "Sincronizar agora"}
-              </button>
-            </div>
           </div>
         )}
         {toastVisible && (

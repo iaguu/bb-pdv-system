@@ -59,7 +59,7 @@ const MotoboyQrModal = ({ motoboy, onClose }) => {
     >
       <div className="motoboy-qr">
         <div className="motoboy-qr-card">
-          {qrDataUrl  (
+          {qrDataUrl ? (
             <img
               src={qrDataUrl}
               alt="QR Code do motoboy"

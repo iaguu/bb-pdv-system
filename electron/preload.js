@@ -34,8 +34,8 @@ contextBridge.exposeInMainWorld('appInfo', {
 // Impressão de pedidos / tickets
 // ---------------------------
 // Usado pelo frontend:
-//   window.ticketPrinter.printTickets({ orderId, kitchenText, counterText, trackingUrl, silent })
-//   window.ticketPrinter.printOrder(order, { silent })
+//   window.ticketPrinter.printTickets({ orderId, kitchenText, counterText, trackingUrl, silent, async })
+//   window.ticketPrinter.printOrder(order, { silent, async })
 // E também via window.electronAPI.* (alias de compat)
 
 contextBridge.exposeInMainWorld('ticketPrinter', {
@@ -53,7 +53,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPublicApiConfig: () => ipcRenderer.invoke('app:getPublicApiConfig'),
   getNotificationsEnabled: () => ipcRenderer.invoke('sync:notifications:get'),
   setNotificationsEnabled: (enabled) =>
-    ipcRenderer.invoke('sync:notifications:set', enabled)
+    ipcRenderer.invoke('sync:notifications:set', enabled),
+  getNotificationsSettings: () => ipcRenderer.invoke('sync:notifications:get'),
+  setNotificationsSettings: (settings) =>
+    ipcRenderer.invoke('sync:notifications:set', settings)
 });
 
 // ---------------------------

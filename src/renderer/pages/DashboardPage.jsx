@@ -643,7 +643,7 @@ const DashboardPage = () => {
                   className={
                     "dashboard-period-btn" +
                     (period === "today"
-                       " dashboard-period-btn-active"
+                       ? " dashboard-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("today")}
@@ -655,7 +655,7 @@ const DashboardPage = () => {
                   className={
                     "dashboard-period-btn" +
                     (period === "7d"
-                       " dashboard-period-btn-active"
+                       ? " dashboard-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("7d")}
@@ -667,7 +667,7 @@ const DashboardPage = () => {
                   className={
                     "dashboard-period-btn" +
                     (period === "30d"
-                       " dashboard-period-btn-active"
+                       ? " dashboard-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("30d")}
@@ -679,7 +679,7 @@ const DashboardPage = () => {
                   className={
                     "dashboard-period-btn" +
                     (period === "all"
-                       " dashboard-period-btn-active"
+                       ? " dashboard-period-btn-active"
                       : "")
                   }
                   onClick={() => setPeriod("all")}
@@ -700,11 +700,11 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {loading  (
+        {loading ? (
           <p className="dashboard-loading">
             Carregando dados da dashboard...
           </p>
-        ) : filteredOrders.length === 0  (
+        ) : filteredOrders.length === 0 ? (
           <div className="dashboard-empty">
             <p>Nenhum pedido encontrado no período selecionado.</p>
           </div>
@@ -858,7 +858,7 @@ const DashboardPage = () => {
                       Distribuição por canal (% de pedidos)
                     </div>
 
-                    {insights.hasChannelData  (
+                    {insights.hasChannelData ? (
                       <div className="dashboard-insights-bars">
                         {[
                           { key: "website", label: "Site" },
@@ -942,7 +942,7 @@ const DashboardPage = () => {
                 </div>
                 <div className="dashboard-channels-total">
                   Total: {stats.ordersCount} pedido
-                  {stats.ordersCount !== 1  "s" : ""}
+                  {stats.ordersCount !== 1 ? "s" : ""}
                 </div>
               </div>
               <div className="dashboard-channels-grid">

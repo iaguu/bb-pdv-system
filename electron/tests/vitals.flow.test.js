@@ -89,7 +89,7 @@ async function run() {
     const response = await fetchFn(`${baseUrl}${pathname}`, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: payload  JSON.stringify(payload) : undefined,
+      body: payload ? JSON.stringify(payload) : undefined,
     });
     const body = await response.json().catch(() => ({}));
     logStep(`http ${method} ${pathname}`, {
@@ -150,7 +150,7 @@ async function run() {
 
     logStep("delivery quote violations");
     const quoteRes = await fetchFn(
-      `${baseUrl}/api/pdv/delivery/quotedistanceKm=3&subtotal=50&neighborhood=Santana`,
+      `${baseUrl}/api/pdv/delivery/quote?distanceKm=3&subtotal=50&neighborhood=Santana`,
       { method: "GET" }
     );
     const quoteBody = await quoteRes.json().catch(() => ({}));
@@ -197,7 +197,7 @@ async function run() {
 
     logStep("customer by phone");
     const byPhoneRes = await fetchFn(
-      `${baseUrl}/api/customers/by-phonephone=11999999999`,
+      `${baseUrl}/api/customers/by-phone?phone=11999999999`,
       { method: "GET" }
     );
     const byPhoneBody = await byPhoneRes.json().catch(() => ({}));
@@ -257,7 +257,7 @@ async function run() {
     logStep("orders metrics");
     const today = new Date().toISOString().slice(0, 10);
     const metricsRes = await fetchFn(
-      `${baseUrl}/api/pdv/orders/metricsfrom=${today}&to=${today}`,
+      `${baseUrl}/api/pdv/orders/metrics?from=${today}&to=${today}`,
       { method: "GET" }
     );
     const metricsBody = await metricsRes.json().catch(() => ({}));

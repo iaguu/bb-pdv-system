@@ -1,8 +1,7 @@
-﻿// src/renderer/pages/SettingsPage.jsx
+﻿﻿// src/renderer/pages/SettingsPage.jsx
 import React, { useEffect, useRef, useState } from "react";
 import Page from "../components/layout/Page";
 import Button from "../components/common/Button";
-import Modal from "../components/common/Modal";
 import { emitToast } from "../utils/toast";
 
 const ZONA_NORTE_BAIRROS = [
@@ -170,6 +169,7 @@ const buildDefaultSettings = () => ({
     counterPrinterName: "",
     silentMode: true,
     autoPrintWebsiteOrders: false,
+    asyncMode: false,
   },
   delivery: buildDefaultDeliveryConfig(),
 });
@@ -726,6 +726,13 @@ const SettingsPage = () => {
   const [showIntegrationManual, setShowIntegrationManual] = useState(false);
   const [showApiConsole, setShowApiConsole] = useState(false);
   const [apiTokenVisible, setApiTokenVisible] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState({
+    enabled: true,
+    desktopEnabled: true,
+    audioEnabled: true,
+  });
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState("");
   const [appInfo, setAppInfo] = useState(null);
   const [updateStatus, setUpdateStatus] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
@@ -773,10 +780,65 @@ const SettingsPage = () => {
   const ordersStreamRef = useRef(null);
   const [healthSnapshotResult, setHealthSnapshotResult] = useState(null);
 
+  const handleFullBackup = async () => {
+    try {
+      if (!window.dataEngine) {
+        emitToast({ type: "error", message: "DataEngine não disponível" });
+        return;
+      }
+
+      emitToast({ type: "info", message: "Iniciando backup completo..." });
+      
+      // Get all data from dataEngine
+      const collections = ['orders', 'customers', 'products', 'settings'];
+      const backupData = {};
+      
+      for (const collection of collections) {
+        try {
+          const data = await window.dataEngine.get(collection);
+          backupData[collection] = data;
+        } catch (err) {
+          console.warn(`Erro ao obter coleção ${collection}:`, err);
+          backupData[collection] = { items: [] };
+        }
+      }
+
+      // Create backup object with timestamp
+      const backup = {
+        timestamp: new Date().toISOString(),
+        version: "1.0",
+        data: backupData
+      };
+
+      // Convert to JSON and create blob
+      const jsonString = JSON.stringify(backup, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `pdv-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      emitToast({ type: "success", message: "Backup completo realizado com sucesso!" });
+    } catch (error) {
+      console.error("Erro ao criar backup:", error);
+      emitToast({ type: "error", message: "Erro ao criar backup. Verifique o console." });
+    }
+  };
+
   const toolActions = [
     {
       label: "Backup / restaurar settings",
       onClick: () => setShowToolsBackup(true),
+    },
+    {
+      label: "Backup completo (.db)",
+      onClick: handleFullBackup,
     },
     {
       label: "Simular entrega",
@@ -829,11 +891,11 @@ const SettingsPage = () => {
             const envConfig = await window.electronAPI.getPublicApiConfig();
             apiBaseUrlValue =
               typeof envConfig.apiBaseUrl === "string"
-                 envConfig.apiBaseUrl
+                ? envConfig.apiBaseUrl
                 : "";
             apiTokenValue =
               typeof envConfig.publicApiToken === "string"
-                 envConfig.publicApiToken
+                ? envConfig.publicApiToken
                 : "";
           } catch (envErr) {
             console.error("[Settings] Erro ao ler .env:", envErr);
@@ -872,7 +934,7 @@ const SettingsPage = () => {
             counterPrinterName: item.printing.counterPrinterName || "",
             silentMode:
               item.printing.silentMode !== undefined
-                 !!item.printing.silentMode
+                ? !!item.printing.silentMode
                 : true,
             autoPrintWebsiteOrders: !!item.printing.autoPrintWebsiteOrders,
           };
@@ -886,7 +948,7 @@ const SettingsPage = () => {
           const closedWeekdays = Array.isArray(
             item.businessHours.closedWeekdays
           )
-             item.businessHours.closedWeekdays
+            ? item.businessHours.closedWeekdays
             : [];
           const baseSchedule = buildWeeklySchedule({
             openTime,
@@ -896,10 +958,10 @@ const SettingsPage = () => {
           const rawSchedule = Array.isArray(
             item.businessHours.weeklySchedule
           )
-             item.businessHours.weeklySchedule
+            ? item.businessHours.weeklySchedule
             : null;
           const weeklySchedule = rawSchedule
-             baseSchedule.map((entry) => {
+            ? baseSchedule.map((entry) => {
                 const match = rawSchedule.find(
                   (day) => Number(day.day) === entry.day
                 );
@@ -930,7 +992,7 @@ const SettingsPage = () => {
           item.delivery = buildDefaultDeliveryConfig();
         } else {
           const blocked = Array.isArray(item.delivery.blockedNeighborhoods)
-             item.delivery.blockedNeighborhoods
+            ? item.delivery.blockedNeighborhoods
                 .map((b) => (b || "").toString().trim())
                 .filter(Boolean)
             : [];
@@ -943,15 +1005,15 @@ const SettingsPage = () => {
             blockedNeighborhoods: blocked,
             minOrderValue:
               typeof item.delivery.minOrderValue === "number"
-                 item.delivery.minOrderValue
+                ? item.delivery.minOrderValue
                 : Number(item.delivery.minOrderValue || 0),
             maxDistanceKm:
               typeof item.delivery.maxDistanceKm === "number"
-                 item.delivery.maxDistanceKm
+                ? item.delivery.maxDistanceKm
                 : Number(item.delivery.maxDistanceKm || 0),
             etaMinutesDefault:
               typeof item.delivery.etaMinutesDefault === "number"
-                 item.delivery.etaMinutesDefault
+                ? item.delivery.etaMinutesDefault
                 : Number(item.delivery.etaMinutesDefault || 45),
             peakFee: {
               enabled: !!peakFee.enabled,
@@ -960,7 +1022,7 @@ const SettingsPage = () => {
               endTime: peakFee.endTime || "22:00",
               amount:
                 typeof peakFee.amount === "number"
-                   peakFee.amount
+                  ? peakFee.amount
                   : Number(peakFee.amount || 0),
             },
             ranges: item.delivery.ranges.map((r, idx) => ({
@@ -968,15 +1030,15 @@ const SettingsPage = () => {
               label: r.label || "",
               minKm:
                 typeof r.minKm === "number"
-                   r.minKm
+                  ? r.minKm
                   : Number(r.minKm || 0),
               maxKm:
                 typeof r.maxKm === "number"
-                   r.maxKm
+                  ? r.maxKm
                   : Number(r.maxKm || 0),
               price:
                 typeof r.price === "number"
-                   r.price
+                  ? r.price
                   : Number(r.price || 0),
             })),
           };
@@ -1210,7 +1272,7 @@ const SettingsPage = () => {
           peakFee: {
             ...peakFee,
             days: exists
-               days.filter((d) => d !== dayValue)
+              ? days.filter((d) => d !== dayValue)
               : [...days, dayValue],
           },
         },
@@ -1245,11 +1307,11 @@ const SettingsPage = () => {
       const current =
         prev.businessHours || buildDefaultSettings().businessHours;
       const days = Array.isArray(current.closedWeekdays)
-         current.closedWeekdays
+        ? current.closedWeekdays
         : [];
       const exists = days.includes(dayValue);
       const schedule = Array.isArray(current.weeklySchedule)
-         [...current.weeklySchedule]
+        ? [...current.weeklySchedule]
         : buildWeeklySchedule({
             openTime: current.openTime || "11:00",
             closeTime: current.closeTime || "23:00",
@@ -1260,7 +1322,7 @@ const SettingsPage = () => {
       );
       const baseEntry =
         index >= 0
-           schedule[index]
+          ? schedule[index]
           : {
               day: dayValue,
               enabled: true,
@@ -1292,7 +1354,7 @@ const SettingsPage = () => {
       const current =
         prev.businessHours || buildDefaultSettings().businessHours;
       const schedule = Array.isArray(current.weeklySchedule)
-         [...current.weeklySchedule]
+        ? [...current.weeklySchedule]
         : buildWeeklySchedule({
             openTime: current.openTime || "11:00",
             closeTime: current.closeTime || "23:00",
@@ -1304,7 +1366,7 @@ const SettingsPage = () => {
       );
       const baseEntry =
         index >= 0
-           schedule[index]
+          ? schedule[index]
           : {
               day: dayValue,
               enabled: true,
@@ -1341,7 +1403,7 @@ const SettingsPage = () => {
       const openTime = current.openTime || "11:00";
       const closeTime = current.closeTime || "23:00";
       const schedule = Array.isArray(current.weeklySchedule)
-         current.weeklySchedule.map((entry) => ({
+        ? current.weeklySchedule.map((entry) => ({
             ...entry,
             openTime,
             closeTime,
@@ -1446,7 +1508,7 @@ const SettingsPage = () => {
     setSettings((prev) => {
       const current = prev.delivery || buildDefaultDeliveryConfig();
       const existing = Array.isArray(current.blockedNeighborhoods)
-         current.blockedNeighborhoods
+        ? current.blockedNeighborhoods
         : [];
 
       const key = normalizeNeighborhoodKey(cleaned);
@@ -1474,7 +1536,7 @@ const SettingsPage = () => {
     setSettings((prev) => {
       const current = prev.delivery || buildDefaultDeliveryConfig();
       const existing = Array.isArray(current.blockedNeighborhoods)
-         current.blockedNeighborhoods
+        ? current.blockedNeighborhoods
         : [];
       const next = [...existing];
       next.splice(index, 1);
@@ -1499,9 +1561,9 @@ const SettingsPage = () => {
         const current = appInfo.version || settings.versao || "";
         const hasUpdate = latest && latest !== current;
         setUpdateStatus({
-          status: hasUpdate  "available" : "ok",
+          status: hasUpdate ? "available" : "ok",
           message: hasUpdate
-             `Atualizacao disponivel: ${latest}`
+            ? `Atualizacao disponivel: ${latest}`
             : "Sistema atualizado.",
           details: result.releaseNotes || "",
           downloadUrl: result.downloadUrl || "",
@@ -1998,12 +2060,12 @@ const SettingsPage = () => {
 
     const kitchenName = settings.printing.kitchenPrinterName || "";
     const counterName = settings.printing.counterPrinterName || "";
-    const silent = settings.printing.silentMode  true;
+    const silent = settings.printing.silentMode || true;
 
     const isKitchen = target === "kitchen";
 
     const kitchenText = isKitchen
-       buildThermalTestTicket({
+      ? buildThermalTestTicket({
           profile: "kitchen",
           pizzaria: settings.pizzaria || "AXION PDV",
           configuredPrinterName: kitchenName,
@@ -2011,7 +2073,7 @@ const SettingsPage = () => {
       : "";
 
     const counterText = !isKitchen
-       buildThermalTestTicket({
+      ? buildThermalTestTicket({
           profile: "counter",
           pizzaria: settings.pizzaria || "AXION PDV",
           configuredPrinterName: counterName,
@@ -2020,7 +2082,7 @@ const SettingsPage = () => {
 
     const payload = {
       mode: "test",
-      target: isKitchen  "kitchen" : "counter",
+      target: isKitchen ? "kitchen" : "counter",
       silent,
       kitchenText,
       counterText,
@@ -2037,7 +2099,7 @@ const SettingsPage = () => {
       if (ok) {
         setPrintMessage(
           isKitchen
-             "Ticket de teste enviado para a impressora da cozinha."
+            ? "Ticket de teste enviado para a impressora da cozinha."
             : "Ticket de teste enviado para a impressora do balcão."
         );
       } else {
@@ -2070,7 +2132,7 @@ const SettingsPage = () => {
       } else {
         setSyncMessage(
           result.error
-             `Falha ao sincronizar: ${result.error}`
+            ? `Falha ao sincronizar: ${result.error}`
             : "Falha ao sincronizar."
         );
       }
@@ -2121,19 +2183,19 @@ const SettingsPage = () => {
   const delivery = settings.delivery || buildDefaultDeliveryConfig();
   const blockedNeighborhoods =
     Array.isArray(delivery.blockedNeighborhoods)
-       delivery.blockedNeighborhoods
+      ? delivery.blockedNeighborhoods
       : [];
   const apiBaseUrlValue = publicApiConfig.apiBaseUrl || "";
   const apiTokenValue = publicApiConfig.publicApiToken || "";
   const apiTokenDisplay = apiTokenVisible
-     apiTokenValue
+    ? apiTokenValue
     : apiTokenValue
-     `${apiTokenValue.slice(0, 4)}...${apiTokenValue.slice(-4)}`
+    ? `${apiTokenValue.slice(0, 4)}...${apiTokenValue.slice(-4)}`
     : "";
   const businessSchedule = Array.isArray(
     settings.businessHours.weeklySchedule
   )
-     settings.businessHours.weeklySchedule
+    ? settings.businessHours.weeklySchedule
     : buildWeeklySchedule({
         openTime: settings.businessHours.openTime || "11:00",
         closeTime: settings.businessHours.closeTime || "23:00",
@@ -2150,7 +2212,7 @@ const SettingsPage = () => {
           {isDirty && (
             <span className="settings-dirty-badge">
               Alteracoes nao salvas
-              {dirtyFields.length > 0  ` (${dirtyFields.length})` : ""}
+              {dirtyFields.length > 0 ? ` (${dirtyFields.length})` : ""}
             </span>
           )}
           {isDirty && (
@@ -2167,7 +2229,7 @@ const SettingsPage = () => {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving  "Salvando..." : "Salvar"}
+            {saving ? "Salvando..." : "Salvar"}
           </Button>
         </div>
       }
@@ -2291,7 +2353,7 @@ const SettingsPage = () => {
                   onClick={handleCheckUpdates}
                   disabled={updateLoading}
                 >
-                  {updateLoading  "Verificando..." : "Verificar atualizacoes"}
+                  {updateLoading ? "Verificando..." : "Verificar atualizacoes"}
                 </Button>
                 {updateStatus && (
                   <div
@@ -2326,30 +2388,58 @@ const SettingsPage = () => {
             <div className="form-grid settings-grid">
               <label className="field">
                 <span className="field-label">API Base URL</span>
-                <input
-                  className="input"
-                  value={apiBaseUrlValue}
-                  placeholder="https://sua-api.com"
-                  readOnly
-                  disabled
-                />
-                <span className="field-helper">
-                  Valor carregado do .env (SYNC_BASE_URL). Para alterar, edite o .env e reinicie o app.
-                </span>
+                <div className="field-with-action">
+                  <input
+                    className="input"
+                    value={apiBaseUrlValue}
+                    placeholder="https://sua-api.com"
+                    readOnly
+                    disabled
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(apiBaseUrlValue);
+                      emitToast({ type: "success", message: "Base URL copiada!" });
+                    }}
+                    disabled={!apiBaseUrlValue}
+                  >
+                    Copiar
+                  </button>
+                </div>
               </label>
 
               <label className="field">
                 <span className="field-label">API Key</span>
-                <input
-                  className="input"
-                  value={apiTokenDisplay}
-                  placeholder="token publico"
-                  readOnly
-                  disabled
-                />
-                <span className="field-helper">
-                  Valor carregado do .env (PUBLIC_API_TOKEN). Para alterar, edite o .env e reinicie o app.
-                </span>
+                <div className="field-with-action">
+                  <input
+                    className="input"
+                    value={apiTokenDisplay}
+                    placeholder="token publico"
+                    readOnly
+                    disabled
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setApiTokenVisible((prev) => !prev)}
+                    disabled={!apiTokenValue}
+                  >
+                    {apiTokenVisible ? "Ocultar" : "Mostrar"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(apiTokenValue);
+                      emitToast({ type: "success", message: "API Key copiada!" });
+                    }}
+                    disabled={!apiTokenValue}
+                  >
+                    Copiar
+                  </button>
+                </div>
               </label>
             </div>
 
@@ -2361,7 +2451,7 @@ const SettingsPage = () => {
                 onClick={handleManualSync}
                 disabled={syncLoading}
               >
-                {syncLoading  "Sincronizando..." : "Sincronizar agora"}
+                {syncLoading ? "Sincronizando..." : "Sincronizar agora"}
               </Button>
               <Button
                 type="button"
@@ -2390,15 +2480,15 @@ const SettingsPage = () => {
                 style={{
                   marginTop: 8,
                   fontSize: 12,
-                  color: syncStatus.online  "#065f46" : "#b91c1c",
+                  color: syncStatus.online ? "#065f46" : "#b91c1c",
                 }}
               >
-                Status: {syncStatus.online  "Online" : "Offline"} | Última atualização (pull): {formatSyncTime(syncStatus.lastPullAt)} | Último envio (push): {formatSyncTime(syncStatus.lastPushAt)} | Fila: {syncStatus.queueRemaining  0}
+                Status: {syncStatus.online ? "Online" : "Offline"} | Última atualização (pull): {formatSyncTime(syncStatus.lastPullAt)} | Último envio (push): {formatSyncTime(syncStatus.lastPushAt)} | Fila: {syncStatus.queueRemaining || 0}
                 {syncStatus.lastPullError
-                   ` | Erro pull: ${syncStatus.lastPullError}`
+                  ? ` | Erro pull: ${syncStatus.lastPullError}`
                   : ""}
                 {syncStatus.lastPushError
-                   ` | Erro push: ${syncStatus.lastPushError}`
+                  ? ` | Erro push: ${syncStatus.lastPushError}`
                   : ""}
               </div>
             )}
@@ -2496,7 +2586,7 @@ const SettingsPage = () => {
                     className="input"
                     value={
                       range.minKm === "" || range.minKm === null
-                         ""
+                        ? ""
                         : range.minKm
                     }
                     onChange={(e) =>
@@ -2513,7 +2603,7 @@ const SettingsPage = () => {
                     className="input"
                     value={
                       range.maxKm === "" || range.maxKm === null
-                         ""
+                        ? ""
                         : range.maxKm
                     }
                     onChange={(e) =>
@@ -2541,7 +2631,7 @@ const SettingsPage = () => {
                     className="input"
                     value={
                       range.price === "" || range.price === null
-                         ""
+                        ? ""
                         : range.price
                     }
                     onChange={(e) =>
@@ -2574,28 +2664,7 @@ const SettingsPage = () => {
                 </Button>
               </div>
 
-              {delivery.mode === "km_table" &&
-                deliveryRangeIssues.length > 0 && (
-                <div style={{ marginTop: 10 }}>
-                  <div className="field-label">Avisos da tabela</div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "#b45309",
-                      display: "grid",
-                      gap: 4,
-                      marginTop: 6,
-                    }}
-                  >
-                    {deliveryRangeIssues.map((issue, index) => (
-                      <div key={`range-issue-${index}`}>
-                        - {issue}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
+              
               <p className="field-helper" style={{ marginTop: 8 }}>
                 Esta tabela é o padrão para cálculo da taxa de entrega
                 com base na distância em km. Os módulos de pedidos podem
@@ -2654,7 +2723,7 @@ const SettingsPage = () => {
                 </Button>
               </div>
 
-              {blockedNeighborhoods.length > 0  (
+              {blockedNeighborhoods.length > 0 ? (
                 <div className="delivery-blocked-list">
                   {blockedNeighborhoods.map((bairro, idx) => (
                     <div
@@ -2692,12 +2761,12 @@ const SettingsPage = () => {
                     type="number"
                     step="0.01"
                     className="input"
-                    value={delivery.minOrderValue  0}
+                    value={delivery.minOrderValue || 0}
                     onChange={(e) =>
                       handleDeliveryFieldChange(
                         "minOrderValue",
                         e.target.value === ""
-                           ""
+                          ? ""
                           : Number(e.target.value)
                       )
                     }
@@ -2713,12 +2782,12 @@ const SettingsPage = () => {
                     type="number"
                     step="0.1"
                     className="input"
-                    value={delivery.maxDistanceKm  0}
+                    value={delivery.maxDistanceKm || 0}
                     onChange={(e) =>
                       handleDeliveryFieldChange(
                         "maxDistanceKm",
                         e.target.value === ""
-                           ""
+                          ? ""
                           : Number(e.target.value)
                       )
                     }
@@ -2736,12 +2805,12 @@ const SettingsPage = () => {
                     type="number"
                     step="1"
                     className="input"
-                    value={delivery.etaMinutesDefault  0}
+                    value={delivery.etaMinutesDefault || 0}
                     onChange={(e) =>
                       handleDeliveryFieldChange(
                         "etaMinutesDefault",
                         e.target.value === ""
-                           ""
+                          ? ""
                           : Number(e.target.value)
                       )
                     }
@@ -2776,12 +2845,12 @@ const SettingsPage = () => {
                       type="number"
                       step="0.01"
                       className="input"
-                      value={delivery.peakFee.amount  0}
+                      value={delivery.peakFee.amount || 0}
                       onChange={(e) =>
                         handleDeliveryPeakFeeChange(
                           "amount",
                           e.target.value === ""
-                             ""
+                            ? ""
                             : Number(e.target.value)
                         )
                       }
@@ -2957,7 +3026,7 @@ const SettingsPage = () => {
                           key={`schedule-${day.value}`}
                           className={
                             "business-hours-row" +
-                            (isEnabled  "" : " is-disabled")
+                            (isEnabled ? "" : " is-disabled")
                           }
                         >
                           <div className="business-hours-day">
@@ -2975,7 +3044,7 @@ const SettingsPage = () => {
                                 )
                               }
                             />
-                            <span>{isEnabled  "Aberto" : "Fechado"}</span>
+                            <span>{isEnabled ? "Aberto" : "Fechado"}</span>
                           </label>
                           <div className="business-hours-time">
                             <input
@@ -3041,14 +3110,14 @@ const SettingsPage = () => {
                 disabled={printersLoading}
               >
                 {printersLoading
-                   "Atualizando impressoras..."
+                  ? "Atualizando impressoras..."
                   : "Atualizar lista de impressoras"}
               </Button>
               <span style={{ fontSize: 12, color: "#6b7280" }}>
                 {printersLoading
-                   "Buscando impressoras instaladas no sistema..."
+                  ? "Buscando impressoras instaladas no sistema..."
                   : printers.length > 0
-                   `${printers.length} impressora(s) encontrada(s).`
+                  ? `${printers.length} impressora(s) encontrada(s).`
                   : "Nenhuma impressora encontrada ou listagem indisponível."}
               </span>
             </div>
@@ -3086,9 +3155,9 @@ const SettingsPage = () => {
                   </option>
                   {printers.map((p) => (
                     <option key={p.name} value={p.name}>
-                      {p.isDefault  "⭐ " : ""}
+                      {p.isDefault ? "⭐ " : ""}
                       {p.name}
-                      {p.isDefault  " (padrão)" : ""}
+                      {p.isDefault ? " (padrão)" : ""}
                     </option>
                   ))}
                 </select>
@@ -3156,9 +3225,9 @@ const SettingsPage = () => {
                   </option>
                   {printers.map((p) => (
                     <option key={p.name} value={p.name}>
-                      {p.isDefault  "⭐ " : ""}
+                      {p.isDefault ? "⭐ " : ""}
                       {p.name}
-                      {p.isDefault  " (padrão)" : ""}
+                      {p.isDefault ? " (padrão)" : ""}
                     </option>
                   ))}
                 </select>
@@ -3210,24 +3279,8 @@ const SettingsPage = () => {
               <label className="settings-toggle">
                 <input
                   type="checkbox"
-                  checked={settings.printing.silentMode  true}
-                  onChange={(e) =>
-                    handlePrintingChange(
-                      "silentMode",
-                      e.target.checked
-                    )
-                  }
-                />
-                <span>
-                  Impressão silenciosa (sem dialog de impressão)
-                </span>
-              </label>
-
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
                   checked={
-                    settings.printing.autoPrintWebsiteOrders || false
+                    settings.printing.autoPrintWebsiteOrders !== false
                   }
                   onChange={(e) =>
                     handlePrintingChange(
@@ -3237,15 +3290,47 @@ const SettingsPage = () => {
                   }
                 />
                 <span>
-                  Imprimir automaticamente pedidos vindos do site
+                  Imprimir automaticamente pedidos (site, app, balcão)
+                </span>
+              </label>
+
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.printing.silentMode !== false}
+                  onChange={(e) =>
+                    handlePrintingChange(
+                      "silentMode",
+                      e.target.checked
+                    )
+                  }
+                />
+                <span>
+                  Impressão silenciosa (sem travar processos)
+                </span>
+              </label>
+
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.printing.asyncMode || false}
+                  onChange={(e) =>
+                    handlePrintingChange(
+                      "asyncMode",
+                      e.target.checked
+                    )
+                  }
+                />
+                <span>
+                  Modo assíncrono (não bloquear interface)
                 </span>
               </label>
 
               <p className="settings-printing-helper">
                 As impressoras configuradas aqui serão usadas pelo
                 módulo de Pedidos para imprimir automaticamente tickets
-                de cozinha e de balcão, bem como pelos testes de
-                impressão desta tela.
+                de cozinha e de balcão. Modo assíncrono evita travar a interface 
+                durante impressões múltiplas.
               </p>
             </div>
           </div>
@@ -3336,7 +3421,7 @@ const SettingsPage = () => {
                   disabled={!importPreview || importApplying}
                   onClick={handleApplyImport}
                 >
-                  {importApplying  "Aplicando..." : "Aplicar"}
+                  {importApplying ? "Aplicando..." : "Aplicar"}
                 </Button>
               </div>
               {importError && (
@@ -3349,7 +3434,7 @@ const SettingsPage = () => {
                   <div className="field-helper">
                     Campos alterados:{" "}
                     {importDiff.length > 0
-                       importDiff.join(", ")
+                      ? importDiff.join(", ")
                       : "nenhum"}
                   </div>
                 </div>
@@ -3433,7 +3518,7 @@ const SettingsPage = () => {
               onClick={handleDeliveryQuote}
               disabled={deliveryQuoteLoading}
             >
-              {deliveryQuoteLoading  "Consultando..." : "Consultar"}
+              {deliveryQuoteLoading ? "Consultando..." : "Consultar"}
             </Button>
             {deliveryQuoteError && (
               <div style={{ color: "#b91c1c" }}>{deliveryQuoteError}</div>
@@ -3463,7 +3548,7 @@ const SettingsPage = () => {
                 onClick={handleLoadStockAlerts}
                 disabled={stockAlertsLoading}
               >
-                {stockAlertsLoading  "Atualizando..." : "Atualizar"}
+                {stockAlertsLoading ? "Atualizando..." : "Atualizar"}
               </Button>
               {stockAlertsError && (
                 <span style={{ color: "#b91c1c" }}>
@@ -3484,10 +3569,10 @@ const SettingsPage = () => {
                   <div className="field-label">Ingredientes em falta</div>
                   <div style={{ marginTop: 6 }}>
                     {Array.isArray(stockAlertsResult.missingIngredients) &&
-                    stockAlertsResult.missingIngredients.length > 0  (
+                    stockAlertsResult.missingIngredients.length > 0 ? (
                       stockAlertsResult.missingIngredients.map((item) => (
                         <div key={item.key}>
-                          - {item.name} (qtd: {item.quantity  0})
+                          - {item.name} (qtd: {item.quantity || 0})
                         </div>
                       ))
                     ) : (
@@ -3500,7 +3585,7 @@ const SettingsPage = () => {
                   <div className="field-label">Produtos afetados</div>
                   <div style={{ marginTop: 6 }}>
                     {Array.isArray(stockAlertsResult.affectedProducts) &&
-                    stockAlertsResult.affectedProducts.length > 0  (
+                    stockAlertsResult.affectedProducts.length > 0 ? (
                       stockAlertsResult.affectedProducts.map((item) => (
                         <div key={item.id || item.name}>
                           - {item.name} ({item.missingIngredients.join(", ")})
@@ -3592,7 +3677,7 @@ const SettingsPage = () => {
                 fontSize: 12,
               }}
             >
-              {ordersStreamEvents.length > 0  (
+              {ordersStreamEvents.length > 0 ? (
                 ordersStreamEvents.map((event, index) => (
                   <div key={`${event.type}-${event.id}-${index}`}>
                     [{event.at}] {event.type} {event.id}
@@ -3621,7 +3706,7 @@ const SettingsPage = () => {
               onClick={handleHealthSnapshot}
               disabled={healthSnapshotLoading}
             >
-              {healthSnapshotLoading  "Gerando..." : "Atualizar snapshot"}
+              {healthSnapshotLoading ? "Gerando..." : "Atualizar snapshot"}
             </Button>
             {healthSnapshotError && (
               <div style={{ color: "#b91c1c" }}>{healthSnapshotError}</div>
@@ -3677,7 +3762,7 @@ const SettingsPage = () => {
                       className="api-console-toggle"
                       onClick={() => setApiTokenVisible((prev) => !prev)}
                     >
-                      {apiTokenVisible  "Ocultar" : "Mostrar"}
+                      {apiTokenVisible ? "Ocultar" : "Mostrar"}
                     </button>
                   )}
                 </div>
@@ -3869,7 +3954,7 @@ const SettingsPage = () => {
                     onClick={() => handleRunApiTest()}
                     disabled={apiTestLoading}
                   >
-                    {apiTestLoading  "Executando..." : "Executar teste"}
+                    {apiTestLoading ? "Executando..." : "Executar teste"}
                   </Button>
 
                   {apiTestError && (
@@ -3882,7 +3967,7 @@ const SettingsPage = () => {
                         className={
                           "api-test-status " +
                           (apiTestResult.ok
-                             "api-test-status-ok"
+                            ? "api-test-status-ok"
                             : "api-test-status-error")
                         }
                       >
@@ -3894,7 +3979,7 @@ const SettingsPage = () => {
                       </div>
                       <pre className="api-test-response">
                         {apiTestResult.json
-                           JSON.stringify(apiTestResult.json, null, 2)
+                          ? JSON.stringify(apiTestResult.json, null, 2)
                           : apiTestResult.rawText || "(vazio)"}
                       </pre>
                     </div>
@@ -3984,9 +4069,3 @@ Body: {"status":"preparing"}
 };
 
 export default SettingsPage;
-
-
-
-
-
-

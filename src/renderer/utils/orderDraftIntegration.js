@@ -100,7 +100,7 @@ class DraftWebhookManager {
     this.webhooks.set(id, {
       id,
       url,
-      events: Array.isArray(events)  events : [events],
+      events: Array.isArray(events) ? events : [events],
       secret,
       active: true,
       retryCount: 0,
@@ -354,8 +354,8 @@ class DraftSyncManager {
 
   // Resolve com versão mais recente
   async resolveWithLatest(conflict) {
-    const latest = conflict.local.timestamp > conflict.server.timestamp 
-       conflict.local 
+    const latest = conflict.local.timestamp > conflict.server.timestamp
+      ? conflict.local
       : conflict.server;
     
     await this.storage.set(latest.id, latest);

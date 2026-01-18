@@ -1,4 +1,4 @@
-﻿/* ============================================================================
+/* ============================================================================
    ORDERS PAGE
    KPIs do dia + toolbar + lista
    ============================================================================ */
@@ -19,14 +19,34 @@ $orders-accent: #f97316;
 .orders-page {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  padding: 0 20px 24px;
+}
+
+.orders-page .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.orders-page .order-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orders-page .order-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .orders-hero {
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid #e5e7eb;
   border-radius: 16px;
-  padding: 18px;
+  padding: 14px;
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
   position: relative;
   overflow: hidden;
@@ -47,13 +67,13 @@ $orders-accent: #f97316;
 .orders-hero-header {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .orders-hero-title {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 900;
   color: $orders-text-main;
   margin: 0 0 6px;
@@ -61,7 +81,7 @@ $orders-accent: #f97316;
 
 .orders-hero-subtitle {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: $orders-text-muted;
   max-width: 520px;
 }
@@ -74,10 +94,17 @@ $orders-accent: #f97316;
   justify-content: flex-end;
 }
 
+.orders-hero-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
 .orders-hero-meta-pill {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  padding: 6px 10px;
+  padding: 5px 9px;
   border-radius: 999px;
   background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.12);
@@ -92,10 +119,10 @@ $orders-accent: #f97316;
 }
 
 .orders-hero-banner {
-  margin-bottom: 12px;
-  padding: 10px 12px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -107,36 +134,36 @@ $orders-accent: #f97316;
 
 .orders-hero-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
   position: relative;
   z-index: 1;
 }
 
 .orders-hero-status {
-  margin-top: 14px;
+  margin-top: 10px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .orders-hero-status-chip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 8px 10px;
   border-radius: 12px;
   border: 1px solid rgba(15, 23, 42, 0.12);
   background: #ffffff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   color: rgba(15, 23, 42, 0.78);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
 }
 
 .orders-hero-status-chip strong {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 900;
   color: rgba(15, 23, 42, 0.9);
 }
@@ -170,12 +197,12 @@ $orders-accent: #f97316;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
-  min-height: 110px;
+  gap: 4px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  min-height: 96px;
 }
 
 .orders-hero-card--alert {
@@ -184,11 +211,11 @@ $orders-accent: #f97316;
 }
 
 .orders-hero-card--sources {
-  min-height: 120px;
+  min-height: 104px;
 }
 
 .orders-hero-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -196,7 +223,7 @@ $orders-accent: #f97316;
 }
 
 .orders-hero-value {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 900;
   color: $orders-text-main;
 }
@@ -204,14 +231,14 @@ $orders-accent: #f97316;
 .orders-hero-meta-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
 }
 
 .orders-hero-meta-chip {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   border-radius: 999px;
-  padding: 6px 10px;
+  padding: 5px 8px;
   background: rgba(15, 23, 42, 0.04);
   border: 1px solid rgba(15, 23, 42, 0.08);
   color: rgba(15, 23, 42, 0.72);
@@ -220,13 +247,13 @@ $orders-accent: #f97316;
 .orders-hero-sources {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   margin-top: 4px;
 
   span {
-    font-size: 11px;
+    font-size: 10px;
     color: $orders-text-muted;
-    padding: 4px 8px;
+    padding: 3px 7px;
     border-radius: 999px;
     background: #f3f4f6;
     border: 1px solid #e5e7eb;
@@ -253,6 +280,11 @@ $orders-accent: #f97316;
   .orders-hero-meta {
     justify-content: flex-start;
   }
+
+  .orders-hero-actions {
+    align-items: flex-start;
+    width: 100%;
+  }
 }
 
 /* ============================================================================
@@ -262,8 +294,8 @@ $orders-accent: #f97316;
 .orders-kpi-bar {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: 10px;
+  margin-bottom: 12px;
 
   @media (max-width: 1200px) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -282,11 +314,11 @@ $orders-accent: #f97316;
   background: $orders-card-bg;
   border-radius: $orders-radius;
   border: 1px solid $orders-border;
-  padding: 10px 12px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-height: 70px;
+  gap: 3px;
+  min-height: 62px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 
   &.orders-kpi-card--alert {
@@ -295,12 +327,12 @@ $orders-accent: #f97316;
   }
 
   &.orders-kpi-card--sources {
-    min-height: 80px;
+    min-height: 72px;
   }
 }
 
 .orders-kpi-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -308,7 +340,7 @@ $orders-accent: #f97316;
 }
 
 .orders-kpi-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: $orders-text-main;
 
@@ -321,13 +353,13 @@ $orders-accent: #f97316;
 .orders-kpi-sources {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 8px;
-  margin-top: 4px;
+  gap: 3px 6px;
+  margin-top: 2px;
 
   span {
-    font-size: 11px;
+    font-size: 10px;
     color: $orders-text-muted;
-    padding: 3px 8px;
+    padding: 2px 7px;
     border-radius: $orders-pill-radius;
     background: #f3f4f6;
     border: 1px solid #e5e7eb;
@@ -343,10 +375,10 @@ $orders-accent: #f97316;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin: 14px 0 12px;
-  padding: 16px;
-  min-height: 64px;
+  gap: 10px;
+  margin: 10px 0 10px;
+  padding: 12px;
+  min-height: 56px;
   border: 1px solid #e5e7eb;
   border-radius: $orders-radius;
   background: #ffffff;
@@ -367,12 +399,12 @@ $orders-accent: #f97316;
 .page-toolbar :where(.toolbar-left, .toolbar-right, .toolbar-actions, .filters, .filters-row) {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  min-height: 40px;
+  min-height: 36px;
 }
 
-/* BotÃ£o principal (cobre: button, a, .btn, etc. sem exigir refactor de JSX) */
+/* Boto principal (cobre: button, a, .btn, etc. sem exigir refactor de JSX) */
 .page-toolbar :where(button, a, .btn, .button) {
   border-radius: $orders-pill-radius;
 }
@@ -381,15 +413,15 @@ $orders-accent: #f97316;
 .page-toolbar :where(button, a, .btn, .button)[class*="novo"],
 .page-toolbar :where(button, a, .btn, .button)[aria-label*="novo"],
 .page-toolbar :where(button, a, .btn, .button)[aria-label*="Novo"] {
-  height: 40px;
-  padding: 0 16px;
+  height: 36px;
+  padding: 0 14px;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 12px;
   letter-spacing: 0.2px;
   border: 0;
   cursor: pointer;
 
-  /* destaque premium sem â€œgritarâ€ */
+  /* destaque premium sem gritar */
   background: #111827;
   color: #ffffff;
   box-shadow: none;
@@ -411,15 +443,16 @@ $orders-accent: #f97316;
   }
 }
 
-/* Controles (select/input): altura, borda, focus ring e aparÃªncia â€œcleanâ€ */
+/* Controles (select/input): altura, borda, focus ring e aparncia clean */
 .page-toolbar :where(select, input[type="text"], input[type="search"], input:not([type])) {
-  height: 38px;
-  padding: 0 12px;
+  height: 34px;
+  width: 22px;
+  padding: 0;
   border-radius: 10px;
   border: 1px solid rgba(227, 227, 234, 1);
   background: #ffffff;
   color: $orders-text-main;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1;
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 
@@ -467,7 +500,7 @@ $orders-accent: #f97316;
   margin-right: 6px;
 }
 
-/* Campos â€œcoladosâ€ (ex.: label + select/input em linha) ficam alinhados */
+/* Campos colados (ex.: label + select/input em linha) ficam alinhados */
 .page-toolbar :where(.field, .filter, .control, .toolbar-field) {
   display: inline-flex;
   align-items: center;
@@ -482,21 +515,21 @@ $orders-accent: #f97316;
   }
 }
 
-/* Ãrea da direita (onde fica o botÃ£o Atualizar) */
+/* rea da direita (onde fica o boto Atualizar) */
 .page-toolbar :where(.toolbar-right, .toolbar-actions) {
   margin-left: auto; /* empurra para a direita */
   padding-left: 12px;
 }
 
-/* BotÃ£o Atualizar (aÃ§Ã£o secundÃ¡ria) */
+/* Boto Atualizar (ao secundria) */
 .page-toolbar
   :where(button, .btn, .button):not([class*="new"]):not([class*="novo"]) {
-  height: 40px;
-  padding: 0 18px;
+  height: 34px;
+  padding: 0 14px;
   border-radius: 999px;
 
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
 
   background: #ffffff;
   color: rgba(17, 24, 39, 0.9);
@@ -516,7 +549,7 @@ $orders-accent: #f97316;
   }
 }
 
-/* Mobile: botÃ£o separado dos filtros */
+/* Mobile: boto separado dos filtros */
 @media (max-width: 900px) {
   .page-toolbar :where(.toolbar-right, .toolbar-actions) {
     margin-left: 0;
@@ -524,7 +557,7 @@ $orders-accent: #f97316;
   }
 }
 
-/* Opcional: garante que o botÃ£o (actions) tenha um pouco de folga embaixo
+/* Opcional: garante que o boto (actions) tenha um pouco de folga embaixo
    sem afetar botes em outras partes */
 .page:has(.page-toolbar) .btn.btn-primary {
   margin-bottom: 6px;
@@ -535,7 +568,7 @@ $orders-accent: #f97316;
    ============================================================================ */
 
 .orders-toolbar {
-  gap: 16px;
+  gap: 12px;
 }
 
 .orders-toolbar .toolbar-left {
@@ -546,26 +579,26 @@ $orders-accent: #f97316;
 .orders-toolbar .toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .order-filters {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .order-status-tabs {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
-  padding: 8px;
+  gap: 8px;
+  padding: 6px;
   border-radius: 14px;
   background: #f8fafc;
   border: 1px solid #e5e7eb;
 
-  /* Melhoria para telas menores: permite scroll horizontal se necessÃ¡rio */
+  /* Melhoria para telas menores: permite scroll horizontal se necessrio */
   @media (max-width: 600px) {
     display: flex;
     overflow-x: auto;
@@ -576,12 +609,16 @@ $orders-accent: #f97316;
 }
 
 .order-status-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border-radius: 999px;
   border: 1px solid rgba(15, 23, 42, 0.12);
   background: #ffffff;
-  padding: 8px 14px;
+  padding: 6px 12px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   color: rgba(15, 23, 42, 0.85);
   cursor: pointer;
   transition: all 160ms ease;
@@ -592,6 +629,16 @@ $orders-accent: #f97316;
     border-color: rgba(15, 23, 42, 0.28);
     background: #f9fafb;
   }
+}
+
+.order-status-tab .order-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.order-status-tab .order-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .order-status-tab--active {
@@ -633,20 +680,20 @@ $orders-accent: #f97316;
 .order-filters-controls {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px 14px;
   align-items: end;
 }
 
 .order-filters-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 
 .order-filters-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.01em;
   color: rgba(17, 24, 39, 0.9);
@@ -658,20 +705,42 @@ $orders-accent: #f97316;
 }
 
 .order-filters-field--search .order-filters-input {
-  min-width: 260px;
-  padding-right: 72px;
+  min-width: 240px;
+  padding-right: 44px;
+  padding-left: 32px;
 }
 
 .order-filters-field--search {
   position: relative;
 }
 
+.order-filters-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.order-filters-input-wrap .order-icon {
+  position: absolute;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  color: rgba(15, 23, 42, 0.45);
+  pointer-events: none;
+}
+
+.order-filters-input-wrap .order-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
 .order-filters-clear {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  height: 26px;
-  padding: 0 10px;
+  right: 8px;
+  bottom: 6px;
+  height: 22px;
+  width: 22px;
+  padding: 0;
   border-radius: 999px;
   border: 1px solid rgba(15, 23, 42, 0.14);
   background: #ffffff;
@@ -679,6 +748,9 @@ $orders-accent: #f97316;
   font-weight: 800;
   color: rgba(15, 23, 42, 0.72);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 1100px) {

@@ -9,7 +9,7 @@ const { EventEmitter } = require('events');
 require('dotenv').config();
 const { logInfo, logWarn, logError, LEVEL_COLORS } = require('./utils/logger');
 const fetchFn = global.fetch
-   global.fetch
+  ? global.fetch
   : (...args) =>
       import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
@@ -115,7 +115,7 @@ function parseNumberValue(value) {
   if (value === null || value === undefined || value === '') return 0;
   const normalized = String(value).replace(',', '.');
   const num = Number(normalized);
-  return Number.isNaN(num)  0 : num;
+  return Number.isNaN(num) ? 0 : num;
 }
 
 function parseTimeToMinutes(value) {
@@ -130,7 +130,7 @@ function buildWeeklySchedule(
   closeTime = '23:00',
   closedWeekdays = []
 ) {
-  const closed = Array.isArray(closedWeekdays)  closedWeekdays : [];
+  const closed = Array.isArray(closedWeekdays) ? closedWeekdays : [];
   return [0, 1, 2, 3, 4, 5, 6].map((day) => ({
     day,
     enabled: !closed.includes(day),
@@ -153,10 +153,10 @@ function getBusinessHoursStatus(businessHours, date = new Date()) {
 
   const weekday = date.getDay();
   const closed = Array.isArray(businessHours.closedWeekdays)
-     businessHours.closedWeekdays
+    ? businessHours.closedWeekdays
     : [];
   const schedule = Array.isArray(businessHours.weeklySchedule)
-     businessHours.weeklySchedule
+    ? businessHours.weeklySchedule
     : [];
   const scheduleEntry = schedule.find(
     (entry) => Number(entry.day) === weekday
@@ -180,25 +180,28 @@ function getBusinessHoursStatus(businessHours, date = new Date()) {
   const isOpen = isWithinTimeRange(nowMinutes, openMinutes, closeMinutes);
   return {
     isOpen,
-    reason: isOpen  '' : 'Fora do horário de funcionamento.'
+    reason: isOpen ? '' : 'Fora do horário de funcionamento.'
   };
 }
 
 function resolveOrderSubtotal(order) {
   if (!order || typeof order !== 'object') return 0;
   if (typeof order.subtotal === 'number') return order.subtotal;
-  if (typeof order.totals.subtotal === 'number') return order.totals.subtotal;
+  const totals = order.totals && typeof order.totals === 'object'
+    ? order.totals
+    : null;
+  if (totals && typeof totals.subtotal === 'number') return totals.subtotal;
 
-  const items = Array.isArray(order.items)  order.items : [];
+  const items = Array.isArray(order.items) ? order.items : [];
   return items.reduce((acc, item) => {
     const lineTotalValue =
-      item.total  item.lineTotal  item.totalPrice  null;
+      item.total || item.lineTotal || item.totalPrice || null;
     if (lineTotalValue !== null && lineTotalValue !== undefined) {
       return acc + parseNumberValue(lineTotalValue);
     }
 
-    const qty = parseNumberValue(item.quantity  item.qty  1);
-    const unit = parseNumberValue(item.unitPrice  item.price  0);
+    const qty = parseNumberValue(item.quantity || item.qty || 1);
+    const unit = parseNumberValue(item.unitPrice || item.price || 0);
     return acc + unit * (qty || 0);
   }, 0);
 }
@@ -206,14 +209,20 @@ function resolveOrderSubtotal(order) {
 function resolveOrderDistanceKm(order) {
   if (!order || typeof order !== 'object') return 0;
 
+  const delivery =
+    order.delivery && typeof order.delivery === 'object' ? order.delivery : {};
+  const deliveryMetrics =
+    delivery.metrics && typeof delivery.metrics === 'object'
+      ? delivery.metrics
+      : {};
   const candidates = [
     order.deliveryDistanceKm,
     order.deliveryDistance,
     order.distanceKm,
     order.distance,
-    order.delivery.distanceKm,
-    order.delivery.distance,
-    order.delivery.metrics.distanceKm
+    delivery.distanceKm,
+    delivery.distance,
+    deliveryMetrics.distanceKm
   ];
 
   for (const value of candidates) {
@@ -231,7 +240,7 @@ async function getOrderValidationSettings() {
     const delivery = item.delivery || {};
     const businessHours = item.businessHours || {};
     const blockedNeighborhoods = Array.isArray(delivery.blockedNeighborhoods)
-       delivery.blockedNeighborhoods
+      ? delivery.blockedNeighborhoods
           .map((b) => (b || '').toString().trim())
           .filter(Boolean)
       : [];
@@ -239,7 +248,7 @@ async function getOrderValidationSettings() {
     const openTime = businessHours.openTime || '11:00';
     const closeTime = businessHours.closeTime || '23:00';
     const closedWeekdays = Array.isArray(businessHours.closedWeekdays)
-       businessHours.closedWeekdays
+      ? businessHours.closedWeekdays
       : [];
     const baseSchedule = buildWeeklySchedule(
       openTime,
@@ -247,10 +256,10 @@ async function getOrderValidationSettings() {
       closedWeekdays
     );
     const rawSchedule = Array.isArray(businessHours.weeklySchedule)
-       businessHours.weeklySchedule
+      ? businessHours.weeklySchedule
       : null;
     const weeklySchedule = rawSchedule
-       baseSchedule.map((entry) => {
+      ? baseSchedule.map((entry) => {
           const match = rawSchedule.find(
             (item) => Number(item.day) === entry.day
           );
@@ -352,18 +361,18 @@ function validateOrder(order, settings) {
 }
 
 function normalizeBusinessHoursConfig(raw) {
-  const input = raw && typeof raw === 'object'  raw : {};
+  const input = raw && typeof raw === 'object' ? raw : {};
   const openTime = input.openTime || '11:00';
   const closeTime = input.closeTime || '23:00';
   const closedWeekdays = Array.isArray(input.closedWeekdays)
-     input.closedWeekdays
+    ? input.closedWeekdays
     : [];
   const baseSchedule = buildWeeklySchedule(openTime, closeTime, closedWeekdays);
   const rawSchedule = Array.isArray(input.weeklySchedule)
-     input.weeklySchedule
+    ? input.weeklySchedule
     : null;
   const weeklySchedule = rawSchedule
-     baseSchedule.map((entry) => {
+    ? baseSchedule.map((entry) => {
         const match = rawSchedule.find(
           (item) => Number(item.day) === entry.day
         );
@@ -396,7 +405,7 @@ function syncBusinessHoursTimes(previousRaw, nextRaw) {
   const nextClose = next.closeTime;
 
   const schedule = Array.isArray(next.weeklySchedule)
-     next.weeklySchedule.map((entry) => {
+    ? next.weeklySchedule.map((entry) => {
         const updated = { ...entry };
         if (previous.openTime && updated.openTime === previous.openTime) {
           updated.openTime = nextOpen;
@@ -426,13 +435,13 @@ function syncBusinessHoursTimes(previousRaw, nextRaw) {
 function syncSettingsItem(previous, next) {
   if (!next || typeof next !== 'object') return next;
   const prevHours =
-    previous && typeof previous === 'object'  previous.businessHours : null;
+    previous && typeof previous === 'object' ? previous.businessHours : null;
   const nextHours = next.businessHours;
   if (!prevHours && !nextHours) return next;
 
   const mergedHours = nextHours
-     {
-        ...(prevHours && typeof prevHours === 'object'  prevHours : {}),
+    ? {
+        ...(prevHours && typeof prevHours === 'object' ? prevHours : {}),
         ...nextHours
       }
     : prevHours;
@@ -447,11 +456,11 @@ function syncSettingsItem(previous, next) {
 function syncSettingsData(currentData, nextData) {
   const currentWrapper = normalizeCollectionWrapper(currentData);
   const currentItems = currentWrapper
-     currentWrapper.items
+    ? currentWrapper.items
     : Array.isArray(currentData)
-     currentData
+    ? currentData
     : currentData && typeof currentData === 'object'
-     [currentData]
+    ? [currentData]
     : [];
   const currentById = new Map(
     currentItems
@@ -487,13 +496,13 @@ function syncSettingsData(currentData, nextData) {
 }
 
 function normalizeDeliveryConfig(raw) {
-  const input = raw && typeof raw === 'object'  raw : {};
+  const input = raw && typeof raw === 'object' ? raw : {};
   const peakFee = input.peakFee && typeof input.peakFee === 'object'
-     input.peakFee
+    ? input.peakFee
     : {};
   const etaRaw =
     input.etaMinutesDefault === null || input.etaMinutesDefault === undefined
-       45
+      ? 45
       : input.etaMinutesDefault;
   return {
     mode: input.mode || 'km_table',
@@ -502,16 +511,16 @@ function normalizeDeliveryConfig(raw) {
     maxDistanceKm: parseNumberValue(input.maxDistanceKm),
     etaMinutesDefault: parseNumberValue(etaRaw),
     blockedNeighborhoods: Array.isArray(input.blockedNeighborhoods)
-       input.blockedNeighborhoods.filter(Boolean)
+      ? input.blockedNeighborhoods.filter(Boolean)
       : [],
     peakFee: {
       enabled: !!peakFee.enabled,
-      days: Array.isArray(peakFee.days)  peakFee.days : [],
+      days: Array.isArray(peakFee.days) ? peakFee.days : [],
       startTime: peakFee.startTime || '18:00',
       endTime: peakFee.endTime || '22:00',
       amount: parseNumberValue(peakFee.amount)
     },
-    ranges: Array.isArray(input.ranges)  input.ranges : []
+    ranges: Array.isArray(input.ranges) ? input.ranges : []
   };
 }
 
@@ -655,7 +664,7 @@ function buildProductAvailabilityList(raw) {
     const manualOutOfStock = product._manualOutOfStock === true;
     const autoPausedByStock = product._autoPausedByStock === true;
     const isDisabled = !isActive || !isAvailable || manualOutOfStock;
-    const status = isDisabled  'paused' : 'active';
+    const status = isDisabled ? 'paused' : 'active';
 
     if (isDisabled) disabledCount += 1;
     else activeCount += 1;
@@ -718,16 +727,16 @@ function buildStockAlertsPayload(productsRaw, stockRaw) {
     ingredientMap.set(key, {
       key,
       name: item.name || item.ingrediente || item.key || key,
-      quantity: Number(item.quantity  0),
-      minQuantity: Number(item.minQuantity  0),
+      quantity: Number(item.quantity || 0),
+      minQuantity: Number(item.minQuantity || 0),
       unavailable: Boolean(item.unavailable)
     });
   }
 
   const missing = [];
   for (const entry of ingredientMap.values()) {
-    const qty = Number(entry.quantity  0);
-    const min = Number(entry.minQuantity  0);
+    const qty = Number(entry.quantity || 0);
+    const min = Number(entry.minQuantity || 0);
     if (entry.unavailable || (min > 0 && qty <= 0)) {
       missing.push(entry);
     }
@@ -741,7 +750,7 @@ function buildStockAlertsPayload(productsRaw, stockRaw) {
     const type = (product.type || '').toLowerCase();
     if (type !== 'pizza') continue;
     const ingredientes = Array.isArray(product.ingredientes)
-       product.ingredientes
+      ? product.ingredientes
       : [];
     const missingForProduct = ingredientes
       .map(normalizeIngredientKey)
@@ -774,7 +783,7 @@ function parseKmValue(value) {
 
 function isWithinPeakWindow(peakFee, date = new Date()) {
   if (!peakFee.enabled) return false;
-  const days = Array.isArray(peakFee.days)  peakFee.days : [];
+  const days = Array.isArray(peakFee.days) ? peakFee.days : [];
   const weekday = date.getDay();
   if (days.length > 0 && !days.includes(weekday)) return false;
   const nowMinutes = date.getHours() * 60 + date.getMinutes();
@@ -800,7 +809,7 @@ function findDeliveryRangeForKm(distanceKm, deliveryConfig) {
 }
 
 function resolveOrderType(raw) {
-  const value = raw === undefined || raw === null  '' : String(raw);
+  const value = raw === undefined || raw === null ? '' : String(raw);
   const normalized = value.toLowerCase().trim();
   if (!normalized) return 'delivery';
   if (['pickup', 'retirada', 'counter', 'balcao', 'local'].includes(normalized)) {
@@ -933,7 +942,7 @@ function getDurationColor(durationMs) {
 function logApiError(req, label, err, extra = {}) {
   const safeBody =
     req && req.body && typeof req.body === 'object'
-       JSON.stringify(req.body).slice(0, 1000)
+      ? JSON.stringify(req.body).slice(0, 1000)
       : undefined;
 
   const ctx = label || 'api';
@@ -1027,13 +1036,13 @@ function getBusinessHoursSyncHeaders() {
 function normalizeBusinessHoursSnapshot(businessHours) {
   const normalized = normalizeBusinessHoursConfig(businessHours);
   const closedWeekdays = Array.isArray(normalized.closedWeekdays)
-     normalized.closedWeekdays
+    ? normalized.closedWeekdays
         .map((day) => Number(day))
         .filter((day) => Number.isFinite(day))
         .sort((a, b) => a - b)
     : [];
   const weeklySchedule = Array.isArray(normalized.weeklySchedule)
-     normalized.weeklySchedule
+    ? normalized.weeklySchedule
         .map((entry) => ({
           day: Number(entry.day),
           enabled: entry.enabled !== false,
@@ -1113,7 +1122,7 @@ async function syncBusinessHoursFromRemote(reason = 'interval') {
   try {
     const result = await fetchRemoteBusinessHours(baseUrl);
     if (!result.businessHours) {
-      logWarn('businessHoursSync', 'Nenhum horario encontrado para sincronizar.', {
+      logWarn('businessHoursSync', 'Nenhum horário encontrado para sincronizar.', {
         baseUrl
       });
       return { success: false, skipped: true, reason: 'empty' };
@@ -1151,7 +1160,7 @@ async function syncBusinessHoursFromRemote(reason = 'interval') {
     businessHoursLastSyncAt = nowISO();
     logInfo(
       'businessHoursSync',
-      'Horarios sincronizados.',
+      'Horários sincronizados.',
       {
         sourceUrl: result.sourceUrl,
         openTime: normalizedIncoming.openTime,
@@ -1162,7 +1171,7 @@ async function syncBusinessHoursFromRemote(reason = 'interval') {
 
     return { success: true, updated: true };
   } catch (err) {
-    logError('businessHoursSync', 'Erro ao sincronizar horarios', err, {
+    logError('businessHoursSync', 'Erro ao sincronizar horários', err, {
       baseUrl,
       reason
     });
@@ -1177,7 +1186,7 @@ function startBusinessHoursAutoSync() {
   if (!baseUrl || BUSINESS_HOURS_SYNC_INTERVAL_MS <= 0) return;
   if (businessHoursSyncTimer) return;
 
-  logInfo('businessHoursSync', 'Sincronia automatica habilitada.', {
+  logInfo('businessHoursSync', 'Sincronia automática habilitada.', {
     baseUrl,
     intervalMs: BUSINESS_HOURS_SYNC_INTERVAL_MS
   });
@@ -1204,7 +1213,7 @@ function getTrackingBaseUrl() {
 function normalizeTrackingValue(value) {
   if (value === undefined || value === null) return null;
   const normalized = String(value).trim();
-  return normalized === ""  null : normalized;
+  return normalized === "" ? null : normalized;
 }
 
 function resolveOrderIdentifier(order) {
@@ -1218,11 +1227,13 @@ function resolveOrderIdentifier(order) {
 function resolveTrackingPayload(order) {
   if (!order) return { trackingUrl: null, trackingCode: null };
 
+  const delivery =
+    order.delivery && typeof order.delivery === "object" ? order.delivery : {};
   const candidates = [
     order.trackingCode,
     order.tracking_code,
-    order.delivery.trackingCode,
-    order.delivery.tracking_code,
+    delivery.trackingCode,
+    delivery.tracking_code,
     order.id,
     order.orderId,
     order.code,
@@ -1230,17 +1241,17 @@ function resolveTrackingPayload(order) {
   ]
     .map(normalizeTrackingValue)
     .filter(Boolean);
-  const trackingCode = candidates.length  candidates[0] : null;
+  const trackingCode = candidates.length ? candidates[0] : null;
 
   const directUrls = [
     order.trackingUrl,
     order.tracking_url,
-    order.delivery.trackingUrl,
-    order.delivery.tracking_url
+    delivery.trackingUrl,
+    delivery.tracking_url
   ]
     .map(normalizeTrackingValue)
     .filter(Boolean);
-  let trackingUrl = directUrls.length  directUrls[0] : null;
+  let trackingUrl = directUrls.length ? directUrls[0] : null;
   if (!trackingUrl && trackingCode) {
     const base = getTrackingBaseUrl();
     if (base) {
@@ -1292,7 +1303,7 @@ function buildTrackingUpdates(order) {
     };
   }
 
-  return Object.keys(updates).length  updates : null;
+  return Object.keys(updates).length ? updates : null;
 }
 
 async function persistOrderTracking(order) {
@@ -1422,7 +1433,7 @@ function normalizeCollectionWrapper(data) {
       items: data.items,
       meta:
         data.meta && typeof data.meta === 'object'
-           data.meta
+          ? data.meta
           : { deleted: [] }
     };
   }
@@ -1434,9 +1445,9 @@ function applyDeltaToCollection(current, payload) {
     items: [],
     meta: { deleted: [] }
   };
-  const incomingItems = Array.isArray(payload.items)  payload.items : [];
+  const incomingItems = Array.isArray(payload.items) ? payload.items : [];
   const deletedItems = Array.isArray(payload.meta.deleted)
-     payload.meta.deleted
+    ? payload.meta.deleted
     : [];
 
   for (const item of incomingItems) {
@@ -1641,7 +1652,7 @@ function requirePublicApiKey(req, res, next) {
   if (token !== PUBLIC_API_TOKEN) {
     const masked =
       typeof token === 'string' && token.length > 4
-         token.slice(0, 2) + '***' + token.slice(-2)
+        ? token.slice(0, 2) + '***' + token.slice(-2)
         : token;
 
     logWarn('auth', 'Chave de API inválida ou ausente', {
@@ -1665,12 +1676,12 @@ app.use(['/api', '/motoboy'], requirePublicApiKey);
 // ============================================================================
 //
 // O site SEMPRE vai ler o cardápio daqui: GET /api/menu
-// Este endpoint usa o db.js (DATA_DIR) para manter o mesmo banco da API.\r\n//
+// Este endpoint usa o db.js (DATA_DIR) para manter o mesmo banco da API.
 app.get('/api/menu', async (req, res) => {
   try {
     const raw = await db.getCollection('products');
     const payload = normalizeProducts(raw);
-    const products = Array.isArray(payload.products)  payload.products : [];
+    const products = Array.isArray(payload.products) ? payload.products : [];
     const filtered = products.filter((product) => {
       if (!product || typeof product !== 'object') return false;
       const isActive = product.active !== false;
@@ -1686,7 +1697,7 @@ app.get('/api/menu', async (req, res) => {
     });
     res.json({ ...payload, products: filtered });
   } catch (err) {
-          logApiError(req, 'api:menu', err);
+    logApiError(req, 'api:menu', err);
     res.status(500).json({
       error: 'Falha ao carregar cardápio oficial.'
     });
@@ -1722,7 +1733,7 @@ app.get('/api/pdv/settings', async (req, res) => {
     logApiError(req, 'api:pdv:settings', err);
     res.status(500).json({
       success: false,
-      message: 'Erro ao carregar configurações do PDV.'
+      message: 'Erro ao carregar configuracões do PDV.'
     });
   }
 });
@@ -1831,19 +1842,19 @@ app.get('/api/pdv/delivery/quote', async (req, res) => {
     );
 
     const blockedMatch = isDelivery
-       findBlockedNeighborhood(neighborhood, delivery.blockedNeighborhoods)
+      ? findBlockedNeighborhood(neighborhood, delivery.blockedNeighborhoods)
       : null;
     const range = isDelivery
-       findDeliveryRangeForKm(distanceKm, delivery)
+      ? findDeliveryRangeForKm(distanceKm, delivery)
       : null;
     const baseFee = isDelivery && range
-       parseNumberValue(range.price  range.fee  range.value  0)
+      ? parseNumberValue(range.price || range.fee || range.value || 0)
       : 0;
     const peakFee =
       isDelivery && isWithinPeakWindow(delivery.peakFee)
-         parseNumberValue(delivery.peakFee.amount)
+        ? parseNumberValue(delivery.peakFee.amount)
         : 0;
-    const totalFee = isDelivery  baseFee + peakFee : 0;
+    const totalFee = isDelivery ? baseFee + peakFee : 0;
 
     const violations = [];
     if (!businessStatus.isOpen) violations.push('BusinessHoursClosed');
@@ -1873,12 +1884,12 @@ app.get('/api/pdv/delivery/quote', async (req, res) => {
       },
       delivery: {
         range: range
-           {
+          ? {
               id: range.id || null,
               label: range.label || null,
-              minKm: range.minKm  null,
-              maxKm: range.maxKm  null,
-              price: parseNumberValue(range.price  range.fee  range.value  0)
+              minKm: range.minKm || null,
+              maxKm: range.maxKm || null,
+              price: parseNumberValue(range.price || range.fee || range.value || 0)
             }
           : null,
         baseFee,
@@ -1951,14 +1962,14 @@ app.get('/api/pdv/health', async (req, res) => {
     ]);
 
     const orders = Array.isArray(ordersRaw.items)
-       ordersRaw.items
+      ? ordersRaw.items
       : Array.isArray(ordersRaw)
-       ordersRaw
+      ? ordersRaw
       : [];
     const customers = Array.isArray(customersRaw.items)
-       customersRaw.items
+      ? customersRaw.items
       : Array.isArray(customersRaw)
-       customersRaw
+      ? customersRaw
       : [];
     const products = normalizeProductsList(productsRaw);
 
@@ -1978,7 +1989,7 @@ app.get('/api/pdv/health', async (req, res) => {
       stats: {
         orders: {
           total: orders.length,
-          lastUpdatedAt: lastOrderAt  lastOrderAt.toISOString() : null
+          lastUpdatedAt: lastOrderAt ? lastOrderAt.toISOString() : null
         },
         customers: { total: customers.length },
         products: { total: products.length }
@@ -2002,9 +2013,9 @@ app.get('/api/pdv/orders/metrics', async (req, res) => {
   try {
     const ordersRaw = await db.getCollection('orders');
     const orders = Array.isArray(ordersRaw.items)
-       ordersRaw.items
+      ? ordersRaw.items
       : Array.isArray(ordersRaw)
-       ordersRaw
+      ? ordersRaw
       : [];
     const from = parseDateValue(req.query.from);
     const to = parseDateValue(req.query.to);
@@ -2040,13 +2051,13 @@ app.get('/api/pdv/orders/metrics', async (req, res) => {
     }
 
     totals.averageTicket =
-      totals.orders > 0  totals.revenue / totals.orders : 0;
+      totals.orders > 0 ? totals.revenue / totals.orders : 0;
 
     res.json({
       success: true,
       window: {
-        from: from  from.toISOString() : null,
-        to: to  to.toISOString() : null
+        from: from ? from.toISOString() : null,
+        to: to ? to.toISOString() : null
       },
       totals,
       statuses: statusBreakdown,
@@ -2066,9 +2077,9 @@ app.get('/api/pdv/customers/segments', async (req, res) => {
   try {
     const customersRaw = await db.getCollection('customers');
     const customers = Array.isArray(customersRaw.items)
-       customersRaw.items
+      ? customersRaw.items
       : Array.isArray(customersRaw)
-       customersRaw
+      ? customersRaw
       : [];
 
     let vip = 0;
@@ -2078,7 +2089,9 @@ app.get('/api/pdv/customers/segments', async (req, res) => {
 
     for (const customer of customers) {
       const totalOrders = customer.totalOrders || 0;
-      const tags = Array.isArray(customer.tags)  customer.tags : [];
+      const tags = Array.isArray(customer.tags) ? customer.tags : [];
+      const meta =
+        customer.meta && typeof customer.meta === "object" ? customer.meta : {};
       const isVipTag = tags.some(
         (tag) => String(tag).toLowerCase() === 'vip'
       );
@@ -2093,7 +2106,7 @@ app.get('/api/pdv/customers/segments', async (req, res) => {
       }
 
       const daysSinceLastOrder = diffInDaysFromToday(
-        customer.meta.lastOrderAt || customer.lastOrderAt
+        meta.lastOrderAt || customer.lastOrderAt
       );
       if (
         totalOrders === 0 ||
@@ -2135,7 +2148,7 @@ app.get('/api/pdv/delivery/blocked-neighborhoods', async (req, res) => {
     const settingsRaw = await db.getCollection('settings');
     const settings = normalizePdvSettings(settingsRaw);
     const blocked = Array.isArray(settings.delivery.blockedNeighborhoods)
-       settings.delivery.blockedNeighborhoods.filter(Boolean)
+      ? settings.delivery.blockedNeighborhoods.filter(Boolean)
       : [];
 
     const items = blocked.map((name) => ({
@@ -2183,7 +2196,7 @@ app.get('/api/pdv/printing/config', async (req, res) => {
     logApiError(req, 'api:pdv:printing:config', err);
     res.status(500).json({
       success: false,
-      message: 'Erro ao carregar configurações de impressão.'
+      message: 'Erro ao carregar configuracões de impressão.'
     });
   }
 });
@@ -2196,11 +2209,11 @@ app.get('/api/orders/stream', (req, res) => {
 
   const typesParam = String(req.query.types || '').trim();
   const requestedTypes = typesParam
-     typesParam.split(',').map((t) => t.trim()).filter(Boolean)
+    ? typesParam.split(',').map((t) => t.trim()).filter(Boolean)
     : [];
   const allowedTypes = new Set(['created', 'updated']);
   const activeTypes = requestedTypes.length
-     new Set(requestedTypes.filter((t) => allowedTypes.has(t)))
+    ? new Set(requestedTypes.filter((t) => allowedTypes.has(t)))
     : allowedTypes;
 
   const sendEvent = (event, data) => {
@@ -2254,8 +2267,8 @@ app.get('/sync/collections', requireSyncAuth, async (req, res) => {
     }
     res.json({ collections: payload });
   } catch (err) {
-          logError('sync:collections', 'Erro ao sincronizar todas as coleções', err);
-    res.status(500).json({ error: 'Erro ao carregar coleções.' });
+    logError('sync:collections', 'Erro ao sincronizar todas as colecões', err);
+    res.status(500).json({ error: 'Erro ao carregar colecões.' });
   }
 });
 
@@ -2278,7 +2291,7 @@ app.get('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
           return Date.parse(ts) >= sinceMs;
         });
         const deleted = Array.isArray(wrapper.meta.deleted)
-           wrapper.meta.deleted.filter((entry) => {
+          ? wrapper.meta.deleted.filter((entry) => {
               if (!entry.deletedAt) return true;
               return Date.parse(entry.deletedAt) >= sinceMs;
             })
@@ -2295,7 +2308,7 @@ app.get('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
 
     return res.json(data);
   } catch (err) {
-          logError('sync:collection:get', 'Erro ao sincronizar coleção (GET)', err);
+    logError('sync:collection:get', 'Erro ao sincronizar coleção (GET)', err);
     res.status(500).json({ error: 'Erro ao carregar coleção.' });
   }
 });
@@ -2316,7 +2329,7 @@ app.post('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
       const merged = applyDeltaToCollection(current, payload);
       const synced =
         collection === 'settings'
-           syncSettingsData(current, merged)
+          ? syncSettingsData(current, merged)
           : merged;
       await db.setCollection(collection, synced, { skipSync: true });
       return res.json({ success: true, mode: 'delta' });
@@ -2326,7 +2339,7 @@ app.post('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
       const current = await db.getCollection(collection);
       const synced =
         collection === 'settings'
-           syncSettingsData(current, payload.data)
+          ? syncSettingsData(current, payload.data)
           : payload.data;
       await db.setCollection(collection, synced, { skipSync: true });
       return res.json({ success: true, mode: 'full' });
@@ -2335,12 +2348,12 @@ app.post('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
     const current = await db.getCollection(collection);
     const synced =
       collection === 'settings'
-         syncSettingsData(current, payload)
+        ? syncSettingsData(current, payload)
         : payload;
     await db.setCollection(collection, synced, { skipSync: true });
     return res.json({ success: true, mode: 'legacy' });
   } catch (err) {
-          logError('sync:collection:post', 'Erro ao sincronizar coleção (POST)', err);
+    logError('sync:collection:post', 'Erro ao sincronizar coleção (POST)', err);
     res.status(500).json({ error: 'Erro ao salvar coleção.' });
   }
 });
@@ -2350,7 +2363,7 @@ app.post('/sync/collection/:collection', requireSyncAuth, async (req, res) => {
 // ============================================================================
 //
 // Usado pelo CheckoutPage para ver se o cliente já está cadastrado.
-// GET /api/customers/by-phonephone=11999999999
+// GET /api/customers/by-phone?phone=11999999999
 //
 app.get('/api/customers/by-phone', async (req, res) => {
   try {
@@ -2365,9 +2378,9 @@ app.get('/api/customers/by-phone', async (req, res) => {
 
     const data = await db.getCollection('customers');
     const items = Array.isArray(data.items)
-       data.items
+      ? data.items
       : Array.isArray(data)
-       data
+      ? data
       : [];
 
     const normalize = (p) => String(p || '').replace(/\D/g, '');
@@ -2381,20 +2394,20 @@ app.get('/api/customers/by-phone', async (req, res) => {
     // Retorna o registro completo do cliente
     return res.json(found);
   } catch (err) {
-          logApiError(req, 'api:customers/by-phone', err);
+    logApiError(req, 'api:customers/by-phone', err);
     res.status(500).json({ error: 'Erro ao buscar cliente por telefone.' });
   }
 });
 
 // ============================================================================
-// 3.2. VALIDA��O E CADASTRO DE NOVOS CLIENTES (POST /api/customers)
+// 3.2. VALIDAÇÃO E CADASTRO DE NOVOS CLIENTES (POST /api/customers)
 // ============================================================================
 
 function validateCustomerPayload(payload) {
   const errors = [];
 
   if (!payload || typeof payload !== 'object') {
-    return ['Payload inv�lido.'];
+    return ['Payload inválido.'];
   }
 
   if (
@@ -2450,9 +2463,9 @@ app.post('/api/customers', async (req, res) => {
 
     const data = await db.getCollection('customers');
     const items = Array.isArray(data.items)
-       data.items
+      ? data.items
       : Array.isArray(data)
-       data
+      ? data
       : [];
 
     const normalize = (p) => String(p || '').replace(/\D/g, '');
@@ -2490,7 +2503,7 @@ app.post('/api/customers', async (req, res) => {
       notes: payload.notes || '',
       source: payload.source || 'site',
       tags: Array.isArray(payload.tags) && payload.tags.length > 0
-         payload.tags
+        ? payload.tags
         : ['novo'],
       totalOrders: 0,
       totalSpent: 0,
@@ -2507,7 +2520,7 @@ app.post('/api/customers', async (req, res) => {
       customer: created
     });
   } catch (err) {
-          logApiError(req, 'api:customers:post', err);
+    logApiError(req, 'api:customers:post', err);
     return res.status(500).json({
       success: false,
       message: 'Erro interno ao cadastrar cliente.'
@@ -2559,7 +2572,7 @@ app.put('/api/motoboys/:id/status', async (req, res) => {
       motoboy: updated
     });
   } catch (err) {
-          logApiError(req, 'api:motoboys/status', err);
+    logApiError(req, 'api:motoboys/status', err);
     res.status(500).json({
       success: false,
       message: 'Erro interno ao atualizar status do motoboy.'
@@ -2643,9 +2656,9 @@ app.get('/api/motoboys/:id/status', async (req, res) => {
 
     const data = await db.getCollection('motoboys');
     const items = Array.isArray(data.items)
-       data.items
+      ? data.items
       : Array.isArray(data)
-       data
+      ? data
       : [];
 
     const found = items.find((m) => String(m.id) === String(id));
@@ -2664,7 +2677,7 @@ app.get('/api/motoboys/:id/status', async (req, res) => {
       isActive: found.isActive !== false
     });
   } catch (err) {
-          logApiError(req, 'api:motoboys/getStatus', err);
+    logApiError(req, 'api:motoboys/getStatus', err);
     res.status(500).json({
       success: false,
       message: 'Erro ao consultar status do motoboy.'
@@ -2688,9 +2701,9 @@ app.get('/motoboy/pedido/:orderId', async (req, res) => {
     // 1) Carrega pedidos
     const ordersData = await db.getCollection('orders');
     const orders = Array.isArray(ordersData.items)
-       ordersData.items
+      ? ordersData.items
       : Array.isArray(ordersData)
-       ordersData
+      ? ordersData
       : [];
 
     const order =
@@ -2710,9 +2723,9 @@ app.get('/motoboy/pedido/:orderId', async (req, res) => {
     if (order.motoboyId) {
       const motoboysData = await db.getCollection('motoboys');
       const motoboys = Array.isArray(motoboysData.items)
-         motoboysData.items
+        ? motoboysData.items
         : Array.isArray(motoboysData)
-         motoboysData
+        ? motoboysData
         : [];
 
       const motoboy = motoboys.find(
@@ -2731,15 +2744,19 @@ app.get('/motoboy/pedido/:orderId', async (req, res) => {
     }
 
     const { trackingUrl, trackingCode } = resolveTrackingPayload(order);
+    const delivery =
+      order.delivery && typeof order.delivery === "object"
+        ? order.delivery
+        : {};
     const lastUpdatedAt =
-      order.updatedAt || order.delivery.updatedAt || order.createdAt || null;
+      order.updatedAt || delivery.updatedAt || order.createdAt || null;
     const motoboyStatus =
       order.motoboyStatus ||
-      order.delivery.motoboyStatus ||
-      (motoboyInfo  motoboyInfo.status : null);
+      delivery.motoboyStatus ||
+      (motoboyInfo ? motoboyInfo.status : null);
     const motoboyUpdatedAt =
-      order.delivery.motoboyUpdatedAt ||
-      order.delivery.motoboyLinkedAt ||
+      delivery.motoboyUpdatedAt ||
+      delivery.motoboyLinkedAt ||
       order.updatedAt ||
       null;
 
@@ -2758,7 +2775,7 @@ app.get('/motoboy/pedido/:orderId', async (req, res) => {
       order
     });
   } catch (err) {
-          logApiError(req, 'api:motoboy/pedido', err);
+    logApiError(req, 'api:motoboy/pedido', err);
     res.status(500).json({
       success: false,
       message: 'Erro ao buscar pedido para tracking do motoboy.'
@@ -2798,9 +2815,9 @@ app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
 
     const motoboysData = await db.getCollection('motoboys');
     const motoboys = Array.isArray(motoboysData.items)
-       motoboysData.items
+      ? motoboysData.items
       : Array.isArray(motoboysData)
-       motoboysData
+      ? motoboysData
       : [];
 
     const motoboy = motoboys.find(
@@ -2816,9 +2833,9 @@ app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
 
     const ordersData = await db.getCollection('orders');
     const orders = Array.isArray(ordersData.items)
-       ordersData.items
+      ? ordersData.items
       : Array.isArray(ordersData)
-       ordersData
+      ? ordersData
       : [];
 
     const orderIndex = orders.findIndex(
@@ -2854,7 +2871,7 @@ app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
       name: motoboy.name,
       phone: motoboy.phone,
       baseNeighborhood: motoboy.baseNeighborhood || null,
-      baseFee: motoboy.baseFee  null
+      baseFee: motoboy.baseFee || null
     };
 
     const updatedOrder = {
@@ -2864,7 +2881,7 @@ app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
       motoboyName: motoboy.name,
       motoboyPhone: motoboy.phone,
       motoboyBaseNeighborhood: motoboy.baseNeighborhood || null,
-      motoboyBaseFee: motoboy.baseFee  null,
+      motoboyBaseFee: motoboy.baseFee || null,
       motoboySnapshot,
       motoboyStatus: 'out_for_delivery',
       motoboyLinkedAt: now,
@@ -2874,7 +2891,7 @@ app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
         motoboyName: motoboy.name,
         motoboyPhone: motoboy.phone,
         motoboyBaseNeighborhood: motoboy.baseNeighborhood || null,
-        motoboyBaseFee: motoboy.baseFee  null,
+        motoboyBaseFee: motoboy.baseFee || null,
         motoboySnapshot,
         motoboyStatus: 'out_for_delivery',
         motoboyUpdatedAt: now,
@@ -2917,7 +2934,7 @@ app.post('/motoboy/pedido/:orderId/link', async (req, res) => {
       trackingCode: tracking.trackingCode
     });
   } catch (err) {
-          logApiError(req, 'api:motoboy/link', err);
+    logApiError(req, 'api:motoboy/link', err);
     res.status(500).json({
       success: false,
       message: 'Erro ao vincular motoboy ao pedido via QR.'
@@ -3064,9 +3081,9 @@ app.post('/motoboy/token/validate', async (req, res) => {
 
     const motoboysData = await db.getCollection('motoboys');
     const motoboys = Array.isArray(motoboysData.items)
-       motoboysData.items
+      ? motoboysData.items
       : Array.isArray(motoboysData)
-       motoboysData
+      ? motoboysData
       : [];
 
     const motoboy = motoboys.find(
@@ -3089,7 +3106,7 @@ app.post('/motoboy/token/validate', async (req, res) => {
       status: motoboy.status || 'available',
       isActive: motoboy.isActive !== false,
       baseNeighborhood: motoboy.baseNeighborhood || null,
-      baseFee: motoboy.baseFee  null
+      baseFee: motoboy.baseFee || null
     };
 
     return res.json({
@@ -3126,7 +3143,7 @@ app.get('/api/:collection', async (req, res) => {
     const data = await db.getCollection(collection);
     res.json(data);
   } catch (err) {
-          logApiError(req, 'api:getCollection', err);
+    logApiError(req, 'api:getCollection', err);
     res
       .status(400)
       .json({ error: err.message || 'Erro ao carregar coleção' });
@@ -3162,7 +3179,7 @@ app.post('/api/:collection', async (req, res) => {
     }
     res.status(201).json(responsePayload);
   } catch (err) {
-          logApiError(req, 'api:addItem', err);
+    logApiError(req, 'api:addItem', err);
     res
       .status(400)
       .json({ error: err.message || 'Erro ao adicionar item' });
@@ -3180,7 +3197,7 @@ app.put('/api/:collection/:id', async (req, res) => {
       const shouldValidate = shouldValidateDeliveryChanges(changes);
       if (shouldValidate) {
         const data = await db.getCollection('orders');
-        const items = Array.isArray(data.items)  data.items : (Array.isArray(data)  data : []);
+        const items = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
         const existing = items.find((o) => String(o.id) === String(id)) || null;
 
         const merged = {
@@ -3205,9 +3222,9 @@ app.put('/api/:collection/:id', async (req, res) => {
     if (collection === 'settings') {
       const current = await db.getCollection('settings');
       const items = Array.isArray(current.items)
-         current.items
+        ? current.items
         : Array.isArray(current)
-         current
+        ? current
         : [];
       const existing = items.find((item) => String(item.id) === String(id)) || null;
       const merged = {
@@ -3220,7 +3237,7 @@ app.put('/api/:collection/:id', async (req, res) => {
           ...(changesToSave.businessHours || {})
         };
         merged.businessHours = syncBusinessHoursTimes(
-          existing  existing.businessHours : null,
+          existing ? existing.businessHours : null,
           mergedHours
         );
       }
@@ -3235,7 +3252,7 @@ app.put('/api/:collection/:id', async (req, res) => {
     }
     res.json(responsePayload);
   } catch (err) {
-          logApiError(req, 'api:updateItem', err);
+    logApiError(req, 'api:updateItem', err);
     res
       .status(400)
       .json({ error: err.message || 'Erro ao atualizar item' });
@@ -3250,7 +3267,7 @@ app.delete('/api/:collection/:id', async (req, res) => {
     const removed = await db.removeItem(collection, id);
     res.json(removed);
   } catch (err) {
-          logApiError(req, 'api:removeItem', err);
+    logApiError(req, 'api:removeItem', err);
     res
       .status(400)
       .json({ error: err.message || 'Erro ao remover item' });
@@ -3265,7 +3282,7 @@ app.post('/api/:collection/reset', async (req, res) => {
     const result = await db.resetCollection(collection);
     res.json(result);
   } catch (err) {
-          logApiError(req, 'api:resetCollection', err);
+    logApiError(req, 'api:resetCollection', err);
     res
       .status(400)
       .json({ error: err.message || 'Erro ao resetar coleção' });
