@@ -33,19 +33,19 @@ const PAYMENT_TAG_COLORS = {
 const PAYMENT_LABELS = {
   money: "Dinheiro",
   pix: "Pix",
-  credit: "Cartao credito",
-  debit: "Cartao debito",
+  credit: "Cartão de crédito",
+  debit: "Cartão de débito",
   ifood: "iFood",
 };
 
 const SOURCE_LABELS = {
   website: "Site",
   web: "Site",
-  local: "Balcao / Local",
-  balcao: "Balcao / Local",
-  "balcao": "Balcao / Local",
-  counter: "Balcao / Local",
-  desktop: "Balcao / Local",
+  local: "Balcão / Local",
+  balcao: "Balcão / Local",
+  "balcao": "Balcão / Local",
+  counter: "Balcão / Local",
+  desktop: "Balcão / Local",
   delivery: "Delivery",
   ifood: "iFood",
   whatsapp: "WhatsApp",
@@ -106,7 +106,7 @@ function formatAddress(addr = {}) {
   if (normalized.city) parts.push(normalized.city);
   if (normalized.state) parts.push(normalized.state);
   if (normalized.cep) parts.push(`CEP ${normalized.cep}`);
-  return parts.filter(Boolean).join(" - ") || "Sem endereco";
+  return parts.filter(Boolean).join(" - ") || "Sem endereço";
 }
 
 function buildMapsUrl(addr = {}) {
@@ -220,7 +220,7 @@ const OrderDetailsModal = ({
     PAYMENT_LABELS[paymentMethod] ||
     order.paymentLabel ||
     order.payment.label ||
-    "Nao definido";
+    "Não definido";
   const paymentStatus =
     order.payment.status || order.paymentStatus || "to_define";
 
@@ -303,7 +303,7 @@ const OrderDetailsModal = ({
           <span className="modal-badge modal-badge--accent">{sourceLabel}</span>
           <span className="modal-badge modal-badge--info">{paymentLabel}</span>
           <span className="modal-badge">{statusLabel}</span>
-          <span className="hint-dot" data-tooltip="Resumo rapido do pedido.">?</span>
+          <span className="hint-dot" data-tooltip="Resumo rápido do pedido.">?</span>
         </div>
         <div className="order-details__column order-details__column--main">
           <section className="order-section">
@@ -323,7 +323,7 @@ const OrderDetailsModal = ({
               <div>
                 <span className="order-kv__label">Telefone</span>
                 <span className="order-kv__value">
-                  {customer.phone || "Nao informado"}
+                  {customer.phone || "Não informado"}
                 </span>
                 {customer.phone && (
                   <button
@@ -340,7 +340,7 @@ const OrderDetailsModal = ({
 
             <div className="order-kv">
               <div>
-                <span className="order-kv__label">Endereco</span>
+                <span className="order-kv__label">Endereço</span>
                 <span className="order-kv__value">
                   {formatAddress(customer.address)}
                 </span>
@@ -396,8 +396,8 @@ const OrderDetailsModal = ({
                   <option value="">Selecione</option>
                   <option value="money">Dinheiro</option>
                   <option value="pix">PIX</option>
-                  <option value="credit">Credito</option>
-                  <option value="debit">Debito</option>
+                  <option value="credit">Crédito</option>
+                  <option value="debit">Débito</option>
                   <option value="ifood">iFood</option>
                 </select>
               </div>
@@ -407,13 +407,13 @@ const OrderDetailsModal = ({
               <div>
                 <span className="order-kv__label">Troco para</span>
                 <span className="order-kv__value">
-                  {changeFor ? formatCurrency(changeFor) : "Nao informado"}
+                  {changeFor ? formatCurrency(changeFor) : "Não informado"}
                 </span>
               </div>
               <div>
-                <span className="order-kv__label">Observacoes</span>
+                <span className="order-kv__label">Observações</span>
                 <span className="order-kv__value">
-                  {paymentNotes || "Nenhuma observacao"}
+                  {paymentNotes || "Nenhuma observação"}
                 </span>
               </div>
             </div>
@@ -442,7 +442,7 @@ const OrderDetailsModal = ({
                           <span className="chip">{item.sizeLabel}</span>
                         )}
                         <span className="chip chip--outline">
-                          Unitario {formatCurrency(item.unitPrice)}
+                          Unitário {formatCurrency(item.unitPrice)}
                         </span>
                       </div>
                     </div>
@@ -501,7 +501,7 @@ const OrderDetailsModal = ({
 
           {(orderNotes || kitchenNotes) && (
             <section className="order-section">
-              <h3 className="order-section__title">Observacoes</h3>
+              <h3 className="order-section__title">Observações</h3>
               {orderNotes && (
                 <div className="order-kv">
                   <span className="order-kv__label">Pedido</span>
@@ -587,7 +587,7 @@ const OrderDetailsModal = ({
                   onClick={() => onPrintCounter(order)}
                 >
                   <OrderIcon name="print" />
-                  Imprimir balcao
+                  Imprimir balcão
                 </Button>
               )}
               {typeof onDelete === "function" && (
@@ -595,7 +595,7 @@ const OrderDetailsModal = ({
                   variant="outline"
                   onClick={() => {
                     const confirmed = window.confirm(
-                      "Deseja realmente excluir este pedido Esta acao nao pode ser desfeita."
+                      "Deseja realmente excluir este pedido? Esta ação não pode ser desfeita."
                     );
                     if (confirmed) onDelete(order);
                   }}
@@ -620,4 +620,3 @@ const OrderDetailsModal = ({
 };
 
 export default OrderDetailsModal;
-

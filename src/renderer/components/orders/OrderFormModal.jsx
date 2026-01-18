@@ -57,7 +57,7 @@ const OrderFormModal = ({ isOpen, onClose, onConfirm, formatCurrency, initialOrd
   const [allOrders, setAllOrders] = useState([]);
   const [customerMode, setCustomerMode] = useState('registered');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
-  const [counterLabel, setCounterLabel] = useState('Balcao');
+  const [counterLabel, setCounterLabel] = useState('Balcão');
   const [selectedCustomerAddressId, setSelectedCustomerAddressId] = useState('primary');
   const [customerAltAddresses, setCustomerAltAddresses] = useState([]);
   const [deliveryAddress, setDeliveryAddress] = useState(null);
@@ -124,13 +124,13 @@ const OrderFormModal = ({ isOpen, onClose, onConfirm, formatCurrency, initialOrd
     ? 'Entrega'
     : deliveryType === 'pickup'
       ? 'Retirada'
-      : 'Balcao';
+      : 'Balcão';
 
   const paymentLabel = paymentMethod === 'money'
     ? 'Dinheiro'
     : paymentMethod === 'pix'
       ? 'PIX'
-      : 'Cartao';
+      : 'Cartão';
 
   const statusLabelMap = {
     open: 'Em aberto',
@@ -406,7 +406,7 @@ const OrderFormModal = ({ isOpen, onClose, onConfirm, formatCurrency, initialOrd
         <>
           <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
           <button className="btn btn-primary" onClick={() => submitForm()}>
-            {initialOrder ? 'Salvar Alteraes' : 'Criar Pedido'}
+            {initialOrder ? 'Salvar Alterações' : 'Criar Pedido'}
           </button>
           <button className="btn btn-success" onClick={() => submitForm({ action: 'save_and_print' })}>
             Salvar e Imprimir
@@ -427,7 +427,7 @@ const OrderFormModal = ({ isOpen, onClose, onConfirm, formatCurrency, initialOrd
           </div>
           <div className="card-content">
             <div className="summary-label">Nome</div>
-            <div className="summary-value">{customerName || 'Nao informado'}</div>
+            <div className="summary-value">{customerName || 'Não informado'}</div>
             <div className="summary-meta">Telefone: {customerPhone || '-'}</div>
             {errors.customerName && (
               <div className="field-error-text">{errors.customerName.message}</div>
@@ -443,7 +443,7 @@ const OrderFormModal = ({ isOpen, onClose, onConfirm, formatCurrency, initialOrd
               onClick={() => setShowCustomerHistoryModal(true)}
               disabled={!selectedCustomer}
             >
-              <OrderIcon name="summary" /> Historico
+              <OrderIcon name="summary" /> Histórico
             </button>
           </div>
         </motion.div>
@@ -451,17 +451,17 @@ const OrderFormModal = ({ isOpen, onClose, onConfirm, formatCurrency, initialOrd
         <motion.div {...sectionMotion} className="modular-card address-card">
           <div className="card-header">
             <h3>
-              <OrderIcon name="pin" /> Endereco
+              <OrderIcon name="pin" /> Endereço
             </h3>
           </div>
           <div className="card-content">
-            <div className="summary-label">Endereco ativo</div>
-            <div className="summary-value">{customerAddress || 'Nao informado'}</div>
+            <div className="summary-label">Endereço ativo</div>
+            <div className="summary-value">{customerAddress || 'Não informado'}</div>
             <div className="summary-meta">Tipo: {deliveryTypeLabel}</div>
           </div>
           <div className="card-actions">
             <button type="button" className="btn btn-outline btn-block" onClick={() => setShowDeliveryAddressModal(true)}>
-              <OrderIcon name="pin" /> Gerenciar endereco
+              <OrderIcon name="pin" /> Gerenciar endereço
             </button>
           </div>
         </motion.div>
@@ -527,17 +527,17 @@ const OrderFormModal = ({ isOpen, onClose, onConfirm, formatCurrency, initialOrd
         <motion.div {...sectionMotion} className="modular-card">
           <div className="card-header">
             <h3>
-              <OrderIcon name="options" /> Informacoes adicionais
+              <OrderIcon name="options" /> Informações adicionais
             </h3>
           </div>
           <div className="card-content">
             <div className="summary-label">Desconto</div>
             <div className="summary-value">{formatCurrency(discountAmount)}</div>
-            <div className="summary-meta">Observacoes: {(notes || kitchenNotes) ? 'Sim' : 'Nao'}</div>
+            <div className="summary-meta">Observações: {(notes || kitchenNotes) ? 'Sim' : 'Não'}</div>
           </div>
           <div className="card-actions">
             <button type="button" className="btn btn-outline btn-block" onClick={() => setShowOrderOptionsModal(true)}>
-              <OrderIcon name="options" /> Editar informacoes
+              <OrderIcon name="options" /> Editar informações
             </button>
           </div>
         </motion.div>
@@ -718,4 +718,3 @@ const OrderFormModal = ({ isOpen, onClose, onConfirm, formatCurrency, initialOrd
 };
 
 export default OrderFormModal;
-
