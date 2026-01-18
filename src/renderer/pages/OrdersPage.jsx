@@ -25,6 +25,14 @@ import {
 } from "../api/orders";
 import { mapDraftToOrder, normalizeOrderRecord, resolveOrderId } from "../utils/orderMapper";
 
+const PAYMENT_LABELS = {
+  money: "Dinheiro",
+  pix: "PIX",
+  credit: "Crédito",
+  debit: "Débito",
+  ifood: "iFood",
+};
+
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [filters, setFilters] = useState({ status: "open", source: "all" });
@@ -423,6 +431,69 @@ const OrdersPage = () => {
       emitToast({
         type: "error",
         message: "Erro ao atualizar status. Veja o console para detalhes.",
+      });
+    }
+  };
+
+  const handleChangePayment = async (orderId, paymentMethod) => {
+    if (!orderId) return;
+
+    const normalizedMethod = (paymentMethod || "").toString().toLowerCase().trim();
+
+    const applyPaymentUpdate = (order) => {
+      if (!order) return order;
+      const paymentLabel = normalizedMethod
+        ? PAYMENT_LABELS[normalizedMethod] || normalizedMethod
+        : "";
+      const nextPayment = {
+        ...(order.payment || {}),
+        method: normalizedMethod,
+        label: paymentLabel || undefined,
+      };
+
+      return {
+        ...order,
+        payment: nextPayment,
+        paymentMethod: normalizedMethod,
+        paymentLabel: paymentLabel || "",
+        updatedAt: new Date().toISOString(),
+      };
+    };
+
+    const currentOrder =
+      orders.find((o) => o.id === orderId || o._id === orderId) ||
+      selectedOrder ||
+      null;
+    const updatedOrder = applyPaymentUpdate(currentOrder);
+
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId || order._id === orderId
+          ? applyPaymentUpdate(order)
+          : order
+      )
+    );
+
+    setSelectedOrder((prev) =>
+      prev && (prev.id === orderId || prev._id === orderId)
+        ? applyPaymentUpdate(prev)
+        : prev
+    );
+
+    try {
+      if (updatedOrder) {
+        await updateOrderRecord(orderId, updatedOrder);
+      }
+      await loadOrders();
+    } catch (err) {
+      console.error(
+        "[OrdersPage] Erro ao atualizar forma de pagamento:",
+        err
+      );
+      emitToast({
+        type: "error",
+        message:
+          "Erro ao atualizar o pagamento. Verifique o console para detalhes.",
       });
     }
   };
@@ -947,6 +1018,7 @@ const OrdersPage = () => {
           onDelete={handleDeleteOrder}
           onDuplicate={handleDuplicateOrder}
           onEditOrder={handleEditOrder}
+          onChangePayment={handleChangePayment}
         />
       )}
 

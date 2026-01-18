@@ -32,9 +32,9 @@ const PAYMENT_TAG_COLORS = {
 
 const PAYMENT_LABELS = {
   money: "Dinheiro",
-  pix: "Pix",
-  credit: "Cartao credito",
-  debit: "Cartao debito",
+  pix: "PIX",
+  credit: "Crédito",
+  debit: "Débito",
   ifood: "iFood",
 };
 
@@ -215,14 +215,18 @@ const OrderDetailsModal = ({
 
   const customer = normalizeCustomer(order);
   const orderId = order.id || order._id;
-  const paymentMethod = (order.payment.method || order.paymentMethod || "").toLowerCase();
-  const paymentLabel =
-    PAYMENT_LABELS[paymentMethod] ||
-    order.paymentLabel ||
-    order.payment.label ||
-    "Nao definido";
+  const paymentMethod = (order.payment.method || order.paymentMethod || "")
+    .toString()
+    .toLowerCase()
+    .trim();
+  const paymentLabel = paymentMethod
+    ? PAYMENT_LABELS[paymentMethod] || paymentMethod
+    : "A definir";
+  const paymentStatusRaw = order.payment.status || order.paymentStatus || "";
   const paymentStatus =
-    order.payment.status || order.paymentStatus || "to_define";
+    paymentStatusRaw && paymentStatusRaw !== "to_define"
+      ? paymentStatusRaw
+      : "A definir";
 
   const paymentNotes = order.payment.notes || order.paymentNotes || "";
   const changeFor =
@@ -620,4 +624,3 @@ const OrderDetailsModal = ({
 };
 
 export default OrderDetailsModal;
-
