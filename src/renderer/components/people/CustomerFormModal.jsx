@@ -58,45 +58,46 @@ async function lookupCep(cepRaw) {
   return data;
 }
 
+const buildEditingData = (source) => {
+  const safe = source && typeof source === "object" ? source : {};
+  return {
+    id: safe.id,
+    name: safe.name || "",
+    phone: safe.phone || "",
+    cpf: safe.cpf || "",
+    notes: safe.notes || "",
+    deliveryMinMinutes:
+      typeof safe.deliveryMinMinutes === "number"
+        ? safe.deliveryMinMinutes
+        : null,
+    deliveryMetrics: safe.deliveryMetrics || null,
+    deliveryFee:
+      typeof safe.deliveryFee === "number" ? String(safe.deliveryFee) : "",
+    address: {
+      cep: safe.address?.cep || "",
+      street: safe.address?.street || "",
+      number: safe.address?.number || "",
+      neighborhood: safe.address?.neighborhood || "",
+      city: safe.address?.city || safe.address?.cidade || "",
+      state: safe.address?.state || safe.address?.uf || "",
+      complement: safe.address?.complement || "",
+      reference: safe.address?.reference || "",
+    },
+  };
+};
+
 const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
   // compat: aceita initialData OU customer
-  const editingData = initialData || customer || null;
+  const hasEditingData = Boolean(initialData || customer);
+  const editingData = buildEditingData(initialData || customer);
 
-  const displayName = editingData
+  const displayName = hasEditingData
     ? editingData.name.trim() || "Cliente sem nome"
     : "Novo cliente";
 
   const [form, setForm] = useState(() => ({
+    ...editingData,
     id: editingData.id || undefined,
-    name: editingData.name || "",
-    phone: editingData.phone || "",
-    cpf: editingData.cpf || "",
-    notes: editingData.notes || "",
-    deliveryMinMinutes:
-      typeof editingData.deliveryMinMinutes === "number"
-        ? editingData.deliveryMinMinutes
-        : null,
-    deliveryMetrics: editingData.deliveryMetrics || null,
-    deliveryFee:
-      typeof editingData.deliveryFee === "number"
-        ? String(editingData.deliveryFee)
-        : "",
-    address: {
-      cep: editingData.address.cep || "",
-      street: editingData.address.street || "",
-      number: editingData.address.number || "",
-      neighborhood: editingData.address.neighborhood || "",
-      city:
-        editingData.address.city ||
-        editingData.address.cidade ||
-        "",
-      state:
-        editingData.address.state ||
-        editingData.address.uf ||
-        "",
-      complement: editingData.address.complement || "",
-      reference: editingData.address.reference || "",
-    },
   }));
 
   const [blockedNeighborhoods, setBlockedNeighborhoods] = useState([]);
@@ -120,62 +121,27 @@ const CustomerFormModal = ({ initialData, customer, onClose, onSaved }) => {
 
   // se o cliente mudar (editar outro), atualiza o form
   useEffect(() => {
-    if (!editingData) {
-      setFormErrors({});
-      setFormErrorMessage("");
-      setCepStatus("idle");
-      setCepMessage("");
-      lastCepLookupRef.current = "";
-      return;
-    }
+    const nextData = buildEditingData(initialData || customer);
     setForm({
-      id: editingData.id || undefined,
-      name: editingData.name || "",
-      phone: editingData.phone || "",
-      cpf: editingData.cpf || "",
-      notes: editingData.notes || "",
-      deliveryMinMinutes:
-        typeof editingData.deliveryMinMinutes === "number"
-          ? editingData.deliveryMinMinutes
-          : null,
-      deliveryMetrics: editingData.deliveryMetrics || null,
-      deliveryFee:
-        typeof editingData.deliveryFee === "number"
-          ? String(editingData.deliveryFee)
-          : "",
-      address: {
-        cep: editingData.address.cep || "",
-        street: editingData.address.street || "",
-        number: editingData.address.number || "",
-        neighborhood: editingData.address.neighborhood || "",
-        city:
-          editingData.address.city ||
-          editingData.address.cidade ||
-          "",
-        state:
-          editingData.address.state ||
-          editingData.address.uf ||
-          "",
-        complement: editingData.address.complement || "",
-        reference: editingData.address.reference || "",
-      },
+      ...nextData,
+      id: nextData.id || undefined,
     });
     setFormErrors({});
     setFormErrorMessage("");
     setCepStatus("idle");
     setCepMessage("");
     lastCepLookupRef.current = "";
-  }, [editingData]);
+  }, [initialData, customer]);
 
   useEffect(() => {
     let cancel = false;
 
     async function loadBlockedNeighborhoods() {
-      if (!window.dataEngine.get) return;
+      if (!window.dataEngine || !window.dataEngine.get) return;
       try {
         const settings = await window.dataEngine.get("settings");
         const item = normalizeSettingsData(settings);
-        const list = item.delivery.blockedNeighborhoods;
+        const list = item?.delivery?.blockedNeighborhoods;
         if (cancel) return;
         if (Array.isArray(list)) {
           setBlockedNeighborhoods(
