@@ -39,6 +39,7 @@ const OrdersPage = () => {
   const [activeModal, setActiveModal] = useState(null); // 'details' | 'create' | null
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [formInitialOrder, setFormInitialOrder] = useState(null);
+  const [formInitialSection, setFormInitialSection] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -269,6 +270,7 @@ const OrdersPage = () => {
       await loadOrders();
       setActiveModal(null);
       setFormInitialOrder(null);
+      setFormInitialSection(null);
     } catch (err) {
       console.error("[OrdersPage] Erro ao salvar pedido:", err);
       emitToast({
@@ -312,6 +314,7 @@ const OrdersPage = () => {
       setActiveModal(null);
       setFormInitialOrder(null);
       setSelectedOrder(null);
+      setFormInitialSection(null);
       if (options.action === "save_and_print") {
         await handlePrintOrder(updatedOrder, "full");
       }
@@ -668,6 +671,7 @@ const OrdersPage = () => {
     };
 
     setFormInitialOrder(draft);
+    setFormInitialSection(null);
     setActiveModal("create");
   };
 
@@ -709,10 +713,11 @@ const OrdersPage = () => {
     }
   };
 
-  const handleEditOrder = (orderToEdit) => {
+  const handleEditOrder = (orderToEdit, section = null) => {
     if (!orderToEdit) return;
     setSelectedOrder(orderToEdit);
     setFormInitialOrder(orderToEdit);
+    setFormInitialSection(section);
     setActiveModal("create");
   };
 
@@ -721,6 +726,7 @@ const OrdersPage = () => {
   const handleNewOrderClick = () => {
     setSelectedOrder(null);
     setFormInitialOrder(null);
+    setFormInitialSection(null);
     setActiveModal("create");
   };
 
@@ -728,6 +734,7 @@ const OrdersPage = () => {
     setActiveModal(null);
     setSelectedOrder(null);
     setFormInitialOrder(null);
+    setFormInitialSection(null);
   };
 
   const selectedOrderId = resolveOrderId(selectedOrder);
@@ -1030,6 +1037,7 @@ const OrdersPage = () => {
           onConfirm={handleOrderFormConfirm}
           formatCurrency={formatCurrency}
           initialOrder={formInitialOrder}
+          initialSection={formInitialSection}
         />
       )}
     </Page>
