@@ -25,12 +25,21 @@ import {
 } from "../api/orders";
 import { mapDraftToOrder, normalizeOrderRecord, resolveOrderId } from "../utils/orderMapper";
 
+const PAYMENT_LABELS = {
+  money: "Dinheiro",
+  pix: "PIX",
+  credit: "Crédito",
+  debit: "Débito",
+  ifood: "iFood",
+};
+
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [filters, setFilters] = useState({ status: "open", source: "all" });
   const [activeModal, setActiveModal] = useState(null); // 'details' | 'create' | null
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [formInitialOrder, setFormInitialOrder] = useState(null);
+  const [formInitialSection, setFormInitialSection] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -261,6 +270,7 @@ const OrdersPage = () => {
       await loadOrders();
       setActiveModal(null);
       setFormInitialOrder(null);
+      setFormInitialSection(null);
     } catch (err) {
       console.error("[OrdersPage] Erro ao salvar pedido:", err);
       emitToast({
@@ -304,6 +314,7 @@ const OrdersPage = () => {
       setActiveModal(null);
       setFormInitialOrder(null);
       setSelectedOrder(null);
+      setFormInitialSection(null);
       if (options.action === "save_and_print") {
         await handlePrintOrder(updatedOrder, "full");
       }
@@ -423,6 +434,69 @@ const OrdersPage = () => {
       emitToast({
         type: "error",
         message: "Erro ao atualizar status. Veja o console para detalhes.",
+      });
+    }
+  };
+
+  const handleChangePayment = async (orderId, paymentMethod) => {
+    if (!orderId) return;
+
+    const normalizedMethod = (paymentMethod || "").toString().toLowerCase().trim();
+
+    const applyPaymentUpdate = (order) => {
+      if (!order) return order;
+      const paymentLabel = normalizedMethod
+        ? PAYMENT_LABELS[normalizedMethod] || normalizedMethod
+        : "";
+      const nextPayment = {
+        ...(order.payment || {}),
+        method: normalizedMethod,
+        label: paymentLabel || undefined,
+      };
+
+      return {
+        ...order,
+        payment: nextPayment,
+        paymentMethod: normalizedMethod,
+        paymentLabel: paymentLabel || "",
+        updatedAt: new Date().toISOString(),
+      };
+    };
+
+    const currentOrder =
+      orders.find((o) => o.id === orderId || o._id === orderId) ||
+      selectedOrder ||
+      null;
+    const updatedOrder = applyPaymentUpdate(currentOrder);
+
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId || order._id === orderId
+          ? applyPaymentUpdate(order)
+          : order
+      )
+    );
+
+    setSelectedOrder((prev) =>
+      prev && (prev.id === orderId || prev._id === orderId)
+        ? applyPaymentUpdate(prev)
+        : prev
+    );
+
+    try {
+      if (updatedOrder) {
+        await updateOrderRecord(orderId, updatedOrder);
+      }
+      await loadOrders();
+    } catch (err) {
+      console.error(
+        "[OrdersPage] Erro ao atualizar forma de pagamento:",
+        err
+      );
+      emitToast({
+        type: "error",
+        message:
+          "Erro ao atualizar o pagamento. Verifique o console para detalhes.",
       });
     }
   };
@@ -597,6 +671,7 @@ const OrdersPage = () => {
     };
 
     setFormInitialOrder(draft);
+    setFormInitialSection(null);
     setActiveModal("create");
   };
 
@@ -638,10 +713,11 @@ const OrdersPage = () => {
     }
   };
 
-  const handleEditOrder = (orderToEdit) => {
+  const handleEditOrder = (orderToEdit, section = null) => {
     if (!orderToEdit) return;
     setSelectedOrder(orderToEdit);
     setFormInitialOrder(orderToEdit);
+    setFormInitialSection(section);
     setActiveModal("create");
   };
 
@@ -650,6 +726,7 @@ const OrdersPage = () => {
   const handleNewOrderClick = () => {
     setSelectedOrder(null);
     setFormInitialOrder(null);
+    setFormInitialSection(null);
     setActiveModal("create");
   };
 
@@ -657,6 +734,7 @@ const OrdersPage = () => {
     setActiveModal(null);
     setSelectedOrder(null);
     setFormInitialOrder(null);
+    setFormInitialSection(null);
   };
 
   const selectedOrderId = resolveOrderId(selectedOrder);
@@ -947,6 +1025,7 @@ const OrdersPage = () => {
           onDelete={handleDeleteOrder}
           onDuplicate={handleDuplicateOrder}
           onEditOrder={handleEditOrder}
+          onChangePayment={handleChangePayment}
         />
       )}
 
@@ -958,6 +1037,7 @@ const OrdersPage = () => {
           onConfirm={handleOrderFormConfirm}
           formatCurrency={formatCurrency}
           initialOrder={formInitialOrder}
+          initialSection={formInitialSection}
         />
       )}
     </Page>

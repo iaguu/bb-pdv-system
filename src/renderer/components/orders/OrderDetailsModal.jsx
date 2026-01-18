@@ -35,6 +35,9 @@ const PAYMENT_LABELS = {
   pix: "Pix",
   credit: "Cartão de crédito",
   debit: "Cartão de débito",
+  pix: "PIX",
+  credit: "Crédito",
+  debit: "Débito",
   ifood: "iFood",
 };
 
@@ -221,8 +224,18 @@ const OrderDetailsModal = ({
     order.paymentLabel ||
     order.payment.label ||
     "Não definido";
+  const paymentMethod = (order.payment.method || order.paymentMethod || "")
+    .toString()
+    .toLowerCase()
+    .trim();
+  const paymentLabel = paymentMethod
+    ? PAYMENT_LABELS[paymentMethod] || paymentMethod
+    : "A definir";
+  const paymentStatusRaw = order.payment.status || order.paymentStatus || "";
   const paymentStatus =
-    order.payment.status || order.paymentStatus || "to_define";
+    paymentStatusRaw && paymentStatusRaw !== "to_define"
+      ? paymentStatusRaw
+      : "A definir";
 
   const paymentNotes = order.payment.notes || order.paymentNotes || "";
   const changeFor =
@@ -278,6 +291,10 @@ const OrderDetailsModal = ({
     if (onChangePayment) onChangePayment(orderId, value);
   };
 
+  const handleEditSection = (section) => {
+    if (onEditOrder) onEditOrder(order, section);
+  };
+
   const handleCopyPhone = async () => {
     const phone = customer.phone || "";
     if (!phone) return;
@@ -314,6 +331,16 @@ const OrderDetailsModal = ({
                   {new Date(order.createdAt).toLocaleString("pt-BR")}
                 </span>
               )}
+              {onEditOrder && (
+                <button
+                  type="button"
+                  className="order-section__link"
+                  onClick={() => handleEditSection("customer")}
+                >
+                  <OrderIcon name="edit" />
+                  Editar cliente
+                </button>
+              )}
             </div>
             <div className="order-kv">
               <div>
@@ -337,7 +364,22 @@ const OrderDetailsModal = ({
                 )}
               </div>
             </div>
+          </section>
 
+          <section className="order-section">
+            <div className="order-section__header">
+              <h3 className="order-section__title">Endereco</h3>
+              {onEditOrder && (
+                <button
+                  type="button"
+                  className="order-section__link"
+                  onClick={() => handleEditSection("address")}
+                >
+                  <OrderIcon name="edit" />
+                  Editar endereco
+                </button>
+              )}
+            </div>
             <div className="order-kv">
               <div>
                 <span className="order-kv__label">Endereço</span>
@@ -373,7 +415,19 @@ const OrderDetailsModal = ({
           </section>
 
           <section className="order-section order-section--payment">
-            <h3 className="order-section__title">Pagamento</h3>
+            <div className="order-section__header">
+              <h3 className="order-section__title">Pagamento</h3>
+              {onEditOrder && (
+                <button
+                  type="button"
+                  className="order-section__link"
+                  onClick={() => handleEditSection("payment")}
+                >
+                  <OrderIcon name="edit" />
+                  Editar pagamento
+                </button>
+              )}
+            </div>
             <div className="order-kv order-kv--payment">
               <div className="order-kv__stack">
                 <span className="order-kv__label">Forma atual</span>
@@ -422,14 +476,16 @@ const OrderDetailsModal = ({
           <section className="order-section">
             <div className="order-section__header">
               <h3 className="order-section__title">Itens</h3>
-              <button
-                type="button"
-                className="order-section__link"
-                onClick={() => onEditOrder && onEditOrder(order)}
-              >
-                <OrderIcon name="edit" />
-                Editar pedido
-              </button>
+              {onEditOrder && (
+                <button
+                  type="button"
+                  className="order-section__link"
+                  onClick={() => handleEditSection("items")}
+                >
+                  <OrderIcon name="edit" />
+                  Editar itens
+                </button>
+              )}
             </div>
             <div className="order-items-list">
               {items.map((item) => (
@@ -475,7 +531,19 @@ const OrderDetailsModal = ({
           </section>
 
           <section className="order-section">
-            <h3 className="order-section__title">Status do pedido</h3>
+            <div className="order-section__header">
+              <h3 className="order-section__title">Status do pedido</h3>
+              {onEditOrder && (
+                <button
+                  type="button"
+                  className="order-section__link"
+                  onClick={() => handleEditSection("status")}
+                >
+                  <OrderIcon name="edit" />
+                  Editar status
+                </button>
+              )}
+            </div>
             <div className="status-chips">
               {STATUS_OPTIONS.map((s) => (
                 <button
@@ -502,6 +570,19 @@ const OrderDetailsModal = ({
           {(orderNotes || kitchenNotes) && (
             <section className="order-section">
               <h3 className="order-section__title">Observações</h3>
+              <div className="order-section__header">
+                <h3 className="order-section__title">Informacoes adicionais</h3>
+                {onEditOrder && (
+                  <button
+                    type="button"
+                    className="order-section__link"
+                    onClick={() => handleEditSection("options")}
+                  >
+                    <OrderIcon name="edit" />
+                    Editar informacoes
+                  </button>
+                )}
+              </div>
               {orderNotes && (
                 <div className="order-kv">
                   <span className="order-kv__label">Pedido</span>

@@ -22,7 +22,14 @@ const customerSchema = z.object({
   customerAddress: z.string().optional()
 });
 
-const OrderFormModal = ({ isOpen, onClose, onConfirm, formatCurrency, initialOrder }) => {
+const OrderFormModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  formatCurrency,
+  initialOrder,
+  initialSection,
+}) => {
   // Estados do Formulrio
   const [items, setItems] = useState([]);
   const [deliveryType, setDeliveryType] = useState('delivery');
@@ -192,6 +199,48 @@ const OrderFormModal = ({ isOpen, onClose, onConfirm, formatCurrency, initialOrd
       setDeliveryAddress(null);
     }
   }, [initialOrder, isOpen, reset]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setShowCustomerInfoModal(false);
+      setShowDeliveryAddressModal(false);
+      setShowOrderItemsModal(false);
+      setShowOrderStatusModal(false);
+      setShowOrderSummaryModal(false);
+      setShowPaymentModal(false);
+      setShowOrderOptionsModal(false);
+      setShowCustomerHistoryModal(false);
+      setShowProductPicker(false);
+      setShowPizzaModal(false);
+      setShowDrinkModal(false);
+      return;
+    }
+    if (!initialSection) return;
+    setShowCustomerInfoModal(false);
+    setShowDeliveryAddressModal(false);
+    setShowOrderItemsModal(false);
+    setShowOrderStatusModal(false);
+    setShowOrderSummaryModal(false);
+    setShowPaymentModal(false);
+    setShowOrderOptionsModal(false);
+    setShowCustomerHistoryModal(false);
+    setShowProductPicker(false);
+    setShowPizzaModal(false);
+    setShowDrinkModal(false);
+    if (initialSection === 'customer') {
+      setShowCustomerInfoModal(true);
+    } else if (initialSection === 'address') {
+      setShowDeliveryAddressModal(true);
+    } else if (initialSection === 'items') {
+      setShowOrderItemsModal(true);
+    } else if (initialSection === 'payment') {
+      setShowPaymentModal(true);
+    } else if (initialSection === 'options') {
+      setShowOrderOptionsModal(true);
+    } else if (initialSection === 'status') {
+      setShowOrderStatusModal(true);
+    }
+  }, [initialSection, isOpen]);
 
   // Carregar produtos do DataEngine
   useEffect(() => {
